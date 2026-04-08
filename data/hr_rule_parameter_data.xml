@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Suriname Salarisregel Parameters — Wet Loonbelasting 2026
+    =========================================================
+    Alle bedragen in SRD (Surinaamse Dollar).
+    Datum-gebaseerd: nieuwe waarden toevoegen bij wetswijziging.
+-->
+<odoo>
+    <data>
+        <!-- ═══════════════════════════════════════════════════════════
+             BELASTINGVRIJE VOET
+             Artikel 14 lid 1: SRD 108.000 per jaar (= SRD 9.000/maand)
+             ═══════════════════════════════════════════════════════════ -->
+        <record id="sr_param_belastingvrij_jaar" model="hr.rule.parameter">
+            <field name="name">SR — Belastingvrije voet (jaarbasis)</field>
+            <field name="code">SR_BELASTINGVRIJ_JAAR</field>
+            <field name="country_id" ref="base.sr"/>
+        </record>
+        <record id="sr_param_belastingvrij_jaar_2026" model="hr.rule.parameter.value">
+            <field name="rule_parameter_id" ref="sr_param_belastingvrij_jaar"/>
+            <field name="date_from" eval="datetime(2026, 1, 1).date()"/>
+            <field name="parameter_value">108000.0</field>
+        </record>
+
+        <!-- ═══════════════════════════════════════════════════════════
+             FORFAITAIRE BEROEPSKOSTEN AFTREK
+             4% van bruto loon, maximaal SRD 4.800 per jaar
+             ═══════════════════════════════════════════════════════════ -->
+        <record id="sr_param_forfaitaire_pct" model="hr.rule.parameter">
+            <field name="name">SR — Forfaitaire aftrek percentage</field>
+            <field name="code">SR_FORFAITAIRE_PCT</field>
+            <field name="country_id" ref="base.sr"/>
+        </record>
+        <record id="sr_param_forfaitaire_pct_2026" model="hr.rule.parameter.value">
+            <field name="rule_parameter_id" ref="sr_param_forfaitaire_pct"/>
+            <field name="date_from" eval="datetime(2026, 1, 1).date()"/>
+            <field name="parameter_value">0.04</field>
+        </record>
+
+        <record id="sr_param_forfaitaire_max_jaar" model="hr.rule.parameter">
+            <field name="name">SR — Forfaitaire aftrek maximum (jaarbasis)</field>
+            <field name="code">SR_FORFAITAIRE_MAX_JAAR</field>
+            <field name="country_id" ref="base.sr"/>
+        </record>
+        <record id="sr_param_forfaitaire_max_jaar_2026" model="hr.rule.parameter.value">
+            <field name="rule_parameter_id" ref="sr_param_forfaitaire_max_jaar"/>
+            <field name="date_from" eval="datetime(2026, 1, 1).date()"/>
+            <field name="parameter_value">4800.0</field>
+        </record>
+
+        <!-- ═══════════════════════════════════════════════════════════
+             TARIEFSCHIJVEN ARTIKEL 14
+             Grenstarieven geldig voor belastbaar jaarloon
+             ═══════════════════════════════════════════════════════════ -->
+        <record id="sr_param_schijf_1_grens" model="hr.rule.parameter">
+            <field name="name">SR — Schijf 1 grens (jaarbasis)</field>
+            <field name="code">SR_SCHIJF_1_GRENS</field>
+            <field name="country_id" ref="base.sr"/>
+        </record>
+        <record id="sr_param_schijf_1_grens_2026" model="hr.rule.parameter.value">
+            <field name="rule_parameter_id" ref="sr_param_schijf_1_grens"/>
+            <field name="date_from" eval="datetime(2026, 1, 1).date()"/>
+            <field name="parameter_value">42000.0</field>
+        </record>
+
+        <record id="sr_param_schijf_2_grens" model="hr.rule.parameter">
+            <field name="name">SR — Schijf 2 grens (jaarbasis)</field>
+            <field name="code">SR_SCHIJF_2_GRENS</field>
+            <field name="country_id" ref="base.sr"/>
+        </record>
+        <record id="sr_param_schijf_2_grens_2026" model="hr.rule.parameter.value">
+            <field name="rule_parameter_id" ref="sr_param_schijf_2_grens"/>
+            <field name="date_from" eval="datetime(2026, 1, 1).date()"/>
+            <field name="parameter_value">84000.0</field>
+        </record>
+
+        <record id="sr_param_schijf_3_grens" model="hr.rule.parameter">
+            <field name="name">SR — Schijf 3 grens (jaarbasis)</field>
+            <field name="code">SR_SCHIJF_3_GRENS</field>
+            <field name="country_id" ref="base.sr"/>
+        </record>
+        <record id="sr_param_schijf_3_grens_2026" model="hr.rule.parameter.value">
+            <field name="rule_parameter_id" ref="sr_param_schijf_3_grens"/>
+            <field name="date_from" eval="datetime(2026, 1, 1).date()"/>
+            <field name="parameter_value">126000.0</field>
+        </record>
+
+        <!-- Tarieven per schijf -->
+        <record id="sr_param_tarief_1" model="hr.rule.parameter">
+            <field name="name">SR — Tarief schijf 1 (8%%)</field>
+            <field name="code">SR_TARIEF_1</field>
+            <field name="country_id" ref="base.sr"/>
+        </record>
+        <record id="sr_param_tarief_1_2026" model="hr.rule.parameter.value">
+            <field name="rule_parameter_id" ref="sr_param_tarief_1"/>
+            <field name="date_from" eval="datetime(2026, 1, 1).date()"/>
+            <field name="parameter_value">0.08</field>
+        </record>
+
+        <record id="sr_param_tarief_2" model="hr.rule.parameter">
+            <field name="name">SR — Tarief schijf 2 (18%%)</field>
+            <field name="code">SR_TARIEF_2</field>
+            <field name="country_id" ref="base.sr"/>
+        </record>
+        <record id="sr_param_tarief_2_2026" model="hr.rule.parameter.value">
+            <field name="rule_parameter_id" ref="sr_param_tarief_2"/>
+            <field name="date_from" eval="datetime(2026, 1, 1).date()"/>
+            <field name="parameter_value">0.18</field>
+        </record>
+
+        <record id="sr_param_tarief_3" model="hr.rule.parameter">
+            <field name="name">SR — Tarief schijf 3 (28%%)</field>
+            <field name="code">SR_TARIEF_3</field>
+            <field name="country_id" ref="base.sr"/>
+        </record>
+        <record id="sr_param_tarief_3_2026" model="hr.rule.parameter.value">
+            <field name="rule_parameter_id" ref="sr_param_tarief_3"/>
+            <field name="date_from" eval="datetime(2026, 1, 1).date()"/>
+            <field name="parameter_value">0.28</field>
+        </record>
+
+        <record id="sr_param_tarief_4" model="hr.rule.parameter">
+            <field name="name">SR — Tarief schijf 4 (38%%)</field>
+            <field name="code">SR_TARIEF_4</field>
+            <field name="country_id" ref="base.sr"/>
+        </record>
+        <record id="sr_param_tarief_4_2026" model="hr.rule.parameter.value">
+            <field name="rule_parameter_id" ref="sr_param_tarief_4"/>
+            <field name="date_from" eval="datetime(2026, 1, 1).date()"/>
+            <field name="parameter_value">0.38</field>
+        </record>
+
+        <!-- ═══════════════════════════════════════════════════════════
+             HEFFINGSKORTING
+             SRD 750 per maand = SRD 9.000 per jaar
+             ═══════════════════════════════════════════════════════════ -->
+        <record id="sr_param_heffingskorting_maand" model="hr.rule.parameter">
+            <field name="name">SR — Heffingskorting per maand</field>
+            <field name="code">SR_HEFFINGSKORTING_MAAND</field>
+            <field name="country_id" ref="base.sr"/>
+        </record>
+        <record id="sr_param_heffingskorting_maand_2026" model="hr.rule.parameter.value">
+            <field name="rule_parameter_id" ref="sr_param_heffingskorting_maand"/>
+            <field name="date_from" eval="datetime(2026, 1, 1).date()"/>
+            <field name="parameter_value">750.0</field>
+        </record>
+
+        <!-- ═══════════════════════════════════════════════════════════
+             AOV (Algemene Ouderdomsvoorziening)
+             4% over belastbaar loon minus franchise SRD 400/maand
+             ═══════════════════════════════════════════════════════════ -->
+        <record id="sr_param_aov_tarief" model="hr.rule.parameter">
+            <field name="name">SR — AOV tarief (4%%)</field>
+            <field name="code">SR_AOV_TARIEF</field>
+            <field name="country_id" ref="base.sr"/>
+        </record>
+        <record id="sr_param_aov_tarief_2026" model="hr.rule.parameter.value">
+            <field name="rule_parameter_id" ref="sr_param_aov_tarief"/>
+            <field name="date_from" eval="datetime(2026, 1, 1).date()"/>
+            <field name="parameter_value">0.04</field>
+        </record>
+
+        <record id="sr_param_aov_franchise_maand" model="hr.rule.parameter">
+            <field name="name">SR — AOV franchise per maand</field>
+            <field name="code">SR_AOV_FRANCHISE_MAAND</field>
+            <field name="country_id" ref="base.sr"/>
+        </record>
+        <record id="sr_param_aov_franchise_maand_2026" model="hr.rule.parameter.value">
+            <field name="rule_parameter_id" ref="sr_param_aov_franchise_maand"/>
+            <field name="date_from" eval="datetime(2026, 1, 1).date()"/>
+            <field name="parameter_value">400.0</field>
+        </record>
+    </data>
+</odoo>

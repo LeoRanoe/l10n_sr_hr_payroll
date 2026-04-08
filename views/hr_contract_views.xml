@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        Suriname Payroll — Contract Formulier Uitbreiding
+        Voegt het tabblad "Suriname Loon" toe aan het contract formulier
+        met velden voor loontype, toelagen, kinderbijslag en pensioenpremie.
+    -->
+    <record id="hr_contract_sr_view_form" model="ir.ui.view">
+        <field name="name">hr.contract.sr.form</field>
+        <field name="model">hr.contract</field>
+        <field name="inherit_id" ref="hr_contract.hr_contract_view_form"/>
+        <field name="arch" type="xml">
+            <!-- Voeg Suriname tabblad toe na het "Salary Information" tabblad -->
+            <xpath expr="//notebook" position="inside">
+                <page string="Suriname Loon" name="sr_payroll_tab">
+                    <group string="Verloning Instellingen">
+                        <group>
+                            <field name="sr_salary_type"
+                                   widget="radio"
+                                   string="Loontype"
+                                   required="1"/>
+                        </group>
+                    </group>
+                    <group string="Toeslagen &amp; Aftrekken per Periode">
+                        <group string="Toekeningen">
+                            <field name="sr_toelagen"
+                                   string="Belastbare Toelagen"
+                                   widget="monetary"/>
+                            <field name="sr_kinderbijslag"
+                                   string="Kinderbijslag (Vrijgesteld)"
+                                   widget="monetary"/>
+                        </group>
+                        <group string="Inhoudingen">
+                            <field name="sr_pensioenpremie"
+                                   string="Pensioenpremie (Werknemer)"
+                                   widget="monetary"/>
+                        </group>
+                    </group>
+                    <group string="Toelichting" col="1">
+                        <div class="text-muted">
+                            <ul>
+                                <li><b>Loontype:</b> Kies maandloon (12×/jaar) of fortnight (26×/jaar).</li>
+                                <li><b>Belastbare Toelagen:</b> Vaste toeslagen die meetellen als belastbaar loon (bijv. representatievergoeding boven vrijstelling).</li>
+                                <li><b>Kinderbijslag:</b> Belastingvrij kinderbijslag — telt NIET mee in de loonbelastinggrondslag.</li>
+                                <li><b>Pensioenpremie:</b> Werknemersaandeel in de pensioenpremie per loonperiode.</li>
+                            </ul>
+                        </div>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>

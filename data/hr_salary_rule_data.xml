@@ -1,0 +1,228 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Suriname Salarisregels — Artikel 14 Wet Loonbelasting 2026
+    ==========================================================
+    Uitvoervolgorde (sequence):
+      10  BASIC          — Bruto loon (contract.wage)
+      20  SR_ALW         — Belastbare toelagen (contract.sr_toelagen)
+      30  GROSS          — Bruto belastbaar (BASIC + ALW)
+      50  SR_LB          — Loonbelasting Artikel 14 (negatief)
+      60  SR_AOV         — AOV bijdrage (negatief)
+      70  SR_PENSIOEN    — Pensioenpremie werknemer (negatief)
+      80  SR_KINDBIJ     — Kinderbijslag (belastingvrij positief)
+     100  NET            — Nettoloon
+-->
+<odoo>
+    <data noupdate="1">
+
+        <!-- ─────────────────────────────────────────────────────────
+             10 — BASIC: Bruto loon per periode
+             Het brutoloon staat op het contract (contract.wage).
+             ───────────────────────────────────────────────────────── -->
+        <record id="sr_rule_basic" model="hr.salary.rule">
+            <field name="struct_id" ref="l10n_sr_hr_payroll.sr_payroll_structure"/>
+            <field name="category_id" ref="hr_payroll.BASIC"/>
+            <field name="name">Bruto Loon</field>
+            <field name="code">BASIC</field>
+            <field name="sequence">10</field>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="amount_python_compute">
+result = contract.wage
+            </field>
+        </record>
+
+        <!-- ─────────────────────────────────────────────────────────
+             20 — SR_ALW: Belastbare toelagen
+             Toelagen die als belastbaar loon meetellen (bijv. vaste
+             vergoedingen die de belastingvrije grens overschrijden).
+             ───────────────────────────────────────────────────────── -->
+        <record id="sr_rule_toelagen" model="hr.salary.rule">
+            <field name="struct_id" ref="l10n_sr_hr_payroll.sr_payroll_structure"/>
+            <field name="category_id" ref="hr_payroll.ALW"/>
+            <field name="name">Toelagen (Belastbaar)</field>
+            <field name="code">SR_ALW</field>
+            <field name="sequence">20</field>
+            <field name="condition_select">python</field>
+            <field name="condition_python">result = (contract.sr_toelagen or 0.0) &gt; 0.0</field>
+            <field name="amount_select">code</field>
+            <field name="amount_python_compute">
+result = contract.sr_toelagen or 0.0
+            </field>
+        </record>
+
+        <!-- ─────────────────────────────────────────────────────────
+             30 — GROSS: Totaal belastbaar bruto loon
+             Som van BASIC + ALW (inclusief toelagen).
+             ───────────────────────────────────────────────────────── -->
+        <record id="sr_rule_gross" model="hr.salary.rule">
+            <field name="struct_id" ref="l10n_sr_hr_payroll.sr_payroll_structure"/>
+            <field name="category_id" ref="hr_payroll.GROSS"/>
+            <field name="name">Bruto Belastbaar Loon</field>
+            <field name="code">GROSS</field>
+            <field name="sequence">30</field>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="amount_python_compute">
+result = categories['BASIC'] + categories['ALW']
+            </field>
+        </record>
+
+        <!-- ─────────────────────────────────────────────────────────
+             50 — SR_LB: Loonbelasting Artikel 14 WLB
+             ─────────────────────────────────────────────────────────
+             Berekening stappen:
+               1. Bepaal het aantal periodes per jaar (12 of 26)
+               2. Herbereken het bruto jaarloon
+               3. Bereken forfaitaire beroepskosten aftrek
+               4. Bereken het belastbaar jaarloon na aftrekken
+               5. Bereken de belasting via tariefschijven
+               6. Pas heffingskorting toe
+               7. Deel terug door periodes voor periodebedrag
+             ───────────────────────────────────────────────────────── -->
+        <record id="sr_rule_loonbelasting" model="hr.salary.rule">
+            <field name="struct_id" ref="l10n_sr_hr_payroll.sr_payroll_structure"/>
+            <field name="category_id" ref="hr_payroll.DED"/>
+            <field name="name">Loonbelasting (Artikel 14 WLB)</field>
+            <field name="code">SR_LB</field>
+            <field name="sequence">50</field>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="amount_python_compute">
+# Stap 1: Aantal periodes per jaar bepalen
+periods = 12 if contract.sr_salary_type == 'monthly' else 26
+
+# Stap 2: Bruto jaarloon
+bruto_per_periode = categories['GROSS']
+bruto_jaarloon = bruto_per_periode * periods
+
+# Stap 3: Forfaitaire beroepskosten aftrek
+#   4% van bruto jaarloon, maximaal SRD 4.800 per jaar
+forfaitaire_pct = payslip._rule_parameter('SR_FORFAITAIRE_PCT')
+forfaitaire_max = payslip._rule_parameter('SR_FORFAITAIRE_MAX_JAAR')
+forfaitaire_jaar = min(bruto_jaarloon * forfaitaire_pct, forfaitaire_max)
+
+# Stap 4: Belastbaar jaarloon
+belastingvrij_jaar = payslip._rule_parameter('SR_BELASTINGVRIJ_JAAR')
+belastbaar_jaarloon = max(0.0, bruto_jaarloon - belastingvrij_jaar - forfaitaire_jaar)
+
+# Stap 5: Tariefschijven berekening
+s1 = payslip._rule_parameter('SR_SCHIJF_1_GRENS')
+s2 = payslip._rule_parameter('SR_SCHIJF_2_GRENS')
+s3 = payslip._rule_parameter('SR_SCHIJF_3_GRENS')
+r1 = payslip._rule_parameter('SR_TARIEF_1')
+r2 = payslip._rule_parameter('SR_TARIEF_2')
+r3 = payslip._rule_parameter('SR_TARIEF_3')
+r4 = payslip._rule_parameter('SR_TARIEF_4')
+
+if belastbaar_jaarloon &lt;= s1:
+    lb_jaar = belastbaar_jaarloon * r1
+elif belastbaar_jaarloon &lt;= s2:
+    lb_jaar = (s1 * r1) + ((belastbaar_jaarloon - s1) * r2)
+elif belastbaar_jaarloon &lt;= s3:
+    lb_jaar = (s1 * r1) + ((s2 - s1) * r2) + ((belastbaar_jaarloon - s2) * r3)
+else:
+    lb_jaar = (s1 * r1) + ((s2 - s1) * r2) + ((s3 - s2) * r3) + ((belastbaar_jaarloon - s3) * r4)
+
+# Stap 6: Heffingskorting
+#   SRD 750 per maand = SRD 9.000 per jaar
+heffingskorting_jaar = payslip._rule_parameter('SR_HEFFINGSKORTING_MAAND') * 12
+lb_jaar = max(0.0, lb_jaar - heffingskorting_jaar)
+
+# Stap 7: Periodebedrag (negatief — inhouding)
+result = -float_round(lb_jaar / periods, precision_digits=2)
+            </field>
+        </record>
+
+        <!-- ─────────────────────────────────────────────────────────
+             60 — SR_AOV: AOV Bijdrage werknemer
+             ─────────────────────────────────────────────────────────
+             4% over het belastbaar loon per periode minus de franchise
+             van SRD 400/maand (omgerekend per periode).
+             ───────────────────────────────────────────────────────── -->
+        <record id="sr_rule_aov" model="hr.salary.rule">
+            <field name="struct_id" ref="l10n_sr_hr_payroll.sr_payroll_structure"/>
+            <field name="category_id" ref="hr_payroll.DED"/>
+            <field name="name">AOV Bijdrage</field>
+            <field name="code">SR_AOV</field>
+            <field name="sequence">60</field>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="amount_python_compute">
+# AOV franchise: SRD 400/maand voor maandloon, GEEN franchise voor FN
+# (Artikel 14 context.md regel: "geen franchise per FN")
+if contract.sr_salary_type == 'monthly':
+    # Maandloon: franchise is SRD 400/maand
+    franchise_per_periode = payslip._rule_parameter('SR_AOV_FRANCHISE_MAAND')
+else:
+    # FN (fortnight): GEEN franchise
+    franchise_per_periode = 0.0
+
+# AOV-grondslag: bruto loon per periode minus franchise
+aov_grondslag = max(0.0, categories['GROSS'] - franchise_per_periode)
+
+# AOV inhouding (negatief)
+aov_tarief = payslip._rule_parameter('SR_AOV_TARIEF')
+result = -float_round(aov_grondslag * aov_tarief, precision_digits=2)
+            </field>
+        </record>
+
+        <!-- ─────────────────────────────────────────────────────────
+             70 — SR_PENSIOEN: Pensioenpremie werknemer
+             Werknemersaandeel pensioenpremie staat op het contract.
+             ───────────────────────────────────────────────────────── -->
+        <record id="sr_rule_pensioen" model="hr.salary.rule">
+            <field name="struct_id" ref="l10n_sr_hr_payroll.sr_payroll_structure"/>
+            <field name="category_id" ref="hr_payroll.DED"/>
+            <field name="name">Pensioenpremie (Werknemer)</field>
+            <field name="code">SR_PENSIOEN</field>
+            <field name="sequence">70</field>
+            <field name="condition_select">python</field>
+            <field name="condition_python">result = (contract.sr_pensioenpremie or 0.0) &gt; 0.0</field>
+            <field name="amount_select">code</field>
+            <field name="amount_python_compute">
+result = -(contract.sr_pensioenpremie or 0.0)
+            </field>
+        </record>
+
+        <!-- ─────────────────────────────────────────────────────────
+             80 — SR_KINDBIJ: Kinderbijslag (belastingvrij)
+             Kinderbijslag is een belastingvrij voordeel en telt NIET
+             mee in de belastingberekening (sequence > GROSS).
+             Wordt positief verrekend in het nettoloon.
+             ───────────────────────────────────────────────────────── -->
+        <record id="sr_rule_kinderbijslag" model="hr.salary.rule">
+            <field name="struct_id" ref="l10n_sr_hr_payroll.sr_payroll_structure"/>
+            <field name="category_id" ref="hr_payroll.ALW"/>
+            <field name="name">Kinderbijslag (Belastingvrij)</field>
+            <field name="code">SR_KINDBIJ</field>
+            <field name="sequence">80</field>
+            <field name="condition_select">python</field>
+            <field name="condition_python">result = (contract.sr_kinderbijslag or 0.0) &gt; 0.0</field>
+            <field name="amount_select">code</field>
+            <field name="amount_python_compute">
+result = contract.sr_kinderbijslag or 0.0
+            </field>
+        </record>
+
+        <!-- ─────────────────────────────────────────────────────────
+             100 — NET: Nettoloon
+             BASIC + ALW (bruto + toelagen + kinderbijslag) + DED
+             (loonbelasting + AOV + pensioen zijn negatief)
+             ───────────────────────────────────────────────────────── -->
+        <record id="sr_rule_net" model="hr.salary.rule">
+            <field name="struct_id" ref="l10n_sr_hr_payroll.sr_payroll_structure"/>
+            <field name="category_id" ref="hr_payroll.NET"/>
+            <field name="name">Netto Loon</field>
+            <field name="code">NET</field>
+            <field name="sequence">100</field>
+            <field name="appears_on_employee_cost_dashboard">True</field>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="amount_python_compute">
+result = categories['BASIC'] + categories['ALW'] + categories['DED']
+            </field>
+        </record>
+
+    </data>
+</odoo>
