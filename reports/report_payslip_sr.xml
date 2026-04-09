@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <!-- ═══════════════════════════════════════════════════════════════
          Suriname Loonstrook — Artikel 14 Wet Loonbelasting
@@ -35,461 +35,271 @@
            6. Samenvatting: bruto − inhoudingen = nettoloon
          ═══════════════════════════════════════════════════════════════ -->
     <template id="report_payslip_sr">
-        <t t-call="web.html_container">
-            <t t-foreach="docs" t-as="doc">
-                <t t-set="bd" t-value="doc._get_sr_artikel14_breakdown()"/>
+        <t t-foreach="docs" t-as="doc">
+            <t t-set="bd" t-value="doc._get_sr_artikel14_breakdown()"/>
+            <t t-call="web.external_layout">
+                <div class="page">
 
-                <div class="page" style="
-                    font-family: 'DejaVu Sans', Arial, sans-serif;
-                    font-size: 9pt;
-                    color: #1e293b;
-                    padding: 0;
-                    margin: 0;
-                ">
-
-                    <!-- ── KOPBAL: bedrijf + titel ─────────────────────────── -->
-                    <table style="
-                        width: 100%;
-                        background: #0f172a;
-                        color: #ffffff;
-                        margin-bottom: 12px;
-                        border-collapse: collapse;
-                    ">
-                        <tr>
-                            <td style="padding: 14px 16px; width: 55%; vertical-align: middle;">
-                                <div style="font-size: 13pt; font-weight: bold; letter-spacing: 0.5px;">
-                                    <t t-esc="doc.company_id.name"/>
-                                </div>
-                                <div style="font-size: 8pt; color: #94a3b8; margin-top: 2px;">
-                                    <t t-if="doc.company_id.street">
-                                        <t t-esc="doc.company_id.street"/>
-                                        <t t-if="doc.company_id.city">, <t t-esc="doc.company_id.city"/></t>
-                                    </t>
-                                </div>
-                            </td>
-                            <td style="padding: 14px 16px; text-align: right; vertical-align: middle;">
-                                <div style="font-size: 16pt; font-weight: bold; letter-spacing: 1px; color: #38bdf8;">
-                                    LOONSTROOK
-                                </div>
-                                <div style="font-size: 7.5pt; color: #7dd3fc; margin-top: 3px;">
-                                    Wet Loonbelasting Suriname ·
-                                    <t t-if="bd.get('is_fn')">Fortnight Loon (26×/jaar)</t>
-                                    <t t-else="">Maandloon (12×/jaar)</t>
-                                </div>
-                            </td>
-                        </tr>
-                    </table>
-
-                    <!-- ── WERKNEMER GEGEVENS ──────────────────────────────── -->
-                    <table style="
-                        width: 100%;
-                        border-collapse: collapse;
-                        margin-bottom: 12px;
-                        background: #f8fafc;
-                        border: 1px solid #e2e8f0;
-                    ">
-                        <tr style="background: #e2e8f0;">
-                            <td colspan="4" style="
-                                padding: 5px 10px;
-                                font-size: 8pt;
-                                font-weight: bold;
-                                color: #0f172a;
-                                letter-spacing: 0.3px;
-                                text-transform: uppercase;
-                            ">Werknemer Gegevens</td>
-                        </tr>
-                        <tr>
-                            <td style="padding: 5px 10px; width: 18%; color: #64748b; font-size: 8pt;">Werknemer</td>
-                            <td style="padding: 5px 10px; width: 32%; font-weight: 600;">
-                                <t t-esc="doc.employee_id.name"/>
-                            </td>
-                            <td style="padding: 5px 10px; width: 18%; color: #64748b; font-size: 8pt;">Periode</td>
-                            <td style="padding: 5px 10px; width: 32%; font-weight: 600;">
-                                <t t-esc="doc.date_from.strftime('%d-%m-%Y') if doc.date_from else ''"/>
-                                t/m
-                                <t t-esc="doc.date_to.strftime('%d-%m-%Y') if doc.date_to else ''"/>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td style="padding: 5px 10px; color: #64748b; font-size: 8pt;">Afdeling</td>
-                            <td style="padding: 5px 10px;">
-                                <t t-esc="doc.employee_id.department_id.name or '—'"/>
-                            </td>
-                            <td style="padding: 5px 10px; color: #64748b; font-size: 8pt;">Referentie</td>
-                            <td style="padding: 5px 10px;">
-                                <t t-esc="doc.number or '—'"/>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td style="padding: 5px 10px; color: #64748b; font-size: 8pt;">Functie</td>
-                            <td style="padding: 5px 10px;">
-                                <t t-esc="doc.employee_id.job_id.name or '—'"/>
-                            </td>
-                            <td style="padding: 5px 10px; color: #64748b; font-size: 8pt;">Loonstructuur</td>
-                            <td style="padding: 5px 10px;">
-                                <t t-esc="doc.struct_id.name or '—'"/>
-                            </td>
-                        </tr>
-                    </table>
-
-                    <!-- ── BRUTO LOON ──────────────────────────────────────── -->
-                    <table style="width: 100%; border-collapse: collapse; margin-bottom: 6px;">
-                        <tr>
-                            <td colspan="2" style="
-                                padding: 5px 10px;
-                                background: #0891b2;
-                                color: #ffffff;
-                                font-size: 8pt;
-                                font-weight: bold;
-                                letter-spacing: 0.4px;
-                                text-transform: uppercase;
-                            ">Bruto Loon</td>
-                        </tr>
-                        <tr style="background: #f8fafc;">
-                            <td style="padding: 4px 10px; width: 75%;">Basisloon</td>
-                            <td style="padding: 4px 10px; text-align: right; font-family: monospace;">
-                                <t t-esc="'SRD {:,.2f}'.format(bd.get('basic', 0))"/>
-                            </td>
-                        </tr>
-                        <t t-if="bd.get('toelagen', 0) != 0">
-                            <tr>
-                                <td style="padding: 4px 10px;">Toelagen (belastbaar)</td>
-                                <td style="padding: 4px 10px; text-align: right; font-family: monospace;">
-                                    <t t-esc="'SRD {:,.2f}'.format(bd.get('toelagen', 0))"/>
-                                </td>
-                            </tr>
-                        </t>
-                        <t t-if="bd.get('kinderbijslag', 0) != 0">
-                            <tr style="background: #f0fdf4;">
-                                <td style="padding: 4px 10px;">
-                                    Kinderbijslag
-                                    <span style="color: #16a34a; font-size: 7.5pt;"> ▶ belastingvrij (Art. 10)</span>
-                                </td>
-                                <td style="padding: 4px 10px; text-align: right; font-family: monospace; color: #16a34a;">
-                                    <t t-esc="'SRD {:,.2f}'.format(bd.get('kinderbijslag', 0))"/>
-                                </td>
-                            </tr>
-                        </t>
-                        <tr style="background: #dbeafe; font-weight: bold;">
-                            <td style="padding: 5px 10px;">Totaal Bruto Loon</td>
-                            <td style="padding: 5px 10px; text-align: right; font-family: monospace;">
-                                <t t-esc="'SRD {:,.2f}'.format(bd.get('bruto_totaal', 0))"/>
-                            </td>
-                        </tr>
-                    </table>
-
-                    <!-- ── ARTIKEL 14 WLB BEREKENING ──────────────────────── -->
-                    <table style="width: 100%; border-collapse: collapse; margin-bottom: 6px;">
-                        <tr>
-                            <td colspan="2" style="
-                                padding: 5px 10px;
-                                background: #1e40af;
-                                color: #ffffff;
-                                font-size: 8pt;
-                                font-weight: bold;
-                                letter-spacing: 0.4px;
-                                text-transform: uppercase;
-                            ">Loonbelasting Berekening — Artikel 14 WLB</td>
-                        </tr>
-
-                        <!-- Stap 1: Annualiseren -->
-                        <tr style="background: #f8fafc;">
-                            <td style="padding: 4px 10px; width: 75%;">
-                                Bruto belastbaar loon per jaar
-                                <span style="color: #64748b; font-size: 8pt;">
-                                    (<t t-esc="bd.get('periodes', 12)"/> periodes ×
-                                    <t t-esc="'SRD {:,.2f}'.format(bd.get('bruto_per_periode', 0))"/>)
-                                </span>
-                            </td>
-                            <td style="padding: 4px 10px; text-align: right; font-family: monospace;">
-                                <t t-esc="'SRD {:,.2f}'.format(bd.get('bruto_jaarloon', 0))"/>
-                            </td>
-                        </tr>
-
-                        <!-- Stap 2: Belastingvrije som (Art. 13) -->
-                        <tr>
-                            <td style="padding: 4px 10px; color: #7c3aed;">
-                                − Belastingvrije som (Art. 13)
-                            </td>
-                            <td style="padding: 4px 10px; text-align: right; font-family: monospace; color: #7c3aed;">
-                                <t t-esc="'SRD {:,.2f}'.format(bd.get('belastingvrij_jaar', 0))"/>
-                            </td>
-                        </tr>
-
-                        <!-- Stap 3: Forfaitaire aftrek (Art. 12) -->
-                        <tr style="background: #f8fafc;">
-                            <td style="padding: 4px 10px; color: #7c3aed;">
-                                − Forfaitaire beroepskosten (Art. 12) —
-                                <t t-esc="'{:.0f}'.format(bd.get('forfaitaire_pct', 4))"/>%,
-                                max SRD 4.800/jaar
-                            </td>
-                            <td style="padding: 4px 10px; text-align: right; font-family: monospace; color: #7c3aed;">
-                                <t t-esc="'SRD {:,.2f}'.format(bd.get('forfaitaire_jaar', 0))"/>
-                            </td>
-                        </tr>
-
-                        <!-- Belastbaar jaarloon -->
-                        <tr style="background: #eff6ff; font-weight: bold; border-top: 1px solid #bfdbfe; border-bottom: 1px solid #bfdbfe;">
-                            <td style="padding: 5px 10px;">= Belastbaar Jaarloon</td>
-                            <td style="padding: 5px 10px; text-align: right; font-family: monospace;">
-                                <t t-esc="'SRD {:,.2f}'.format(bd.get('belastbaar_jaarloon', 0))"/>
-                            </td>
-                        </tr>
-
-                        <!-- Schijven subheader -->
-                        <tr>
-                            <td colspan="2" style="
-                                padding: 4px 10px;
-                                background: #e0e7ff;
-                                font-size: 7.5pt;
-                                font-style: italic;
-                                color: #3730a3;
-                                font-weight: 600;
-                            ">Tariefschijven Artikel 14 — Progressief belastingtarief</td>
-                        </tr>
-
-                        <!-- Schijf 1 -->
-                        <t t-if="bd.get('s1_basis', 0) > 0">
-                            <tr style="background: #fefce8;">
-                                <td style="padding: 4px 10px 4px 20px;">
-                                    Schijf 1 — 0 t/m
-                                    <t t-esc="'SRD {:,.0f}'.format(bd.get('s1_grens', 42000))"/> ×
-                                    <t t-esc="'{:.0f}'.format(bd.get('r1_pct', 8))"/>%
-                                    <span style="color: #64748b; font-size: 7.5pt;">
-                                        (<t t-esc="'SRD {:,.2f}'.format(bd.get('s1_basis', 0))"/> belastbaar)
-                                    </span>
-                                </td>
-                                <td style="padding: 4px 10px; text-align: right; font-family: monospace;">
-                                    <t t-esc="'SRD {:,.2f}'.format(bd.get('lb_s1', 0))"/>
-                                </td>
-                            </tr>
-                        </t>
-
-                        <!-- Schijf 2 -->
-                        <t t-if="bd.get('s2_basis', 0) > 0">
-                            <tr>
-                                <td style="padding: 4px 10px 4px 20px;">
-                                    Schijf 2 —
-                                    <t t-esc="'SRD {:,.0f}'.format(bd.get('s1_grens', 42000))"/> t/m
-                                    <t t-esc="'SRD {:,.0f}'.format(bd.get('s2_grens', 84000))"/> ×
-                                    <t t-esc="'{:.0f}'.format(bd.get('r2_pct', 18))"/>%
-                                    <span style="color: #64748b; font-size: 7.5pt;">
-                                        (<t t-esc="'SRD {:,.2f}'.format(bd.get('s2_basis', 0))"/> belastbaar)
-                                    </span>
-                                </td>
-                                <td style="padding: 4px 10px; text-align: right; font-family: monospace;">
-                                    <t t-esc="'SRD {:,.2f}'.format(bd.get('lb_s2', 0))"/>
-                                </td>
-                            </tr>
-                        </t>
-
-                        <!-- Schijf 3 -->
-                        <t t-if="bd.get('s3_basis', 0) > 0">
-                            <tr style="background: #fefce8;">
-                                <td style="padding: 4px 10px 4px 20px;">
-                                    Schijf 3 —
-                                    <t t-esc="'SRD {:,.0f}'.format(bd.get('s2_grens', 84000))"/> t/m
-                                    <t t-esc="'SRD {:,.0f}'.format(bd.get('s3_grens', 126000))"/> ×
-                                    <t t-esc="'{:.0f}'.format(bd.get('r3_pct', 28))"/>%
-                                    <span style="color: #64748b; font-size: 7.5pt;">
-                                        (<t t-esc="'SRD {:,.2f}'.format(bd.get('s3_basis', 0))"/> belastbaar)
-                                    </span>
-                                </td>
-                                <td style="padding: 4px 10px; text-align: right; font-family: monospace;">
-                                    <t t-esc="'SRD {:,.2f}'.format(bd.get('lb_s3', 0))"/>
-                                </td>
-                            </tr>
-                        </t>
-
-                        <!-- Schijf 4 -->
-                        <t t-if="bd.get('s4_basis', 0) > 0">
-                            <tr>
-                                <td style="padding: 4px 10px 4px 20px;">
-                                    Schijf 4 — boven
-                                    <t t-esc="'SRD {:,.0f}'.format(bd.get('s3_grens', 126000))"/> ×
-                                    <t t-esc="'{:.0f}'.format(bd.get('r4_pct', 38))"/>%
-                                    <span style="color: #64748b; font-size: 7.5pt;">
-                                        (<t t-esc="'SRD {:,.2f}'.format(bd.get('s4_basis', 0))"/> belastbaar)
-                                    </span>
-                                </td>
-                                <td style="padding: 4px 10px; text-align: right; font-family: monospace;">
-                                    <t t-esc="'SRD {:,.2f}'.format(bd.get('lb_s4', 0))"/>
-                                </td>
-                            </tr>
-                        </t>
-
-                        <!-- LB voor heffingskorting -->
-                        <tr style="background: #f1f5f9; border-top: 1px solid #cbd5e1;">
-                            <td style="padding: 4px 10px;">Loonbelasting vóór heffingskorting</td>
-                            <td style="padding: 4px 10px; text-align: right; font-family: monospace;">
-                                <t t-esc="'SRD {:,.2f}'.format(bd.get('lb_voor_heffingskorting', 0))"/>
-                            </td>
-                        </tr>
-
-                        <!-- Heffingskorting -->
-                        <tr style="background: #f0fdf4;">
-                            <td style="padding: 4px 10px; color: #16a34a;">
-                                − Heffingskorting (SRD 750/maand × 12)
-                            </td>
-                            <td style="padding: 4px 10px; text-align: right; font-family: monospace; color: #16a34a;">
-                                <t t-esc="'SRD {:,.2f}'.format(bd.get('heffingskorting_jaar', 0))"/>
-                            </td>
-                        </tr>
-
-                        <!-- LB per jaar (netto) -->
-                        <tr style="background: #f1f5f9;">
-                            <td style="padding: 4px 10px;">Loonbelasting per jaar (netto)</td>
-                            <td style="padding: 4px 10px; text-align: right; font-family: monospace;">
-                                <t t-esc="'SRD {:,.2f}'.format(bd.get('lb_jaar_netto', 0))"/>
-                            </td>
-                        </tr>
-
-                        <!-- LB per periode (inhouding) -->
-                        <tr style="background: #fef2f2; font-weight: bold; border-top: 2px solid #fca5a5;">
-                            <td style="padding: 5px 10px; color: #dc2626;">
-                                Loonbelasting per periode (÷ <t t-esc="bd.get('periodes', 12)"/>)
-                            </td>
-                            <td style="padding: 5px 10px; text-align: right; font-family: monospace; color: #dc2626;">
-                                − <t t-esc="'SRD {:,.2f}'.format(bd.get('lb_per_periode', 0))"/>
-                            </td>
-                        </tr>
-                    </table>
-
-                    <!-- ── AOV BEREKENING ──────────────────────────────────── -->
-                    <table style="width: 100%; border-collapse: collapse; margin-bottom: 6px;">
-                        <tr>
-                            <td colspan="2" style="
-                                padding: 5px 10px;
-                                background: #0e7490;
-                                color: #ffffff;
-                                font-size: 8pt;
-                                font-weight: bold;
-                                letter-spacing: 0.4px;
-                                text-transform: uppercase;
-                            ">AOV Berekening (Algemene Ouderdomsvoorziening)</td>
-                        </tr>
-                        <tr style="background: #f8fafc;">
-                            <td style="padding: 4px 10px; width: 75%;">Bruto loon per periode</td>
-                            <td style="padding: 4px 10px; text-align: right; font-family: monospace;">
-                                <t t-esc="'SRD {:,.2f}'.format(bd.get('bruto_per_periode', 0))"/>
-                            </td>
-                        </tr>
-                        <t t-if="not bd.get('is_fn')">
-                            <tr>
-                                <td style="padding: 4px 10px; color: #7c3aed;">
-                                    − Franchise (maandloon)
-                                </td>
-                                <td style="padding: 4px 10px; text-align: right; font-family: monospace; color: #7c3aed;">
-                                    <t t-esc="'SRD {:,.2f}'.format(bd.get('franchise_periode', 0))"/>
-                                </td>
-                            </tr>
-                        </t>
-                        <t t-else="">
-                            <tr>
-                                <td style="padding: 4px 10px; color: #64748b; font-style: italic;">
-                                    Geen franchise (fortnight loon)
-                                </td>
-                                <td style="padding: 4px 10px; text-align: right; font-family: monospace; color: #64748b;">—</td>
-                            </tr>
-                        </t>
-                        <tr style="background: #f1f5f9;">
-                            <td style="padding: 4px 10px;">AOV grondslag</td>
-                            <td style="padding: 4px 10px; text-align: right; font-family: monospace;">
-                                <t t-esc="'SRD {:,.2f}'.format(bd.get('aov_grondslag', 0))"/>
-                            </td>
-                        </tr>
-                        <tr style="background: #fef2f2; font-weight: bold; border-top: 2px solid #fca5a5;">
-                            <td style="padding: 5px 10px; color: #dc2626;">
-                                AOV (<t t-esc="'{:.0f}'.format(bd.get('aov_tarief_pct', 4))"/>%)
-                            </td>
-                            <td style="padding: 5px 10px; text-align: right; font-family: monospace; color: #dc2626;">
-                                − <t t-esc="'SRD {:,.2f}'.format(bd.get('aov_per_periode', 0))"/>
-                            </td>
-                        </tr>
-                    </table>
-
-                    <!-- ── NETTO LOON SAMENVATTING ─────────────────────────── -->
-                    <table style="
-                        width: 100%;
-                        border-collapse: collapse;
-                        margin-top: 8px;
-                        border: 2px solid #0f172a;
-                    ">
-                        <tr>
-                            <td colspan="2" style="
-                                padding: 5px 10px;
-                                background: #0f172a;
-                                color: #ffffff;
-                                font-size: 8pt;
-                                font-weight: bold;
-                                text-transform: uppercase;
-                                letter-spacing: 0.4px;
-                            ">Samenvatting</td>
-                        </tr>
-                        <tr>
-                            <td style="padding: 4px 10px; width: 70%;">Totaal Bruto Loon</td>
-                            <td style="padding: 4px 10px; text-align: right; font-family: monospace;">
-                                <t t-esc="'SRD {:,.2f}'.format(bd.get('bruto_totaal', 0))"/>
-                            </td>
-                        </tr>
-                        <tr style="background: #fef2f2;">
-                            <td style="padding: 4px 10px; color: #dc2626;">
-                                − Loonbelasting (Art. 14 WLB)
-                            </td>
-                            <td style="padding: 4px 10px; text-align: right; font-family: monospace; color: #dc2626;">
-                                <t t-esc="'SRD {:,.2f}'.format(bd.get('lb_per_periode', 0))"/>
-                            </td>
-                        </tr>
-                        <tr style="background: #fef2f2;">
-                            <td style="padding: 4px 10px; color: #dc2626;">
-                                − AOV (<t t-esc="'{:.0f}'.format(bd.get('aov_tarief_pct', 4))"/>%)
-                            </td>
-                            <td style="padding: 4px 10px; text-align: right; font-family: monospace; color: #dc2626;">
-                                <t t-esc="'SRD {:,.2f}'.format(bd.get('aov_per_periode', 0))"/>
-                            </td>
-                        </tr>
-                        <t t-if="bd.get('pensioen', 0) > 0">
-                            <tr style="background: #fef2f2;">
-                                <td style="padding: 4px 10px; color: #dc2626;">
-                                    − Pensioenpremie
-                                </td>
-                                <td style="padding: 4px 10px; text-align: right; font-family: monospace; color: #dc2626;">
-                                    <t t-esc="'SRD {:,.2f}'.format(bd.get('pensioen', 0))"/>
-                                </td>
-                            </tr>
-                        </t>
-                        <tr style="background: #0f172a; color: #ffffff; font-size: 11pt; font-weight: bold;">
-                            <td style="padding: 8px 10px; letter-spacing: 0.5px;">NETTO LOON</td>
-                            <td style="padding: 8px 10px; text-align: right; font-family: monospace; color: #38bdf8;">
-                                <t t-esc="'SRD {:,.2f}'.format(bd.get('netto', 0))"/>
-                            </td>
-                        </tr>
-                    </table>
-
-                    <!-- ── VOETTEKST ───────────────────────────────────────── -->
-                    <div style="
-                        margin-top: 16px;
-                        padding: 8px 10px;
-                        background: #f8fafc;
-                        border-top: 1px solid #e2e8f0;
-                        font-size: 7pt;
-                        color: #64748b;
-                    ">
-                        <p style="margin: 0 0 2px 0;">
-                            Dit is een computermatig gegenereerde loonstrook van
-                            <strong><t t-esc="doc.company_id.name"/></strong>.
-                            Loonbelasting berekend conform de
-                            <strong>Wet Loonbelasting Suriname, Artikel 14</strong>,
-                            inclusief heffingskorting conform de geldende tarieven.
-                        </p>
-                        <p style="margin: 0;">
-                            Periode:
-                            <t t-esc="doc.date_from.strftime('%d-%m-%Y') if doc.date_from else ''"/>
-                            t/m
-                            <t t-esc="doc.date_to.strftime('%d-%m-%Y') if doc.date_to else ''"/>
-                            · Gegenereerd door Odoo Salarisverwerking Module (l10n_sr_hr_payroll)
-                        </p>
+                    <!-- ── DOCUMENT TITLE ─────────────────────────────────── -->
+                    <div class="row mb-3">
+                        <div class="col">
+                            <h2 class="mt-0 mb-0">LOONSTROOK</h2>
+                            <p class="text-muted mb-0">
+                                Wet Loonbelasting Suriname &#183;
+                                <t t-if="bd.get('is_fn')">Fortnight Loon (26&#215;/jaar)</t>
+                                <t t-else="">Maandloon (12&#215;/jaar)</t>
+                            </p>
+                        </div>
                     </div>
+
+                    <!-- ── WERKNEMER GEGEVENS ────────────────────────────── -->
+                    <table class="table table-sm table-bordered mb-3">
+                        <thead class="thead-light">
+                            <tr>
+                                <th colspan="4" class="text-uppercase" style="font-size:8pt;">Werknemer Gegevens</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="text-muted" style="width:18%;font-size:8pt;">Werknemer</td>
+                                <td class="fw-bold" style="width:32%;">
+                                    <t t-esc="doc.employee_id.name"/>
+                                </td>
+                                <td class="text-muted" style="width:18%;font-size:8pt;">Periode</td>
+                                <td class="fw-bold" style="width:32%;">
+                                    <t t-esc="doc.date_from.strftime('%d-%m-%Y') if doc.date_from else ''"/>
+                                    t/m
+                                    <t t-esc="doc.date_to.strftime('%d-%m-%Y') if doc.date_to else ''"/>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted" style="font-size:8pt;">Afdeling</td>
+                                <td><t t-esc="doc.employee_id.department_id.name or '-'"/></td>
+                                <td class="text-muted" style="font-size:8pt;">Referentie</td>
+                                <td><t t-esc="doc.number or '-'"/></td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted" style="font-size:8pt;">Functie</td>
+                                <td><t t-esc="doc.employee_id.job_id.name or '-'"/></td>
+                                <td class="text-muted" style="font-size:8pt;">Loonstructuur</td>
+                                <td><t t-esc="doc.struct_id.name or '-'"/></td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <!-- ── BRUTO LOON ──────────────────────────────────── -->
+                    <table class="table table-sm table-bordered mb-2">
+                        <thead>
+                            <tr style="background:#0891b2;color:#fff;">
+                                <th colspan="2" class="text-uppercase" style="font-size:8pt;">Bruto Loon</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td style="width:75%;">Basisloon</td>
+                                <td class="text-end"><t t-esc="'SRD {:,.2f}'.format(bd.get('basic', 0))"/></td>
+                            </tr>
+                            <t t-if="bd.get('toelagen', 0) != 0">
+                                <tr>
+                                    <td>Toelagen (belastbaar)</td>
+                                    <td class="text-end"><t t-esc="'SRD {:,.2f}'.format(bd.get('toelagen', 0))"/></td>
+                                </tr>
+                            </t>
+                            <t t-if="bd.get('kinderbijslag', 0) != 0">
+                                <tr>
+                                    <td>
+                                        Kinderbijslag
+                                        <span class="text-success" style="font-size:7.5pt;">&#9658; belastingvrij (Art. 10)</span>
+                                    </td>
+                                    <td class="text-end text-success"><t t-esc="'SRD {:,.2f}'.format(bd.get('kinderbijslag', 0))"/></td>
+                                </tr>
+                            </t>
+                            <tr class="fw-bold" style="background:#dbeafe;">
+                                <td>Totaal Bruto Loon</td>
+                                <td class="text-end"><t t-esc="'SRD {:,.2f}'.format(bd.get('bruto_totaal', 0))"/></td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <!-- ── ARTIKEL 14 WLB BEREKENING ──────────────────── -->
+                    <table class="table table-sm table-bordered mb-2">
+                        <thead>
+                            <tr style="background:#1e40af;color:#fff;">
+                                <th colspan="2" class="text-uppercase" style="font-size:8pt;">Loonbelasting Berekening &#8212; Artikel 14 WLB</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td style="width:75%;">
+                                    Bruto belastbaar loon per jaar
+                                    <span class="text-muted" style="font-size:8pt;">
+                                        (<t t-esc="bd.get('periodes', 12)"/> periodes &#215;
+                                        <t t-esc="'SRD {:,.2f}'.format(bd.get('bruto_per_periode', 0))"/>)
+                                    </span>
+                                </td>
+                                <td class="text-end"><t t-esc="'SRD {:,.2f}'.format(bd.get('bruto_jaarloon', 0))"/></td>
+                            </tr>
+                            <tr>
+                                <td style="color:#7c3aed;">&#8722; Belastingvrije som (Art. 13)</td>
+                                <td class="text-end" style="color:#7c3aed;"><t t-esc="'SRD {:,.2f}'.format(bd.get('belastingvrij_jaar', 0))"/></td>
+                            </tr>
+                            <tr>
+                                <td style="color:#7c3aed;">
+                                    &#8722; Forfaitaire beroepskosten (Art. 12) &#8212;
+                                    <t t-esc="'{:.0f}'.format(bd.get('forfaitaire_pct', 4))"/>%,
+                                    max SRD 4.800/jaar
+                                </td>
+                                <td class="text-end" style="color:#7c3aed;"><t t-esc="'SRD {:,.2f}'.format(bd.get('forfaitaire_jaar', 0))"/></td>
+                            </tr>
+                            <tr class="fw-bold" style="background:#eff6ff;">
+                                <td>= Belastbaar Jaarloon</td>
+                                <td class="text-end"><t t-esc="'SRD {:,.2f}'.format(bd.get('belastbaar_jaarloon', 0))"/></td>
+                            </tr>
+                            <tr style="background:#e0e7ff;">
+                                <td colspan="2" style="font-size:7.5pt;font-style:italic;color:#3730a3;font-weight:600;">
+                                    Tariefschijven Artikel 14 &#8212; Progressief belastingtarief
+                                </td>
+                            </tr>
+                            <t t-if="bd.get('s1_basis', 0) > 0">
+                                <tr>
+                                    <td style="padding-left:20px;">
+                                        Schijf 1 &#8212; 0 t/m
+                                        <t t-esc="'SRD {:,.0f}'.format(bd.get('s1_grens', 42000))"/> &#215;
+                                        <t t-esc="'{:.0f}'.format(bd.get('r1_pct', 8))"/>%
+                                        <span class="text-muted" style="font-size:7.5pt;">
+                                            (<t t-esc="'SRD {:,.2f}'.format(bd.get('s1_basis', 0))"/> belastbaar)
+                                        </span>
+                                    </td>
+                                    <td class="text-end"><t t-esc="'SRD {:,.2f}'.format(bd.get('lb_s1', 0))"/></td>
+                                </tr>
+                            </t>
+                            <t t-if="bd.get('s2_basis', 0) > 0">
+                                <tr>
+                                    <td style="padding-left:20px;">
+                                        Schijf 2 &#8212;
+                                        <t t-esc="'SRD {:,.0f}'.format(bd.get('s1_grens', 42000))"/> t/m
+                                        <t t-esc="'SRD {:,.0f}'.format(bd.get('s2_grens', 84000))"/> &#215;
+                                        <t t-esc="'{:.0f}'.format(bd.get('r2_pct', 18))"/>%
+                                        <span class="text-muted" style="font-size:7.5pt;">
+                                            (<t t-esc="'SRD {:,.2f}'.format(bd.get('s2_basis', 0))"/> belastbaar)
+                                        </span>
+                                    </td>
+                                    <td class="text-end"><t t-esc="'SRD {:,.2f}'.format(bd.get('lb_s2', 0))"/></td>
+                                </tr>
+                            </t>
+                            <t t-if="bd.get('s3_basis', 0) > 0">
+                                <tr>
+                                    <td style="padding-left:20px;">
+                                        Schijf 3 &#8212;
+                                        <t t-esc="'SRD {:,.0f}'.format(bd.get('s2_grens', 84000))"/> t/m
+                                        <t t-esc="'SRD {:,.0f}'.format(bd.get('s3_grens', 126000))"/> &#215;
+                                        <t t-esc="'{:.0f}'.format(bd.get('r3_pct', 28))"/>%
+                                        <span class="text-muted" style="font-size:7.5pt;">
+                                            (<t t-esc="'SRD {:,.2f}'.format(bd.get('s3_basis', 0))"/> belastbaar)
+                                        </span>
+                                    </td>
+                                    <td class="text-end"><t t-esc="'SRD {:,.2f}'.format(bd.get('lb_s3', 0))"/></td>
+                                </tr>
+                            </t>
+                            <t t-if="bd.get('s4_basis', 0) > 0">
+                                <tr>
+                                    <td style="padding-left:20px;">
+                                        Schijf 4 &#8212; boven
+                                        <t t-esc="'SRD {:,.0f}'.format(bd.get('s3_grens', 126000))"/> &#215;
+                                        <t t-esc="'{:.0f}'.format(bd.get('r4_pct', 38))"/>%
+                                        <span class="text-muted" style="font-size:7.5pt;">
+                                            (<t t-esc="'SRD {:,.2f}'.format(bd.get('s4_basis', 0))"/> belastbaar)
+                                        </span>
+                                    </td>
+                                    <td class="text-end"><t t-esc="'SRD {:,.2f}'.format(bd.get('lb_s4', 0))"/></td>
+                                </tr>
+                            </t>
+                            <tr>
+                                <td>Loonbelasting v&#243;&#243;r heffingskorting</td>
+                                <td class="text-end"><t t-esc="'SRD {:,.2f}'.format(bd.get('lb_voor_heffingskorting', 0))"/></td>
+                            </tr>
+                            <tr>
+                                <td class="text-success">&#8722; Heffingskorting (SRD 750/maand &#215; 12)</td>
+                                <td class="text-end text-success"><t t-esc="'SRD {:,.2f}'.format(bd.get('heffingskorting_jaar', 0))"/></td>
+                            </tr>
+                            <tr>
+                                <td>Loonbelasting per jaar (netto)</td>
+                                <td class="text-end"><t t-esc="'SRD {:,.2f}'.format(bd.get('lb_jaar_netto', 0))"/></td>
+                            </tr>
+                            <tr class="fw-bold text-danger" style="background:#fef2f2;">
+                                <td>Loonbelasting per periode (&#247; <t t-esc="bd.get('periodes', 12)"/>)</td>
+                                <td class="text-end">&#8722; <t t-esc="'SRD {:,.2f}'.format(bd.get('lb_per_periode', 0))"/></td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <!-- ── AOV BEREKENING ──────────────────────────────── -->
+                    <table class="table table-sm table-bordered mb-2">
+                        <thead>
+                            <tr style="background:#0e7490;color:#fff;">
+                                <th colspan="2" class="text-uppercase" style="font-size:8pt;">AOV Berekening (Algemene Ouderdomsvoorziening)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td style="width:75%;">Bruto loon per periode</td>
+                                <td class="text-end"><t t-esc="'SRD {:,.2f}'.format(bd.get('bruto_per_periode', 0))"/></td>
+                            </tr>
+                            <t t-if="not bd.get('is_fn')">
+                                <tr>
+                                    <td style="color:#7c3aed;">&#8722; Franchise (maandloon)</td>
+                                    <td class="text-end" style="color:#7c3aed;"><t t-esc="'SRD {:,.2f}'.format(bd.get('franchise_periode', 0))"/></td>
+                                </tr>
+                            </t>
+                            <t t-else="">
+                                <tr>
+                                    <td class="text-muted fst-italic">Geen franchise (fortnight loon)</td>
+                                    <td class="text-end text-muted">&#8212;</td>
+                                </tr>
+                            </t>
+                            <tr>
+                                <td>AOV grondslag</td>
+                                <td class="text-end"><t t-esc="'SRD {:,.2f}'.format(bd.get('aov_grondslag', 0))"/></td>
+                            </tr>
+                            <tr class="fw-bold text-danger" style="background:#fef2f2;">
+                                <td>AOV (<t t-esc="'{:.0f}'.format(bd.get('aov_tarief_pct', 4))"/>%)</td>
+                                <td class="text-end">&#8722; <t t-esc="'SRD {:,.2f}'.format(bd.get('aov_per_periode', 0))"/></td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <!-- ── NETTO LOON SAMENVATTING ─────────────────────── -->
+                    <table class="table table-sm table-bordered mt-3">
+                        <thead>
+                            <tr style="background:#0f172a;color:#fff;">
+                                <th colspan="2" class="text-uppercase" style="font-size:8pt;">Samenvatting</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td style="width:70%;">Totaal Bruto Loon</td>
+                                <td class="text-end"><t t-esc="'SRD {:,.2f}'.format(bd.get('bruto_totaal', 0))"/></td>
+                            </tr>
+                            <tr class="text-danger" style="background:#fef2f2;">
+                                <td>&#8722; Loonbelasting (Art. 14 WLB)</td>
+                                <td class="text-end"><t t-esc="'SRD {:,.2f}'.format(bd.get('lb_per_periode', 0))"/></td>
+                            </tr>
+                            <tr class="text-danger" style="background:#fef2f2;">
+                                <td>&#8722; AOV (<t t-esc="'{:.0f}'.format(bd.get('aov_tarief_pct', 4))"/>%)</td>
+                                <td class="text-end"><t t-esc="'SRD {:,.2f}'.format(bd.get('aov_per_periode', 0))"/></td>
+                            </tr>
+                            <t t-if="bd.get('pensioen', 0) > 0">
+                                <tr class="text-danger" style="background:#fef2f2;">
+                                    <td>&#8722; Pensioenpremie</td>
+                                    <td class="text-end"><t t-esc="'SRD {:,.2f}'.format(bd.get('pensioen', 0))"/></td>
+                                </tr>
+                            </t>
+                            <tr class="fw-bold" style="background:#0f172a;color:#fff;font-size:11pt;">
+                                <td>NETTO LOON</td>
+                                <td class="text-end"><t t-esc="'SRD {:,.2f}'.format(bd.get('netto', 0))"/></td>
+                            </tr>
+                        </tbody>
+                    </table>
 
                 </div>
             </t>

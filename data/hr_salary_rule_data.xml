@@ -97,48 +97,9 @@ result = categories['BASIC'] + categories['ALW']
             <field name="condition_select">none</field>
             <field name="amount_select">code</field>
             <field name="amount_python_compute">
-# Stap 1: Aantal periodes per jaar bepalen
-periods = 12 if contract.sr_salary_type == 'monthly' else 26
-
-# Stap 2: Bruto jaarloon
-bruto_per_periode = categories['GROSS']
-bruto_jaarloon = bruto_per_periode * periods
-
-# Stap 3: Forfaitaire beroepskosten aftrek
-#   4% van bruto jaarloon, maximaal SRD 4.800 per jaar
-forfaitaire_pct = payslip._rule_parameter('SR_FORFAITAIRE_PCT')
-forfaitaire_max = payslip._rule_parameter('SR_FORFAITAIRE_MAX_JAAR')
-forfaitaire_jaar = min(bruto_jaarloon * forfaitaire_pct, forfaitaire_max)
-
-# Stap 4: Belastbaar jaarloon
-belastingvrij_jaar = payslip._rule_parameter('SR_BELASTINGVRIJ_JAAR')
-belastbaar_jaarloon = max(0.0, bruto_jaarloon - belastingvrij_jaar - forfaitaire_jaar)
-
-# Stap 5: Tariefschijven berekening
-s1 = payslip._rule_parameter('SR_SCHIJF_1_GRENS')
-s2 = payslip._rule_parameter('SR_SCHIJF_2_GRENS')
-s3 = payslip._rule_parameter('SR_SCHIJF_3_GRENS')
-r1 = payslip._rule_parameter('SR_TARIEF_1')
-r2 = payslip._rule_parameter('SR_TARIEF_2')
-r3 = payslip._rule_parameter('SR_TARIEF_3')
-r4 = payslip._rule_parameter('SR_TARIEF_4')
-
-if belastbaar_jaarloon &lt;= s1:
-    lb_jaar = belastbaar_jaarloon * r1
-elif belastbaar_jaarloon &lt;= s2:
-    lb_jaar = (s1 * r1) + ((belastbaar_jaarloon - s1) * r2)
-elif belastbaar_jaarloon &lt;= s3:
-    lb_jaar = (s1 * r1) + ((s2 - s1) * r2) + ((belastbaar_jaarloon - s2) * r3)
-else:
-    lb_jaar = (s1 * r1) + ((s2 - s1) * r2) + ((s3 - s2) * r3) + ((belastbaar_jaarloon - s3) * r4)
-
-# Stap 6: Heffingskorting
-#   SRD 750 per maand = SRD 9.000 per jaar
-heffingskorting_jaar = payslip._rule_parameter('SR_HEFFINGSKORTING_MAAND') * 12
-lb_jaar = max(0.0, lb_jaar - heffingskorting_jaar)
-
-# Stap 7: Periodebedrag (negatief — inhouding)
-result = -float_round(lb_jaar / periods, precision_digits=2)
+# Artikel 14 LB berekening via centrale calculator
+# payslip._sr_artikel14_lb() gebruikt dezelfde logica als de contract preview
+result = -float_round(payslip._sr_artikel14_lb(categories['GROSS']), precision_digits=2)
             </field>
         </record>
 
@@ -157,21 +118,8 @@ result = -float_round(lb_jaar / periods, precision_digits=2)
             <field name="condition_select">none</field>
             <field name="amount_select">code</field>
             <field name="amount_python_compute">
-# AOV franchise: SRD 400/maand voor maandloon, GEEN franchise voor FN
-# (Artikel 14 context.md regel: "geen franchise per FN")
-if contract.sr_salary_type == 'monthly':
-    # Maandloon: franchise is SRD 400/maand
-    franchise_per_periode = payslip._rule_parameter('SR_AOV_FRANCHISE_MAAND')
-else:
-    # FN (fortnight): GEEN franchise
-    franchise_per_periode = 0.0
-
-# AOV-grondslag: bruto loon per periode minus franchise
-aov_grondslag = max(0.0, categories['GROSS'] - franchise_per_periode)
-
-# AOV inhouding (negatief)
-aov_tarief = payslip._rule_parameter('SR_AOV_TARIEF')
-result = -float_round(aov_grondslag * aov_tarief, precision_digits=2)
+# AOV berekening via centrale calculator
+result = -float_round(payslip._sr_artikel14_aov(categories['GROSS']), precision_digits=2)
             </field>
         </record>
 
