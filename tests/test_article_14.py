@@ -373,3 +373,288 @@ class TestArtikel14Schijven(common.TransactionCase):
                 belastingen[i], belastingen[i + 1],
                 f'Progressiviteit faalt: {lonen[i]} vs {lonen[i+1]}',
             )
+
+    def test_forfaitaire_max_cap(self):
+        """
+        Forfaitaire aftrek is gemaximeerd op SRD 4.800/jaar.
+        Jaarloon SRD 200.000 → 4% = SRD 8.000 → cap op SRD 4.800.
+        """
+        # Jaarloon 200.000: forfaitaire = min(200.000 × 0.04, 4.800) = 4.800
+        # Belastbaar = 200.000 − 108.000 − 4.800 = 87.200
+        belastbaar = 200000 - 108000 - 4800
+        lb = self._bereken_lb_jaar(belastbaar)
+        # s1 = 42.000×8% = 3.360; s2 = 42.000×18% = 7.560; rest = 3.200×28% = 896
+        verwacht = max(0.0,
+                       (42000 * 0.08) + (42000 * 0.18) + (3200 * 0.28) - 9000)
+        self.assertAlmostEqual(lb, verwacht, places=2,
+                               msg='Forfaitaire cap of LB berekening klopt niet')
+
+    def test_forfaitaire_niet_gecapped(self):
+        """
+        Forfaitaire aftrek NIET gemaximeerd voor laag jaarloon.
+        Jaarloon SRD 60.000 → 4% = SRD 2.400 < SRD 4.800 → geen cap.
+        """
+        belastbaar = max(0.0, 60000 - 108000 - 2400)  # = 0 (belastingvrij)
+        lb = self._bereken_lb_jaar(belastbaar)
+        self.assertEqual(lb, 0.0,
+                         'Loon onder belastingvrije som: LB moet 0 zijn')
+
+    def test_belastbaar_jaarloon_nooit_negatief(self):
+        """Belastbaar jaarloon kan nooit negatief zijn (max(0, ...)."""
+        # Jaarloon 50.000: belastingvrij 108.000 → belastbaar = 0
+        belastbaar = max(0.0, 50000 - 108000 - min(50000 * 0.04, 4800))
+        self.assertEqual(belastbaar, 0.0,
+                         'Belastbaar jaarloon moet 0 zijn bij laag loon')
+
+    def test_exacte_schijfgrens_1(self):
+        """
+        Belastbaar jaarloon precies op schijfgrens 1 (SRD 42.000).
+        LB = 42.000 × 8% − 9.000 = 3.360 − 9.000 = 0 (heffingskorting elimineert)
+        """
+        lb = self._bereken_lb_jaar(42000.0)
+        verwacht = max(0.0, 42000 * 0.08 - 9000)
+        self.assertEqual(lb, verwacht,
+                         'Exacte schijfgrens 1 berekening klopt niet')
+
+    def test_exacte_schijfgrens_2(self):
+        """
+        Belastbaar jaarloon precies op schijfgrens 2 (SRD 84.000).
+        LB = 42.000×8% + 42.000×18% − 9.000 = 3.360 + 7.560 − 9.000 = 1.920
+        """
+        lb = self._bereken_lb_jaar(84000.0)
+        verwacht = max(0.0, (42000 * 0.08) + (42000 * 0.18) - 9000)
+        self.assertAlmostEqual(lb, verwacht, places=2,
+                               msg='Exacte schijfgrens 2 berekening klopt niet')
+
+    def test_exacte_schijfgrens_3(self):
+        """
+        Belastbaar jaarloon precies op schijfgrens 3 (SRD 126.000).
+        LB = 42.000×8% + 42.000×18% + 42.000×28% − 9.000 = 13.680
+        """
+        lb = self._bereken_lb_jaar(126000.0)
+        verwacht = max(0.0,
+                       (42000 * 0.08) + (42000 * 0.18) + (42000 * 0.28) - 9000)
+        self.assertAlmostEqual(lb, verwacht, places=2,
+                               msg='Exacte schijfgrens 3 berekening klopt niet')
+
+
+@tagged('post_install', 'post_install_l10n', '-at_install')
+class TestArtikel14AOV(common.TransactionCase):
+    """
+    Tests specifiek voor de AOV berekening:
+    - Franchise SRD 400/maand (maandloon)
+    - Geen franchise voor fortnight loon
+    - 4% tarief
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.company = cls.env['res.company'].create({
+            'name': 'Test SR AOV Bedrijf',
+            'country_id': cls.env.ref('base.sr').id,
+            'currency_id': cls.env.ref('base.SRD').id,
+        })
+        cls.env = cls.env(context=dict(
+            cls.env.context,
+            allowed_company_ids=[cls.company.id],
+        ))
+        cls.employee = cls.env['hr.employee'].create({
+            'name': 'AOV Testwerknemer',
+            'company_id': cls.company.id,
+        })
+        cls.structure = cls.env.ref('l10n_sr_hr_payroll.sr_payroll_structure')
+
+    def _make_payslip(self, wage, salary_type):
+        contract = self.env['hr.contract'].create({
+            'name': 'AOV Testcontract',
+            'employee_id': self.employee.id,
+            'company_id': self.company.id,
+            'struct_id': self.structure.id,
+            'wage': wage,
+            'sr_salary_type': salary_type,
+            'date_start': date(2026, 1, 1),
+            'state': 'open',
+        })
+        payslip = self.env['hr.payslip'].create({
+            'name': 'AOV Testloonstrook',
+            'employee_id': self.employee.id,
+            'contract_id': contract.id,
+            'struct_id': self.structure.id,
+            'date_from': date(2026, 5, 1),
+            'date_to': date(2026, 5, 31),
+            'company_id': self.company.id,
+        })
+        payslip.compute_sheet()
+        return payslip
+
+    def test_aov_maandloon_met_franchise(self):
+        """
+        Maandloon SRD 5.000 → AOV grondslag = 5.000 − 400 = 4.600
+        AOV = 4.600 × 4% = 184
+        """
+        payslip = self._make_payslip(wage=5000.0, salary_type='monthly')
+        aov = payslip.line_ids.filtered(lambda l: l.code == 'SR_AOV').total
+        verwacht_grondslag = 5000.0 - 400.0
+        verwacht_aov = -(verwacht_grondslag * 0.04)
+        self.assertAlmostEqual(aov, verwacht_aov, places=2,
+                               msg='AOV maandloon met franchise klopt niet')
+
+    def test_aov_fortnight_geen_franchise(self):
+        """
+        Fortnight loon SRD 5.000 → AOV grondslag = 5.000 (geen franchise)
+        AOV = 5.000 × 4% = 200
+        """
+        payslip = self._make_payslip(wage=5000.0, salary_type='fn')
+        aov = payslip.line_ids.filtered(lambda l: l.code == 'SR_AOV').total
+        verwacht_aov = -(5000.0 * 0.04)
+        self.assertAlmostEqual(aov, verwacht_aov, places=2,
+                               msg='AOV fortnight zonder franchise klopt niet')
+
+    def test_aov_maandloon_lager_dan_franchise(self):
+        """
+        Maandloon SRD 300 (< franchise SRD 400) → AOV grondslag = 0 → AOV = 0.
+        """
+        payslip = self._make_payslip(wage=300.0, salary_type='monthly')
+        aov = payslip.line_ids.filtered(lambda l: l.code == 'SR_AOV').total
+        self.assertEqual(aov, 0.0,
+                         'AOV moet 0 zijn als loon lager is dan franchise')
+
+    def test_aov_is_negatieve_inhouding(self):
+        """AOV bijdrage moet altijd negatief zijn (inhouding op loon)."""
+        payslip = self._make_payslip(wage=10000.0, salary_type='monthly')
+        aov = payslip.line_ids.filtered(lambda l: l.code == 'SR_AOV').total
+        self.assertLess(aov, 0.0, 'AOV moet negatief zijn (inhouding)')
+
+
+@tagged('post_install', 'post_install_l10n', '-at_install')
+class TestArtikel14Breakdown(common.TransactionCase):
+    """
+    Tests voor de _get_sr_artikel14_breakdown() methode op hr.payslip.
+    Verifieert dat de tussenliggende berekeningen correct zijn voor
+    weergave op de loonstrook PDF.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.company = cls.env['res.company'].create({
+            'name': 'Test SR Breakdown Bedrijf',
+            'country_id': cls.env.ref('base.sr').id,
+            'currency_id': cls.env.ref('base.SRD').id,
+        })
+        cls.env = cls.env(context=dict(
+            cls.env.context,
+            allowed_company_ids=[cls.company.id],
+        ))
+        cls.employee = cls.env['hr.employee'].create({
+            'name': 'Breakdown Testwerknemer',
+            'company_id': cls.company.id,
+        })
+        cls.structure = cls.env.ref('l10n_sr_hr_payroll.sr_payroll_structure')
+
+    def _make_payslip(self, wage, salary_type='monthly', toelagen=0.0):
+        contract = self.env['hr.contract'].create({
+            'name': 'Breakdown Testcontract',
+            'employee_id': self.employee.id,
+            'company_id': self.company.id,
+            'struct_id': self.structure.id,
+            'wage': wage,
+            'sr_salary_type': salary_type,
+            'sr_toelagen': toelagen,
+            'date_start': date(2026, 1, 1),
+            'state': 'open',
+        })
+        payslip = self.env['hr.payslip'].create({
+            'name': 'Breakdown Testloonstrook',
+            'employee_id': self.employee.id,
+            'contract_id': contract.id,
+            'struct_id': self.structure.id,
+            'date_from': date(2026, 5, 1),
+            'date_to': date(2026, 5, 31),
+            'company_id': self.company.id,
+        })
+        payslip.compute_sheet()
+        return payslip
+
+    def test_breakdown_dict_bevat_alle_sleutels(self):
+        """_get_sr_artikel14_breakdown() geeft alle verwachte sleutels terug."""
+        payslip = self._make_payslip(wage=20000.0)
+        bd = payslip._get_sr_artikel14_breakdown()
+
+        verwachte_sleutels = [
+            'periodes', 'is_fn', 'basic', 'toelagen', 'kinderbijslag',
+            'bruto_per_periode', 'bruto_totaal', 'bruto_jaarloon',
+            'belastingvrij_jaar', 'forfaitaire_pct', 'forfaitaire_jaar',
+            'belastbaar_jaarloon', 's1_grens', 's2_grens', 's3_grens',
+            'lb_s1', 'lb_s2', 'lb_s3', 'lb_s4',
+            'lb_voor_heffingskorting', 'heffingskorting_jaar',
+            'lb_jaar_netto', 'lb_per_periode',
+            'franchise_periode', 'aov_grondslag', 'aov_tarief_pct', 'aov_per_periode',
+            'pensioen', 'totaal_inhoudingen', 'netto',
+        ]
+        for sleutel in verwachte_sleutels:
+            self.assertIn(sleutel, bd,
+                          f'Ontbrekende sleutel in breakdown: {sleutel}')
+
+    def test_breakdown_periodes_maandloon(self):
+        """Maandloon → periodes = 12, is_fn = False."""
+        payslip = self._make_payslip(wage=20000.0, salary_type='monthly')
+        bd = payslip._get_sr_artikel14_breakdown()
+        self.assertEqual(bd['periodes'], 12)
+        self.assertFalse(bd['is_fn'])
+
+    def test_breakdown_periodes_fortnight(self):
+        """Fortnight → periodes = 26, is_fn = True."""
+        contract = self.env['hr.contract'].create({
+            'name': 'FN Breakdown Contract',
+            'employee_id': self.employee.id,
+            'company_id': self.company.id,
+            'struct_id': self.structure.id,
+            'wage': 7692.31,  # ≈ SRD 200.000 / 26
+            'sr_salary_type': 'fn',
+            'date_start': date(2026, 1, 1),
+            'state': 'open',
+        })
+        payslip = self.env['hr.payslip'].create({
+            'name': 'FN Breakdown Loonstrook',
+            'employee_id': self.employee.id,
+            'contract_id': contract.id,
+            'struct_id': self.structure.id,
+            'date_from': date(2026, 5, 1),
+            'date_to': date(2026, 5, 14),
+            'company_id': self.company.id,
+        })
+        payslip.compute_sheet()
+        bd = payslip._get_sr_artikel14_breakdown()
+        self.assertEqual(bd['periodes'], 26)
+        self.assertTrue(bd['is_fn'])
+        self.assertEqual(bd['franchise_periode'], 0.0,
+                         'Fortnight heeft geen AOV franchise')
+
+    def test_breakdown_lb_stemt_overeen_met_salarisregel(self):
+        """
+        lb_per_periode uit breakdown moet overeenkomen met SR_LB salarisregel
+        (zelfde berekening, andere uitvoersource).
+        """
+        payslip = self._make_payslip(wage=20255.60)
+        bd = payslip._get_sr_artikel14_breakdown()
+        lb_regel = payslip.line_ids.filtered(lambda l: l.code == 'SR_LB').total
+        # Breakdown geeft positief bedrag, regel geeft negatief
+        self.assertAlmostEqual(bd['lb_per_periode'], abs(lb_regel), delta=0.02,
+                               msg='Breakdown LB moet overeenkomen met SR_LB salarisregel')
+
+    def test_breakdown_lege_loonstrook(self):
+        """Breakdown met lege loonstrook (geen regels) geeft leeg dict terug."""
+        payslip = self.env['hr.payslip'].create({
+            'name': 'Lege Loonstrook',
+            'employee_id': self.employee.id,
+            'struct_id': self.structure.id,
+            'date_from': date(2026, 5, 1),
+            'date_to': date(2026, 5, 31),
+            'company_id': self.company.id,
+        })
+        # Niet compute_sheet() aanroepen → geen regels
+        bd = payslip._get_sr_artikel14_breakdown()
+        self.assertEqual(bd, {},
+                         'Lege loonstrook moet leeg dict teruggeven')
