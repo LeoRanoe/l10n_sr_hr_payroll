@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ══════════════════════════════════════════════════════════════════
+         Suriname Payroll Dashboard  (l10n_sr_hr_payroll)
+         Toont loonstroken geboekt onder de SR-loonstructuur.
+         Zichtbaar via Payroll ▸ Suriname ▸ Loonstroken SR
+    ══════════════════════════════════════════════════════════════════ -->
+
+    <!-- Aangepaste lijstweergave: SR-kolommen (loontype, LB, AOV, netto) -->
+    <record id="view_hr_payslip_sr_list" model="ir.ui.view">
+        <field name="name">hr.payslip.sr.list</field>
+        <field name="model">hr.payslip</field>
+        <field name="arch" type="xml">
+            <list string="Loonstroken Suriname" sample="1" duplicate="0">
+                <field name="company_id" column_invisible="True"/>
+                <field name="currency_id" column_invisible="True"/>
+                <field name="number" decoration-bf="1" readonly="state not in ['draft', 'verify']"/>
+                <field name="employee_id" widget="many2one_avatar_user" readonly="state not in ['draft', 'verify']"/>
+                <field name="payslip_run_id" string="Batch" optional="hide" readonly="state not in ['draft', 'verify']"/>
+                <field name="date_from" string="Van" readonly="state in ['cancel', 'done', 'paid']"/>
+                <field name="date_to" string="T/m" readonly="state in ['cancel', 'done', 'paid']"/>
+                <field name="struct_id" string="Structuur" optional="hide" readonly="state in ['cancel', 'done', 'paid']"/>
+                <field name="basic_wage" string="Basisloon" widget="monetary" options="{'currency_field': 'currency_id'}" optional="show"/>
+                <field name="gross_wage" string="Bruto" widget="monetary" options="{'currency_field': 'currency_id'}" optional="show"/>
+                <field name="net_wage" string="Netto" widget="monetary" options="{'currency_field': 'currency_id'}" decoration-bf="1"/>
+                <field name="state" widget="badge"
+                    decoration-info="state == 'draft'"
+                    decoration-warning="state == 'verify'"
+                    decoration-success="state == 'done'"
+                    decoration-primary="state == 'paid'"
+                    string="Status"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Actievenster: gefilterd op SR-loonstructuur -->
+    <record id="action_sr_payslip_dashboard" model="ir.actions.act_window">
+        <field name="name">Loonstroken Suriname (Art. 14)</field>
+        <field name="res_model">hr.payslip</field>
+        <field name="view_mode">list,form</field>
+        <field name="view_id" ref="view_hr_payslip_sr_list"/>
+        <field name="domain">[('struct_id', '=', %(l10n_sr_hr_payroll.sr_payroll_structure)d)]</field>
+        <field name="context">{
+            'default_struct_id': %(l10n_sr_hr_payroll.sr_payroll_structure)d,
+            'search_default_filter_by_payslip_period': 1,
+        }</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Nog geen Surinaamse loonstroken gevonden.
+            </p>
+            <p>
+                Maak een nieuwe loonstrook aan en selecteer de structuur
+                <strong>Suriname — Artikel 14 WLB</strong>.
+            </p>
+        </field>
+    </record>
+
+    <!-- Menuitem: Payroll ▸ Suriname ▸ Loonstroken SR -->
+    <menuitem
+        id="menu_sr_payroll_root"
+        name="Suriname"
+        parent="hr_payroll.menu_hr_payroll_payslips"
+        sequence="90"
+        groups="hr_payroll.group_hr_payroll_user"/>
+
+    <menuitem
+        id="menu_sr_payslip_dashboard"
+        name="Loonstroken SR (Art. 14)"
+        parent="menu_sr_payroll_root"
+        action="action_sr_payslip_dashboard"
+        sequence="10"
+        groups="hr_payroll.group_hr_payroll_user"/>
+
+</odoo>

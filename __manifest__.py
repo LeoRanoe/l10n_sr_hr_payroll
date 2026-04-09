@@ -40,6 +40,7 @@ Berekeningen:
         'data/hr_rule_parameter_data.xml',
         'data/hr_salary_rule_data.xml',
         'views/hr_contract_views.xml',
+        'views/hr_payroll_dashboard_views.xml',
         'reports/report_payslip_sr.xml',
     ],
     'demo': [],
