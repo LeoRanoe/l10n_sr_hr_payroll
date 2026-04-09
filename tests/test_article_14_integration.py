@@ -54,6 +54,13 @@ class TestIntegratieVolledigeCyclus(common.TransactionCase):
                        toelagen=0.0, kinderbijslag=0.0, pensioenpremie=0.0,
                        employee=None):
         emp = employee or self.employee
+        vaste_regels = []
+        if toelagen:
+            vaste_regels.append((0, 0, {'name': 'Belastbare Toelagen', 'sr_categorie': 'belastbaar', 'amount': toelagen}))
+        if kinderbijslag:
+            vaste_regels.append((0, 0, {'name': 'Kinderbijslag', 'sr_categorie': 'vrijgesteld', 'amount': kinderbijslag}))
+        if pensioenpremie:
+            vaste_regels.append((0, 0, {'name': 'Pensioenpremie', 'sr_categorie': 'inhouding', 'amount': pensioenpremie}))
         return self.env['hr.contract'].create({
             'name': f'Integratie Contract {salary_type} {wage}',
             'employee_id': emp.id,
@@ -61,9 +68,7 @@ class TestIntegratieVolledigeCyclus(common.TransactionCase):
             'structure_type_id': self.structure_type.id,
             'wage': wage,
             'sr_salary_type': salary_type,
-            'sr_toelagen': toelagen,
-            'sr_kinderbijslag': kinderbijslag,
-            'sr_pensioenpremie': pensioenpremie,
+            'sr_vaste_regels': vaste_regels,
             'date_start': date(2026, 1, 1),
             'state': 'open',
         })
@@ -283,6 +288,13 @@ class TestIntegratieContractPreview(common.TransactionCase):
 
     def _maak_contract(self, wage, salary_type='monthly',
                        toelagen=0.0, kinderbijslag=0.0, pensioenpremie=0.0):
+        vaste_regels = []
+        if toelagen:
+            vaste_regels.append((0, 0, {'name': 'Belastbare Toelagen', 'sr_categorie': 'belastbaar', 'amount': toelagen}))
+        if kinderbijslag:
+            vaste_regels.append((0, 0, {'name': 'Kinderbijslag', 'sr_categorie': 'vrijgesteld', 'amount': kinderbijslag}))
+        if pensioenpremie:
+            vaste_regels.append((0, 0, {'name': 'Pensioenpremie', 'sr_categorie': 'inhouding', 'amount': pensioenpremie}))
         return self.env['hr.contract'].create({
             'name': f'Preview Contract {salary_type} {wage}',
             'employee_id': self.employee.id,
@@ -290,9 +302,7 @@ class TestIntegratieContractPreview(common.TransactionCase):
             'structure_type_id': self.structure_type.id,
             'wage': wage,
             'sr_salary_type': salary_type,
-            'sr_toelagen': toelagen,
-            'sr_kinderbijslag': kinderbijslag,
-            'sr_pensioenpremie': pensioenpremie,
+            'sr_vaste_regels': vaste_regels,
             'date_start': date(2026, 1, 1),
             'state': 'draft',
         })

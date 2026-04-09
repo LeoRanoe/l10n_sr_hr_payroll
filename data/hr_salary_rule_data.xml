@@ -4,12 +4,12 @@
     ==========================================================
     Uitvoervolgorde (sequence):
       10  BASIC          — Bruto loon (contract.wage)
-      20  SR_ALW         — Belastbare toelagen (contract.sr_toelagen)
-      30  GROSS          — Bruto belastbaar (BASIC + ALW)
+      20  SR_ALW         — Belastbare toelagen (contract.sr_vaste_regels, categorie=belastbaar)
+      30  GROSS          — Bruto belastbaar (BASIC + SR_ALW)
       50  SR_LB          — Loonbelasting Artikel 14 (negatief)
       60  SR_AOV         — AOV bijdrage (negatief)
-      70  SR_PENSIOEN    — Pensioenpremie werknemer (negatief)
-      80  SR_KINDBIJ     — Kinderbijslag (belastingvrij positief)
+      70  SR_PENSIOEN    — Vaste inhoudingen (contract.sr_vaste_regels, categorie=inhouding)
+      80  SR_KINDBIJ     — Vaste vrijgestelde vergoedingen (contract.sr_vaste_regels, categorie=vrijgesteld)
      100  NET            — Nettoloon
 -->
 <odoo>
@@ -33,21 +33,29 @@ result = contract.wage
         </record>
 
         <!-- ─────────────────────────────────────────────────────────
-             20 — SR_ALW: Belastbare toelagen
-             Toelagen die als belastbaar loon meetellen (bijv. vaste
-             vergoedingen die de belastingvrije grens overschrijden).
+             20 — SR_ALW: Belastbare toelagen (contract.sr_vaste_regels)
+             Som van alle vaste regels met categorie 'belastbaar'.
+             Telt mee in GROSS → Art. 14 loonbelastinggrondslag.
              ───────────────────────────────────────────────────────── -->
         <record id="sr_rule_toelagen" model="hr.salary.rule">
             <field name="struct_id" ref="l10n_sr_hr_payroll.sr_payroll_structure"/>
             <field name="category_id" ref="hr_payroll.ALW"/>
-            <field name="name">Toelagen (Belastbaar)</field>
+            <field name="name">Belastbare Toelagen (Contract)</field>
             <field name="code">SR_ALW</field>
             <field name="sequence">20</field>
             <field name="condition_select">python</field>
-            <field name="condition_python">result = (contract.sr_toelagen or 0.0) &gt; 0.0</field>
+            <field name="condition_python">
+result = any(
+    r.sr_categorie == 'belastbaar' and r.amount > 0
+    for r in contract.sr_vaste_regels
+)
+            </field>
             <field name="amount_select">code</field>
             <field name="amount_python_compute">
-result = contract.sr_toelagen or 0.0
+result = sum(
+    r.amount for r in contract.sr_vaste_regels
+    if r.sr_categorie == 'belastbaar'
+)
             </field>
         </record>
 
@@ -168,40 +176,57 @@ result = -float_round(aov_grondslag * aov_tarief, precision_digits=2)
         </record>
 
         <!-- ─────────────────────────────────────────────────────────
-             70 — SR_PENSIOEN: Pensioenpremie werknemer
-             Werknemersaandeel pensioenpremie staat op het contract.
+             70 — SR_PENSIOEN: Vaste inhoudingen (contract.sr_vaste_regels)
+             Som van alle vaste regels met categorie 'inhouding'.
+             (pensioenpremie, ziektekostenpremie, en overige inhoudingen)
              ───────────────────────────────────────────────────────── -->
         <record id="sr_rule_pensioen" model="hr.salary.rule">
             <field name="struct_id" ref="l10n_sr_hr_payroll.sr_payroll_structure"/>
             <field name="category_id" ref="hr_payroll.DED"/>
-            <field name="name">Pensioenpremie (Werknemer)</field>
+            <field name="name">Vaste Inhoudingen (Contract)</field>
             <field name="code">SR_PENSIOEN</field>
             <field name="sequence">70</field>
             <field name="condition_select">python</field>
-            <field name="condition_python">result = (contract.sr_pensioenpremie or 0.0) &gt; 0.0</field>
+            <field name="condition_python">
+result = any(
+    r.sr_categorie == 'inhouding' and r.amount > 0
+    for r in contract.sr_vaste_regels
+)
+            </field>
             <field name="amount_select">code</field>
             <field name="amount_python_compute">
-result = -(contract.sr_pensioenpremie or 0.0)
+result = -sum(
+    r.amount for r in contract.sr_vaste_regels
+    if r.sr_categorie == 'inhouding'
+)
             </field>
         </record>
 
         <!-- ─────────────────────────────────────────────────────────
-             80 — SR_KINDBIJ: Kinderbijslag (belastingvrij)
-             Kinderbijslag is een belastingvrij voordeel en telt NIET
-             mee in de belastingberekening (sequence > GROSS).
-             Wordt positief verrekend in het nettoloon.
+             80 — SR_KINDBIJ: Vrijgestelde vergoedingen (contract.sr_vaste_regels)
+             Som van alle vaste regels met categorie 'vrijgesteld'.
+             Telt NIET mee in GROSS → geen Art. 14 loonbelasting.
+             Wordt positief verrekend in het nettoloon (Art. 10 WLB).
              ───────────────────────────────────────────────────────── -->
         <record id="sr_rule_kinderbijslag" model="hr.salary.rule">
             <field name="struct_id" ref="l10n_sr_hr_payroll.sr_payroll_structure"/>
             <field name="category_id" ref="hr_payroll.ALW"/>
-            <field name="name">Kinderbijslag (Belastingvrij)</field>
+            <field name="name">Vaste Vrijgestelde Vergoedingen (Contract)</field>
             <field name="code">SR_KINDBIJ</field>
             <field name="sequence">80</field>
             <field name="condition_select">python</field>
-            <field name="condition_python">result = (contract.sr_kinderbijslag or 0.0) &gt; 0.0</field>
+            <field name="condition_python">
+result = any(
+    r.sr_categorie == 'vrijgesteld' and r.amount > 0
+    for r in contract.sr_vaste_regels
+)
+            </field>
             <field name="amount_select">code</field>
             <field name="amount_python_compute">
-result = contract.sr_kinderbijslag or 0.0
+result = sum(
+    r.amount for r in contract.sr_vaste_regels
+    if r.sr_categorie == 'vrijgesteld'
+)
             </field>
         </record>
 
@@ -221,6 +246,428 @@ result = contract.sr_kinderbijslag or 0.0
             <field name="amount_select">code</field>
             <field name="amount_python_compute">
 result = categories['BASIC'] + categories['ALW'] + categories['DED']
+            </field>
+        </record>
+
+        <!-- ═══════════════════════════════════════════════════════════════
+             FLEXIBELE PAYSLIP INPUTS — Belastbaar (seq 23)
+             Aggregeert alle 'belastbaar' input types die op de loonstrook
+             zijn toegevoegd. Telt mee in GROSS → Art. 14 LB.
+             ═══════════════════════════════════════════════════════════════ -->
+
+        <!-- ─────────────────────────────────────────────────────────
+             23 — SR_INPUT_BELASTB: Belastbare invoer (payslip inputs)
+             Som van alle invoerregels met sr_categorie = 'belastbaar'.
+             Telt mee in GROSS → Art. 14 loonbelasting.
+             ───────────────────────────────────────────────────────── -->
+        <record id="sr_rule_input_belastbaar" model="hr.salary.rule">
+            <field name="struct_id" ref="l10n_sr_hr_payroll.sr_payroll_structure"/>
+            <field name="category_id" ref="hr_payroll.ALW"/>
+            <field name="name">Belastbare Toelagen (Payslip)</field>
+            <field name="code">SR_INPUT_BELASTB</field>
+            <field name="sequence">23</field>
+            <field name="condition_select">python</field>
+            <field name="condition_python">
+result = any(
+    inp.input_type_id.sr_categorie == 'belastbaar' and inp.amount > 0
+    for inp in payslip.input_line_ids
+)
+            </field>
+            <field name="amount_select">code</field>
+            <field name="amount_python_compute">
+result = sum(
+    inp.amount for inp in payslip.input_line_ids
+    if inp.input_type_id.sr_categorie == 'belastbaar'
+)
+            </field>
+        </record>
+
+        <!-- ─────────────────────────────────────────────────────────
+             73 — SR_INPUT_AFTREK: Inhoudingen (payslip inputs)
+             Som van alle invoerregels met sr_categorie = 'inhouding'.
+             Negatief — wordt ingehouden op het nettoloon.
+             ───────────────────────────────────────────────────────── -->
+        <record id="sr_rule_input_aftrek" model="hr.salary.rule">
+            <field name="struct_id" ref="l10n_sr_hr_payroll.sr_payroll_structure"/>
+            <field name="category_id" ref="hr_payroll.DED"/>
+            <field name="name">Overige Inhoudingen (Payslip)</field>
+            <field name="code">SR_INPUT_AFTREK</field>
+            <field name="sequence">73</field>
+            <field name="condition_select">python</field>
+            <field name="condition_python">
+result = any(
+    inp.input_type_id.sr_categorie == 'inhouding' and inp.amount > 0
+    for inp in payslip.input_line_ids
+)
+            </field>
+            <field name="amount_select">code</field>
+            <field name="amount_python_compute">
+result = -sum(
+    inp.amount for inp in payslip.input_line_ids
+    if inp.input_type_id.sr_categorie == 'inhouding'
+)
+            </field>
+        </record>
+
+        <!-- ─────────────────────────────────────────────────────────
+             82 — SR_INPUT_VRIJ: Vrijgestelde toelagen (payslip inputs)
+             Som vrijgestelde inputs. Na GROSS → niet in Art. 14.
+             Telt wel mee in het nettoloon (Art. 10 WLB vergoedingen).
+             ───────────────────────────────────────────────────────── -->
+        <record id="sr_rule_input_vrijgesteld" model="hr.salary.rule">
+            <field name="struct_id" ref="l10n_sr_hr_payroll.sr_payroll_structure"/>
+            <field name="category_id" ref="hr_payroll.ALW"/>
+            <field name="name">Vrijgestelde Vergoedingen (Payslip)</field>
+            <field name="code">SR_INPUT_VRIJ</field>
+            <field name="sequence">82</field>
+            <field name="condition_select">python</field>
+            <field name="condition_python">
+result = any(
+    inp.input_type_id.sr_categorie == 'vrijgesteld' and inp.amount > 0
+    for inp in payslip.input_line_ids
+)
+            </field>
+            <field name="amount_select">code</field>
+            <field name="amount_python_compute">
+result = sum(
+    inp.amount for inp in payslip.input_line_ids
+    if inp.input_type_id.sr_categorie == 'vrijgesteld'
+)
+            </field>
+        </record>
+
+        <!-- ═══════════════════════════════════════════════════════════════
+             OVERWERK — Art. 17c WLB (seq 84–86)
+             Overwerk is belastbar maar met eigen schijven (5%/15%/25%).
+             Na GROSS → telt NIET mee in Art. 14 grondslag.
+             Eigen LB via SR_LB_OVERWERK. AOV: 4% zonder franchise.
+             ═══════════════════════════════════════════════════════════════ -->
+
+        <!-- ─────────────────────────────────────────────────────────
+             84 — SR_OVERWERK: Overwerk bruto (payslip inputs)
+             ───────────────────────────────────────────────────────── -->
+        <record id="sr_rule_overwerk" model="hr.salary.rule">
+            <field name="struct_id" ref="l10n_sr_hr_payroll.sr_payroll_structure"/>
+            <field name="category_id" ref="hr_payroll.ALW"/>
+            <field name="name">Overwerk</field>
+            <field name="code">SR_OVERWERK</field>
+            <field name="sequence">84</field>
+            <field name="condition_select">python</field>
+            <field name="condition_python">
+result = any(
+    inp.input_type_id.sr_categorie == 'overwerk' and inp.amount > 0
+    for inp in payslip.input_line_ids
+)
+            </field>
+            <field name="amount_select">code</field>
+            <field name="amount_python_compute">
+result = sum(
+    inp.amount for inp in payslip.input_line_ids
+    if inp.input_type_id.sr_categorie == 'overwerk'
+)
+            </field>
+        </record>
+
+        <!-- ─────────────────────────────────────────────────────────
+             85 — SR_LB_OVERWERK: Loonbelasting Overwerk (Art. 17c)
+             Eigen schijven: 5% / 15% / 25% op bruto overwerk.
+             Tariefgrenzen worden gelezen uit hr.rule.parameter zodat
+             ze bij wetswijziging aanpasbaar zijn via het dashboard.
+             ───────────────────────────────────────────────────────── -->
+        <record id="sr_rule_lb_overwerk" model="hr.salary.rule">
+            <field name="struct_id" ref="l10n_sr_hr_payroll.sr_payroll_structure"/>
+            <field name="category_id" ref="hr_payroll.DED"/>
+            <field name="name">Loonbelasting Overwerk (Art. 17c)</field>
+            <field name="code">SR_LB_OVERWERK</field>
+            <field name="sequence">85</field>
+            <field name="condition_select">python</field>
+            <field name="condition_python">
+result = any(
+    inp.input_type_id.sr_categorie == 'overwerk' and inp.amount > 0
+    for inp in payslip.input_line_ids
+)
+            </field>
+            <field name="amount_select">code</field>
+            <field name="amount_python_compute">
+bruto_overwerk = sum(
+    inp.amount for inp in payslip.input_line_ids
+    if inp.input_type_id.sr_categorie == 'overwerk'
+)
+
+if bruto_overwerk &lt;= 0:
+    result = 0.0
+else:
+    s1 = payslip._rule_parameter('SR_OWK_SCHIJF_1_GRENS')
+    s2 = payslip._rule_parameter('SR_OWK_SCHIJF_2_GRENS')
+    r1 = payslip._rule_parameter('SR_OWK_TARIEF_1')
+    r2 = payslip._rule_parameter('SR_OWK_TARIEF_2')
+    r3 = payslip._rule_parameter('SR_OWK_TARIEF_3')
+
+    if bruto_overwerk &lt;= s1:
+        lb = bruto_overwerk * r1
+    elif bruto_overwerk &lt;= s2:
+        lb = s1 * r1 + (bruto_overwerk - s1) * r2
+    else:
+        lb = s1 * r1 + (s2 - s1) * r2 + (bruto_overwerk - s2) * r3
+
+    result = -float_round(lb, precision_digits=2)
+            </field>
+        </record>
+
+        <!-- ─────────────────────────────────────────────────────────
+             86 — SR_AOV_OVERWERK: AOV over overwerk
+             4% over het bruto overwerkbedrag (geen franchise).
+             ───────────────────────────────────────────────────────── -->
+        <record id="sr_rule_aov_overwerk" model="hr.salary.rule">
+            <field name="struct_id" ref="l10n_sr_hr_payroll.sr_payroll_structure"/>
+            <field name="category_id" ref="hr_payroll.DED"/>
+            <field name="name">AOV Overwerk</field>
+            <field name="code">SR_AOV_OVERWERK</field>
+            <field name="sequence">86</field>
+            <field name="condition_select">python</field>
+            <field name="condition_python">
+result = any(
+    inp.input_type_id.sr_categorie == 'overwerk' and inp.amount > 0
+    for inp in payslip.input_line_ids
+)
+            </field>
+            <field name="amount_select">code</field>
+            <field name="amount_python_compute">
+bruto_overwerk = sum(
+    inp.amount for inp in payslip.input_line_ids
+    if inp.input_type_id.sr_categorie == 'overwerk'
+)
+aov_tarief = payslip._rule_parameter('SR_AOV_TARIEF')
+result = -float_round(bruto_overwerk * aov_tarief, precision_digits=2)
+            </field>
+        </record>
+
+        <!-- ═══════════════════════════════════════════════════════════════
+             BIJZONDERE BELONINGEN — Bruto regels (seq 87–89)
+             Na GROSS → tellen NIET mee in Art. 14 grondslag.
+             LB berekend via Art. 17 marginaal tarief methode.
+             ═══════════════════════════════════════════════════════════════ -->
+
+        <!-- ─────────────────────────────────────────────────────────
+             87 — SR_VAKANTIE: Vakantietoelage bruto (Art. 10i)
+             Vrijstelling = min(basisloon, max SRD 10.016/jaar).
+             Belastbaar deel via Art. 17 marginaal tarief.
+             ───────────────────────────────────────────────────────── -->
+        <record id="sr_rule_vakantie" model="hr.salary.rule">
+            <field name="struct_id" ref="l10n_sr_hr_payroll.sr_payroll_structure"/>
+            <field name="category_id" ref="hr_payroll.ALW"/>
+            <field name="name">Vakantietoelage</field>
+            <field name="code">SR_VAKANTIE</field>
+            <field name="sequence">87</field>
+            <field name="condition_select">python</field>
+            <field name="condition_python">
+result = any(
+    inp.input_type_id.sr_categorie == 'vakantie' and inp.amount > 0
+    for inp in payslip.input_line_ids
+)
+            </field>
+            <field name="amount_select">code</field>
+            <field name="amount_python_compute">
+result = sum(
+    inp.amount for inp in payslip.input_line_ids
+    if inp.input_type_id.sr_categorie == 'vakantie'
+)
+            </field>
+        </record>
+
+        <!-- ─────────────────────────────────────────────────────────
+             88 — SR_GRAT: Gratificatie / Bonus bruto (Art. 10j)
+             Vrijstelling = min(basisloon, max SRD 10.016/jaar).
+             Belastbaar deel via Art. 17 marginaal tarief.
+             ───────────────────────────────────────────────────────── -->
+        <record id="sr_rule_gratificatie" model="hr.salary.rule">
+            <field name="struct_id" ref="l10n_sr_hr_payroll.sr_payroll_structure"/>
+            <field name="category_id" ref="hr_payroll.ALW"/>
+            <field name="name">Gratificatie / Bonus</field>
+            <field name="code">SR_GRAT</field>
+            <field name="sequence">88</field>
+            <field name="condition_select">python</field>
+            <field name="condition_python">
+result = any(
+    inp.input_type_id.sr_categorie == 'gratificatie' and inp.amount > 0
+    for inp in payslip.input_line_ids
+)
+            </field>
+            <field name="amount_select">code</field>
+            <field name="amount_python_compute">
+result = sum(
+    inp.amount for inp in payslip.input_line_ids
+    if inp.input_type_id.sr_categorie == 'gratificatie'
+)
+            </field>
+        </record>
+
+        <!-- ─────────────────────────────────────────────────────────
+             89 — SR_BIJZ: Bijzondere Beloning bruto (Art. 17)
+             Geen vaste vrijstelling. Belast via Art. 17 marginaal tarief.
+             ───────────────────────────────────────────────────────── -->
+        <record id="sr_rule_bijz_beloning" model="hr.salary.rule">
+            <field name="struct_id" ref="l10n_sr_hr_payroll.sr_payroll_structure"/>
+            <field name="category_id" ref="hr_payroll.ALW"/>
+            <field name="name">Bijzondere Beloning</field>
+            <field name="code">SR_BIJZ</field>
+            <field name="sequence">89</field>
+            <field name="condition_select">python</field>
+            <field name="condition_python">
+result = any(
+    inp.input_type_id.sr_categorie == 'bijz_beloning' and inp.amount > 0
+    for inp in payslip.input_line_ids
+)
+            </field>
+            <field name="amount_select">code</field>
+            <field name="amount_python_compute">
+result = sum(
+    inp.amount for inp in payslip.input_line_ids
+    if inp.input_type_id.sr_categorie == 'bijz_beloning'
+)
+            </field>
+        </record>
+
+        <!-- ═══════════════════════════════════════════════════════════════
+             LB + AOV OP BIJZONDERE BELONINGEN (seq 91–92)
+             Art. 17 marginaal tarief methode:
+               1. vrijstelling aftrekken (vakantie/grat: min(loon, 10.016))
+               2. gemiddelde bijstelling per tijdvak berekenen
+               3. gecorrigeerd loon = regulier_gross + gemiddelde
+               4. lb_tijdvak(gecorrigeerd) - lb_tijdvak(regulier)
+               5. lb_bijz = verschil × periodes
+             ═══════════════════════════════════════════════════════════════ -->
+
+        <!-- ─────────────────────────────────────────────────────────
+             91 — SR_LB_BIJZ: LB over bijzondere beloningen (Art. 17)
+             Combineert vakantie + gratificatie + bijz_beloning.
+             ───────────────────────────────────────────────────────── -->
+        <record id="sr_rule_lb_bijz" model="hr.salary.rule">
+            <field name="struct_id" ref="l10n_sr_hr_payroll.sr_payroll_structure"/>
+            <field name="category_id" ref="hr_payroll.DED"/>
+            <field name="name">Loonbelasting Bijzondere Beloningen (Art. 17)</field>
+            <field name="code">SR_LB_BIJZ</field>
+            <field name="sequence">91</field>
+            <field name="condition_select">python</field>
+            <field name="condition_python">
+result = any(
+    inp.input_type_id.sr_categorie in ('vakantie', 'gratificatie', 'bijz_beloning')
+    and inp.amount > 0
+    for inp in payslip.input_line_ids
+)
+            </field>
+            <field name="amount_select">code</field>
+            <field name="amount_python_compute">
+# ── Hulpfunctie: Art. 14 LB per tijdvak ─────────────────────────────────
+# Hergebruikt dezelfde parameterlogica als SR_LB zodat beide regels
+# altijd consistent zijn.
+def _lb_per_tijdvak(bruto_per_tijdvak, periodes, prm):
+    bruto_jaar = bruto_per_tijdvak * periodes
+    forfaitaire = min(bruto_jaar * prm['for_pct'], prm['for_max'])
+    belastbaar = max(0.0, bruto_jaar - prm['bvsom'] - forfaitaire)
+    s1, s2, s3 = prm['s1'], prm['s2'], prm['s3']
+    r1, r2, r3, r4 = prm['r1'], prm['r2'], prm['r3'], prm['r4']
+    if belastbaar &lt;= s1:
+        lb_j = belastbaar * r1
+    elif belastbaar &lt;= s2:
+        lb_j = s1 * r1 + (belastbaar - s1) * r2
+    elif belastbaar &lt;= s3:
+        lb_j = s1 * r1 + (s2 - s1) * r2 + (belastbaar - s2) * r3
+    else:
+        lb_j = s1 * r1 + (s2 - s1) * r2 + (s3 - s2) * r3 + (belastbaar - s3) * r4
+    hk_j = prm['hk_maand'] * 12
+    return max(0.0, lb_j - hk_j) / periodes
+
+periodes = 12 if contract.sr_salary_type == 'monthly' else 26
+gross_per_tijdvak = categories['GROSS']
+vrijstelling_max = payslip._rule_parameter('SR_BIJZ_VRIJSTELLING_MAX')
+
+prm = {
+    'for_pct':  payslip._rule_parameter('SR_FORFAITAIRE_PCT'),
+    'for_max':  payslip._rule_parameter('SR_FORFAITAIRE_MAX_JAAR'),
+    'bvsom':    payslip._rule_parameter('SR_BELASTINGVRIJ_JAAR'),
+    's1':       payslip._rule_parameter('SR_SCHIJF_1_GRENS'),
+    's2':       payslip._rule_parameter('SR_SCHIJF_2_GRENS'),
+    's3':       payslip._rule_parameter('SR_SCHIJF_3_GRENS'),
+    'r1':       payslip._rule_parameter('SR_TARIEF_1'),
+    'r2':       payslip._rule_parameter('SR_TARIEF_2'),
+    'r3':       payslip._rule_parameter('SR_TARIEF_3'),
+    'r4':       payslip._rule_parameter('SR_TARIEF_4'),
+    'hk_maand': payslip._rule_parameter('SR_HEFFINGSKORTING_MAAND'),
+}
+
+lb_normaal = _lb_per_tijdvak(gross_per_tijdvak, periodes, prm)
+lb_totaal = 0.0
+
+for inp in payslip.input_line_ids:
+    cat = inp.input_type_id.sr_categorie
+    if cat not in ('vakantie', 'gratificatie', 'bijz_beloning'):
+        continue
+    bruto = inp.amount
+    if bruto &lt;= 0:
+        continue
+
+    # Art. 10i/j: vrijstelling = min(basisloon per periode, max per jaar)
+    if cat in ('vakantie', 'gratificatie'):
+        vrijstelling = min(contract.wage or 0.0, vrijstelling_max)
+    else:
+        # bijz_beloning: geen vaste vrijstelling (Art. 17)
+        vrijstelling = 0.0
+
+    belastbaar_bijz = max(0.0, bruto - vrijstelling)
+    if belastbaar_bijz &lt;= 0:
+        continue
+
+    # Art. 17: marginaal tarief methode
+    gemiddelde = belastbaar_bijz / periodes
+    gecorrigeerd = gross_per_tijdvak + gemiddelde
+    lb_gecorr = _lb_per_tijdvak(gecorrigeerd, periodes, prm)
+    lb_bijz = max(0.0, lb_gecorr - lb_normaal) * periodes
+    lb_totaal += lb_bijz
+
+result = -float_round(lb_totaal, precision_digits=2)
+            </field>
+        </record>
+
+        <!-- ─────────────────────────────────────────────────────────
+             92 — SR_AOV_BIJZ: AOV over bijzondere beloningen
+             4% over het belastbaar deel (na vrijstelling).
+             ───────────────────────────────────────────────────────── -->
+        <record id="sr_rule_aov_bijz" model="hr.salary.rule">
+            <field name="struct_id" ref="l10n_sr_hr_payroll.sr_payroll_structure"/>
+            <field name="category_id" ref="hr_payroll.DED"/>
+            <field name="name">AOV Bijzondere Beloningen</field>
+            <field name="code">SR_AOV_BIJZ</field>
+            <field name="sequence">92</field>
+            <field name="condition_select">python</field>
+            <field name="condition_python">
+result = any(
+    inp.input_type_id.sr_categorie in ('vakantie', 'gratificatie', 'bijz_beloning')
+    and inp.amount > 0
+    for inp in payslip.input_line_ids
+)
+            </field>
+            <field name="amount_select">code</field>
+            <field name="amount_python_compute">
+aov_tarief = payslip._rule_parameter('SR_AOV_TARIEF')
+vrijstelling_max = payslip._rule_parameter('SR_BIJZ_VRIJSTELLING_MAX')
+aov_totaal = 0.0
+
+for inp in payslip.input_line_ids:
+    cat = inp.input_type_id.sr_categorie
+    if cat not in ('vakantie', 'gratificatie', 'bijz_beloning'):
+        continue
+    bruto = inp.amount
+    if bruto &lt;= 0:
+        continue
+    if cat in ('vakantie', 'gratificatie'):
+        vrijstelling = min(contract.wage or 0.0, vrijstelling_max)
+    else:
+        vrijstelling = 0.0
+    belastbaar = max(0.0, bruto - vrijstelling)
+    aov_totaal += belastbaar * aov_tarief
+
+result = -float_round(aov_totaal, precision_digits=2)
             </field>
         </record>
 

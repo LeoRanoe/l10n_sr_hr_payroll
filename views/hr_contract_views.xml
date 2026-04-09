@@ -2,17 +2,26 @@
 <odoo>
     <!--
         Suriname Payroll — Contract Formulier Uitbreiding
-        Voegt het tabblad "Suriname Loon (Art. 14 WLB)" toe aan het contract
-        formulier met duidelijke sectie-indeling en artikelverwijzingen.
+        Voegt het tabblad "Suriname Loon" toe aan het contract formulier.
+
+        Vaste loon regels table (sr_vaste_regels):
+          Eindgebruiker beheert zelf toeslagen en inhoudingen per werknemer.
+          Categorieën:
+            belastbaar  — telt mee in Art. 14 loonbelastinggrondslag
+            vrijgesteld — Art. 10 WLB belastingvrij voordeel
+            inhouding   — netto aftrek (pensioenpremie, ziektekostenpremie, etc.)
+
+        INFO — Eenmalige/variabele betalingen via Payslip inputs
+        INFO — Art. 14 tarieven referentietabel
+        LIVE — Live rekenvoorbeeld (geschatte loonstrook)
     -->
     <record id="hr_contract_sr_view_form" model="ir.ui.view">
         <field name="name">hr.contract.sr.form</field>
         <field name="model">hr.contract</field>
         <field name="inherit_id" ref="hr_contract.hr_contract_view_form"/>
         <field name="arch" type="xml">
-            <!-- Voeg Suriname tabblad toe na het "Salary Information" tabblad -->
             <xpath expr="//notebook" position="inside">
-                <page string="Suriname Loon (Art. 14 WLB)" name="sr_payroll_tab">
+                <page string="Suriname Loon" name="sr_payroll_tab">
 
                     <!-- ── Artikel 14 badge ──────────────────────────────── -->
                     <div class="alert alert-info d-flex align-items-center mb-3" role="alert"
@@ -27,47 +36,74 @@
                         </div>
                     </div>
 
-                    <!-- ── Sectie 1: Verloning ───────────────────────────── -->
+                    <!-- ── Verloning Instellingen ────────────────────────── -->
                     <group string="Verloning Instellingen" name="sr_verloning">
                         <group>
                             <field name="sr_salary_type"
                                    widget="radio"
                                    string="Loontype"
-                                   required="1"
-                                   help="Kies de verloonfrequentie. Dit bepaalt het aantal periodes per jaar (12 of 26) en de AOV-franchise."/>
+                                   required="1"/>
                         </group>
                         <group>
-                            <!-- Informatieblok naast loontype -->
                             <div class="text-muted" style="font-size: 0.9em; padding-top: 4px;">
-                                <strong>Maandloon:</strong> 12 periodes/jaar · AOV franchise SRD 400<br/>
+                                <strong>Maandloon:</strong> 12 periodes/jaar · AOV franchise SRD 400/mnd<br/>
                                 <strong>Fortnight:</strong> 26 periodes/jaar · Geen AOV franchise
                             </div>
                         </group>
                     </group>
 
-                    <!-- ── Sectie 2: Bruto Componenten ──────────────────── -->
-                    <group string="Bruto Loon Componenten" name="sr_bruto">
-                        <group string="Toeslagen (Art. 10 &amp; basis)">
-                            <field name="sr_toelagen"
-                                   string="Belastbare Toelagen"
-                                   widget="monetary"
-                                   help="Vaste toelagen per periode die meetellen als belastbaar loon voor Artikel 14 WLB (bijv. representatievergoeding boven de vrijstelling)."/>
-                            <field name="sr_kinderbijslag"
-                                   string="Kinderbijslag"
-                                   widget="monetary"
-                                   help="Kinderbijslag per periode — belastingvrij conform Art. 10 WLB. Telt NIET mee in de loonbelastinggrondslag, maar verhoogt wel het nettoloon."/>
-                        </group>
+                    <!-- ══════════════════════════════════════════════════
+                         VASTE LOON REGELS TABLE
+                         Eindgebruiker beheert zelf toeslagen en inhoudingen.
+                         ══════════════════════════════════════════════════ -->
+                    <div style="margin-top: 4px; margin-bottom: 2px;">
+                        <h4 style="color: #374151; border-bottom: 2px solid #e5e7eb; padding-bottom: 4px; margin-bottom: 0;">
+                            Vaste Loon Regels per Periode
+                        </h4>
+                    </div>
+                    <div style="font-size: 0.88em; color: #6b7280; margin-bottom: 8px;">
+                        Voeg hieronder de vaste toeslagen en inhoudingen toe voor deze werknemer.
+                        Kies per regel de categorie: <strong>Belastbaar</strong> (telt mee in Art. 14 grondslag),
+                        <strong>Belastingvrij</strong> (Art. 10 WLB), of <strong>Inhouding</strong> (netto aftrek).
+                    </div>
 
-                        <!-- ── Sectie 3: Inhoudingen ─────────────────────── -->
-                        <group string="Inhoudingen">
-                            <field name="sr_pensioenpremie"
-                                   string="Pensioenpremie (Werknemer)"
-                                   widget="monetary"
-                                   help="Werknemersaandeel in de pensioenpremie per loonperiode. Wordt direct ingehouden op het nettoloon."/>
-                        </group>
+                    <field name="sr_vaste_regels" nolabel="1">
+                        <list editable="bottom">
+                            <field name="sequence" widget="handle"/>
+                            <field name="name"
+                                   placeholder="Bijv. Olie Toelage, Pensioenpremie, Kinderbijslag..."
+                                   style="min-width: 200px;"/>
+                            <field name="sr_categorie"/>
+                            <field name="amount" widget="monetary"/>
+                            <field name="currency_id" column_invisible="True"/>
+                        </list>
+                    </field>
+
+                    <!-- ── Toelichting: Eenmalige/variabele betalingen ─── -->
+                    <group string="Eenmalige &amp; Variabele Betalingen (via Loonstrook)" name="sr_payslip_info">
+                        <div colspan="2" style="background: #f0fdf4; border-left: 4px solid #16a34a; border-radius: 4px; padding: 10px 14px; font-size: 0.88em; color: #14532d;">
+                            <strong>&#9432; Hoe eigen loon codes aanmaken?</strong><br/>
+                            Bedragen die niet elke periode hetzelfde zijn (overwerk, vakantietoelage,
+                            bonus, gratificatie) beheer je via <strong>Loonstrook inputs</strong>:
+                            <ol style="margin: 6px 0 0 16px; padding: 0;">
+                                <li>Ga naar <strong>Configuratie → Salaris → Other Input Types</strong></li>
+                                <li>Maak een nieuwe loon code aan (bijv. "Olie Toeslag Variabel")</li>
+                                <li>Stel de <strong>SR Loon Categorie</strong> in (belastbaar / vrijgesteld / overwerk / vakantie / gratificatie / bijzondere beloning)</li>
+                                <li>Voeg het bedrag toe bij het aanmaken van de loonstrook</li>
+                            </ol>
+                            <div style="margin-top: 6px; padding-top: 6px; border-top: 1px solid #bbf7d0;">
+                                <strong>Vooringestelde codes:</strong>
+                                SR_IN_OVERWERK (Overwerk Art. 17c) ·
+                                SR_IN_VAKANTIE (Vakantietoelage Art. 10i) ·
+                                SR_IN_GRAT (Gratificatie Art. 10j) ·
+                                SR_IN_BIJZ (Bijzondere Beloning Art. 17) ·
+                                SR_IN_VRIJ (Vrije Vergoeding) ·
+                                SR_IN_AFTREK (Extra Inhouding)
+                            </div>
+                        </div>
                     </group>
 
-                    <!-- ── Sectie 4: Referentietarieven (informatief) ────── -->
+                    <!-- ── Referentietarieven (informatief) ─────────────── -->
                     <group string="Referentie — Artikel 14 Tariefschijven 2026" name="sr_tarieven">
                         <div colspan="2" style="padding: 4px 0;">
                             <table style="width: 100%; border-collapse: collapse; font-size: 0.9em;">
@@ -104,18 +140,19 @@
                             <p class="text-muted" style="font-size: 0.85em; margin-top: 6px; margin-bottom: 0;">
                                 <strong>Art. 12:</strong> Forfaitaire aftrek 4% van jaarloon (max SRD 4.800) ·
                                 <strong>Art. 13:</strong> Belastingvrije som SRD 108.000/jaar ·
-                                <strong>Heffingskorting:</strong> SRD 750/maand
+                                <strong>Heffingskorting:</strong> SRD 750/maand ·
+                                <strong>Overwerk Art. 17c:</strong> 5% / 15% / 25%
                             </p>
                         </div>
                     </group>
 
-                    <!-- ── Sectie 5: Rekenvoorbeeld — Geschatte Loonstrook ──────── -->
+                    <!-- ── Live Rekenvoorbeeld ───────────────────────────── -->
                     <group string="Rekenvoorbeeld — Geschatte Loonstrook per Periode" name="sr_rekenvoorbeeld">
                         <div colspan="2" style="background: #fffbeb; border-left: 4px solid #f59e0b; border-radius: 4px; padding: 8px 14px; font-size: 0.88em; color: #78350f; margin-bottom: 8px;">
-                            &#9432;&#160;<em>Schatting op basis van huidig ingevulde waarden. Definitieve bedragen staan op de loonstrook.</em>
+                            &#9432;&#160;<em>Schatting op basis van vaste contractwaarden. Eenmalige payslip-invoer (overwerk, vakantie, bonus) is niet inbegrepen. Definitieve bedragen staan op de loonstrook.</em>
                         </div>
                         <group string="Bruto &amp; Belastbaar">
-                            <field name="sr_preview_bruto" readonly="1" widget="monetary" string="Bruto Loon (incl. toelagen)"/>
+                            <field name="sr_preview_bruto" readonly="1" widget="monetary" string="Bruto Loon (incl. vaste toelagen)"/>
                             <field name="sr_preview_belastbaar_jaar" readonly="1" widget="monetary" string="Belastbaar Jaarloon (Art. 14)"/>
                         </group>
                         <group string="Geschatte Inhoudingen &amp; Netto">

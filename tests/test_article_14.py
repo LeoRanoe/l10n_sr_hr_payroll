@@ -58,6 +58,13 @@ class TestArtikel14Berekening(common.TransactionCase):
                          employee=None):
         """Hulpfunctie om een testcontract aan te maken."""
         emp = employee or self.employee
+        vaste_regels = []
+        if toelagen:
+            vaste_regels.append((0, 0, {'name': 'Belastbare Toelagen', 'sr_categorie': 'belastbaar', 'amount': toelagen}))
+        if kinderbijslag:
+            vaste_regels.append((0, 0, {'name': 'Kinderbijslag', 'sr_categorie': 'vrijgesteld', 'amount': kinderbijslag}))
+        if pensioenpremie:
+            vaste_regels.append((0, 0, {'name': 'Pensioenpremie', 'sr_categorie': 'inhouding', 'amount': pensioenpremie}))
         return self.env['hr.contract'].create({
             'name': f'Testcontract — {emp.name}',
             'employee_id': emp.id,
@@ -65,9 +72,7 @@ class TestArtikel14Berekening(common.TransactionCase):
             'structure_type_id': self.structure_type.id,
             'wage': wage,
             'sr_salary_type': salary_type,
-            'sr_toelagen': toelagen,
-            'sr_kinderbijslag': kinderbijslag,
-            'sr_pensioenpremie': pensioenpremie,
+            'sr_vaste_regels': vaste_regels,
             'date_start': date(2026, 1, 1),
             'state': 'open',
         })
@@ -563,6 +568,9 @@ class TestArtikel14Breakdown(common.TransactionCase):
         cls.structure_type = cls.structure.type_id
 
     def _make_payslip(self, wage, salary_type='monthly', toelagen=0.0):
+        vaste_regels = []
+        if toelagen:
+            vaste_regels.append((0, 0, {'name': 'Belastbare Toelagen', 'sr_categorie': 'belastbaar', 'amount': toelagen}))
         contract = self.env['hr.contract'].create({
             'name': 'Breakdown Testcontract',
             'employee_id': self.employee.id,
@@ -570,7 +578,7 @@ class TestArtikel14Breakdown(common.TransactionCase):
             'structure_type_id': self.structure_type.id,
             'wage': wage,
             'sr_salary_type': salary_type,
-            'sr_toelagen': toelagen,
+            'sr_vaste_regels': vaste_regels,
             'date_start': date(2026, 1, 1),
             'state': 'open',
         })

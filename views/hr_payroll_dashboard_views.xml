@@ -40,11 +40,8 @@
         <field name="res_model">hr.payslip</field>
         <field name="view_mode">list,form</field>
         <field name="view_id" ref="view_hr_payslip_sr_list"/>
-        <field name="domain">[('struct_id', '=', %(l10n_sr_hr_payroll.sr_payroll_structure)d)]</field>
-        <field name="context">{
-            'default_struct_id': %(l10n_sr_hr_payroll.sr_payroll_structure)d,
-            'search_default_filter_by_payslip_period': 1,
-        }</field>
+        <field name="domain" eval="[('struct_id', '=', ref('l10n_sr_hr_payroll.sr_payroll_structure'))]"/>
+        <field name="context" eval="{'default_struct_id': ref('l10n_sr_hr_payroll.sr_payroll_structure'), 'search_default_filter_by_payslip_period': 1}"/>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">
                 Nog geen Surinaamse loonstroken gevonden.

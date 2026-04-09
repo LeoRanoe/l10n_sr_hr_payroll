@@ -170,5 +170,83 @@
             <field name="date_from" eval="datetime(2026, 1, 1).date()"/>
             <field name="parameter_value">400.0</field>
         </record>
+
+        <!-- ═══════════════════════════════════════════════════════════
+             OVERWERK BELASTING — Artikel 17c WLB
+             Eigen schijven: 5% / 15% / 25%
+             Grenzen conform Loonbelasting context 2026 (per tijdvak).
+             Bij wetswijziging: nieuwe .value records toevoegen met
+             nieuw date_from — historische waarden blijven bewaard.
+             ═══════════════════════════════════════════════════════════ -->
+        <record id="sr_param_owk_schijf_1_grens" model="hr.rule.parameter">
+            <field name="name">SR — Overwerk schijf 1 grens (per tijdvak)</field>
+            <field name="code">SR_OWK_SCHIJF_1_GRENS</field>
+            <field name="country_id" ref="base.sr"/>
+        </record>
+        <record id="sr_param_owk_schijf_1_grens_2026" model="hr.rule.parameter.value">
+            <field name="rule_parameter_id" ref="sr_param_owk_schijf_1_grens"/>
+            <field name="date_from" eval="datetime(2026, 1, 1).date()"/>
+            <field name="parameter_value">2500.0</field>
+        </record>
+
+        <record id="sr_param_owk_schijf_2_grens" model="hr.rule.parameter">
+            <field name="name">SR — Overwerk schijf 2 grens (per tijdvak)</field>
+            <field name="code">SR_OWK_SCHIJF_2_GRENS</field>
+            <field name="country_id" ref="base.sr"/>
+        </record>
+        <record id="sr_param_owk_schijf_2_grens_2026" model="hr.rule.parameter.value">
+            <field name="rule_parameter_id" ref="sr_param_owk_schijf_2_grens"/>
+            <field name="date_from" eval="datetime(2026, 1, 1).date()"/>
+            <field name="parameter_value">7500.0</field>
+        </record>
+
+        <record id="sr_param_owk_tarief_1" model="hr.rule.parameter">
+            <field name="name">SR — Overwerk tarief schijf 1 (5%%)</field>
+            <field name="code">SR_OWK_TARIEF_1</field>
+            <field name="country_id" ref="base.sr"/>
+        </record>
+        <record id="sr_param_owk_tarief_1_2026" model="hr.rule.parameter.value">
+            <field name="rule_parameter_id" ref="sr_param_owk_tarief_1"/>
+            <field name="date_from" eval="datetime(2026, 1, 1).date()"/>
+            <field name="parameter_value">0.05</field>
+        </record>
+
+        <record id="sr_param_owk_tarief_2" model="hr.rule.parameter">
+            <field name="name">SR — Overwerk tarief schijf 2 (15%%)</field>
+            <field name="code">SR_OWK_TARIEF_2</field>
+            <field name="country_id" ref="base.sr"/>
+        </record>
+        <record id="sr_param_owk_tarief_2_2026" model="hr.rule.parameter.value">
+            <field name="rule_parameter_id" ref="sr_param_owk_tarief_2"/>
+            <field name="date_from" eval="datetime(2026, 1, 1).date()"/>
+            <field name="parameter_value">0.15</field>
+        </record>
+
+        <record id="sr_param_owk_tarief_3" model="hr.rule.parameter">
+            <field name="name">SR — Overwerk tarief schijf 3 (25%%)</field>
+            <field name="code">SR_OWK_TARIEF_3</field>
+            <field name="country_id" ref="base.sr"/>
+        </record>
+        <record id="sr_param_owk_tarief_3_2026" model="hr.rule.parameter.value">
+            <field name="rule_parameter_id" ref="sr_param_owk_tarief_3"/>
+            <field name="date_from" eval="datetime(2026, 1, 1).date()"/>
+            <field name="parameter_value">0.25</field>
+        </record>
+
+        <!-- ═══════════════════════════════════════════════════════════
+             BIJZONDERE BELONINGEN VRIJSTELLING — Art. 10i & 10j WLB
+             Vakantietoelage + Gratificatie: max SRD 10.016 per jaar.
+             ═══════════════════════════════════════════════════════════ -->
+        <record id="sr_param_bijz_vrijstelling_max" model="hr.rule.parameter">
+            <field name="name">SR — Bijz. beloning vrijstelling maximum (Art. 10i/j)</field>
+            <field name="code">SR_BIJZ_VRIJSTELLING_MAX</field>
+            <field name="country_id" ref="base.sr"/>
+        </record>
+        <record id="sr_param_bijz_vrijstelling_max_2026" model="hr.rule.parameter.value">
+            <field name="rule_parameter_id" ref="sr_param_bijz_vrijstelling_max"/>
+            <field name="date_from" eval="datetime(2026, 1, 1).date()"/>
+            <field name="parameter_value">10016.0</field>
+        </record>
+
     </data>
 </odoo>
