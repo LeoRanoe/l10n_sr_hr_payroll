@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        Suriname Payroll — Uitbreiding hr.payslip.input.type
+        Voegt het veld "SR Loon Categorie" toe aan het formulier
+        voor Other Input Types (Configuratie → Salaris → Other Input Types).
+
+        De eindgebruiker stelt hier in hoe een loon code behandeld wordt:
+        - belastbaar      → Art. 14 LB-grondslag
+        - vrijgesteld     → Art. 10 belastingvrij
+        - inhouding       → netto aftrek
+        - overwerk        → Art. 17c eigen schijven
+        - vakantie        → Art. 10i vrijstelling + Art. 17 LB
+        - gratificatie    → Art. 10j vrijstelling + Art. 17 LB
+        - bijz_beloning   → Art. 17 marginaal tarief
+    -->
+    <record id="hr_payslip_input_type_sr_form" model="ir.ui.view">
+        <field name="name">hr.payslip.input.type.sr.form</field>
+        <field name="model">hr.payslip.input.type</field>
+        <field name="inherit_id" ref="hr_payroll.hr_payslip_input_type_view_form"/>
+        <field name="arch" type="xml">
+            <!-- Voeg SR Categorie toe na het "Code" veld -->
+            <xpath expr="//field[@name='code']" position="after">
+                <field name="sr_categorie"
+                       string="SR Loon Categorie"
+                       help="Bepaalt de Surinaamse loonbelastingbehandeling voor deze code.&#10;&#10;Laat leeg als deze code geen speciale SR-behandeling vereist.&#10;&#10;• Belastbaar: telt mee in Art. 14 grondslag (LB + AOV)&#10;• Belastingvrij: Art. 10 WLB, geen LB of AOV&#10;• Inhouding: netto aftrek, geen LB of AOV&#10;• Overwerk: Art. 17c eigen schijven (5%/15%/25%)&#10;• Vakantietoelage: Art. 10i vrijstelling + Art. 17&#10;• Gratificatie/Bonus: Art. 10j vrijstelling + Art. 17&#10;• Bijzondere Beloning: Art. 17 marginaal tarief"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!--
+        Lijst view uitbreiding: toon sr_categorie kolom in de lijst.
+    -->
+    <record id="hr_payslip_input_type_sr_list" model="ir.ui.view">
+        <field name="name">hr.payslip.input.type.sr.list</field>
+        <field name="model">hr.payslip.input.type</field>
+        <field name="inherit_id" ref="hr_payroll.hr_payslip_input_type_view_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='code']" position="after">
+                <field name="sr_categorie" string="SR Categorie" optional="show"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

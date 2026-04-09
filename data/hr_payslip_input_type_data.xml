@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Suriname Payroll — Vooringestelde Loon Input Types
+    ===================================================
+    De eindgebruiker kan in Configuratie → Salaris → Other Input Types
+    eigen loon codes aanmaken voor elk gewenst debit of credit bedrag.
+
+    Stel bij elke code de "SR Loon Categorie" in om de correcte
+    loonbelasting- en AOV-behandeling te activeren:
+
+    • belastbaar    → Art. 14 grondslag (LB + AOV ingehouden)
+    • vrijgesteld   → Art. 10 WLB (geen LB/AOV)
+    • inhouding     → Netto aftrek
+    • overwerk      → Art. 17c eigen schijven
+    • vakantie      → Art. 10i vrijstelling + Art. 17 LB
+    • gratificatie  → Art. 10j vrijstelling + Art. 17 LB
+    • bijz_beloning → Art. 17 marginaal tarief (geen vrijstelling)
+-->
+<odoo>
+    <data noupdate="0">
+
+        <!-- ═══════════════════════════════════════════════════════════════
+             DEBET — Belastbare Toelagen
+             Tellen mee in de Art. 14 loonbelastinggrondslag.
+             ═══════════════════════════════════════════════════════════════ -->
+
+        <record id="sr_input_belastbare_toelage" model="hr.payslip.input.type">
+            <field name="name">Belastbare Toelage (Vrij te specificeren)</field>
+            <field name="code">SR_IN_BELASTB</field>
+            <field name="sr_categorie">belastbaar</field>
+            <field name="country_id" ref="base.sr"/>
+        </record>
+
+        <!-- ═══════════════════════════════════════════════════════════════
+             DEBET — Belastingvrije Vergoedingen (Art. 10 WLB)
+             Geen LB of AOV. Telt WEL mee in nettoloon.
+             ═══════════════════════════════════════════════════════════════ -->
+
+        <record id="sr_input_vrije_vergoeding" model="hr.payslip.input.type">
+            <field name="name">Belastingvrije Vergoeding (Art. 10)</field>
+            <field name="code">SR_IN_VRIJ</field>
+            <field name="sr_categorie">vrijgesteld</field>
+            <field name="country_id" ref="base.sr"/>
+        </record>
+
+        <record id="sr_input_medische_vergoeding" model="hr.payslip.input.type">
+            <field name="name">Vrije Geneeskundige Behandeling</field>
+            <field name="code">SR_IN_GENEESKUNDE</field>
+            <field name="sr_categorie">vrijgesteld</field>
+            <field name="country_id" ref="base.sr"/>
+        </record>
+
+        <!-- ═══════════════════════════════════════════════════════════════
+             CREDIT — Inhoudingen (Netto aftrek)
+             Worden ingehouden op het nettoloon. Geen LB of AOV.
+             ═══════════════════════════════════════════════════════════════ -->
+
+        <record id="sr_input_inhouding" model="hr.payslip.input.type">
+            <field name="name">Inhouding / Aftrek (Vrij te specificeren)</field>
+            <field name="code">SR_IN_AFTREK</field>
+            <field name="sr_categorie">inhouding</field>
+            <field name="country_id" ref="base.sr"/>
+        </record>
+
+        <!-- ═══════════════════════════════════════════════════════════════
+             DEBET — Overwerk (Art. 17c WLB)
+             Eigen belastingschijven: 5% / 15% / 25%.
+             AOV: 4% zonder franchise.
+             ═══════════════════════════════════════════════════════════════ -->
+
+        <record id="sr_input_overwerk" model="hr.payslip.input.type">
+            <field name="name">Overwerk (Art. 17c)</field>
+            <field name="code">SR_IN_OVERWERK</field>
+            <field name="sr_categorie">overwerk</field>
+            <field name="country_id" ref="base.sr"/>
+        </record>
+
+        <!-- ═══════════════════════════════════════════════════════════════
+             DEBET — Vakantietoelage (Art. 10i WLB)
+             Vrijstelling: min(maandloon, SRD 10.016) per jaar.
+             Belastbaar deel: Art. 17 marginaal tarief methode.
+             ═══════════════════════════════════════════════════════════════ -->
+
+        <record id="sr_input_vakantietoelage" model="hr.payslip.input.type">
+            <field name="name">Vakantietoelage (Art. 10i)</field>
+            <field name="code">SR_IN_VAKANTIE</field>
+            <field name="sr_categorie">vakantie</field>
+            <field name="country_id" ref="base.sr"/>
+        </record>
+
+        <!-- ═══════════════════════════════════════════════════════════════
+             DEBET — Gratificatie / Bonus (Art. 10j WLB)
+             Vrijstelling: min(maandloon, SRD 10.016) per jaar.
+             Belastbaar deel: Art. 17 marginaal tarief methode.
+             ═══════════════════════════════════════════════════════════════ -->
+
+        <record id="sr_input_gratificatie" model="hr.payslip.input.type">
+            <field name="name">Gratificatie / Jaar Bonus (Art. 10j)</field>
+            <field name="code">SR_IN_GRAT</field>
+            <field name="sr_categorie">gratificatie</field>
+            <field name="country_id" ref="base.sr"/>
+        </record>
+
+        <record id="sr_input_prestatie_bonus" model="hr.payslip.input.type">
+            <field name="name">Prestatie Bonus (Art. 10j)</field>
+            <field name="code">SR_IN_BONUS</field>
+            <field name="sr_categorie">gratificatie</field>
+            <field name="country_id" ref="base.sr"/>
+        </record>
+
+        <!-- ═══════════════════════════════════════════════════════════════
+             DEBET — Bijzondere Beloning (Art. 17 WLB)
+             Geen vaste vrijstelling. Belast via marginaal tarief Art. 17.
+             Gebruik dit voor jubileum-uitkeringen, afkoopsommen, etc.
+             ═══════════════════════════════════════════════════════════════ -->
+
+        <record id="sr_input_bijz_beloning" model="hr.payslip.input.type">
+            <field name="name">Bijzondere Beloning (Art. 17)</field>
+            <field name="code">SR_IN_BIJZ</field>
+            <field name="sr_categorie">bijz_beloning</field>
+            <field name="country_id" ref="base.sr"/>
+        </record>
+
+    </data>
+</odoo>
