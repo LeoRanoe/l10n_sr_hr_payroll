@@ -13,7 +13,7 @@
      100  NET            — Nettoloon
 -->
 <odoo>
-    <data noupdate="1">
+    <data noupdate="0">
 
         <!-- ─────────────────────────────────────────────────────────
              10 — BASIC: Bruto loon per periode

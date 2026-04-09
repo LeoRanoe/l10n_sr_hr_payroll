@@ -109,6 +109,22 @@
                         </div>
                     </group>
 
+                    <!-- ── Sectie 5: Rekenvoorbeeld — Geschatte Loonstrook ──────── -->
+                    <group string="Rekenvoorbeeld — Geschatte Loonstrook per Periode" name="sr_rekenvoorbeeld">
+                        <div colspan="2" style="background: #fffbeb; border-left: 4px solid #f59e0b; border-radius: 4px; padding: 8px 14px; font-size: 0.88em; color: #78350f; margin-bottom: 8px;">
+                            &#9432;&#160;<em>Schatting op basis van huidig ingevulde waarden. Definitieve bedragen staan op de loonstrook.</em>
+                        </div>
+                        <group string="Bruto &amp; Belastbaar">
+                            <field name="sr_preview_bruto" readonly="1" widget="monetary" string="Bruto Loon (incl. toelagen)"/>
+                            <field name="sr_preview_belastbaar_jaar" readonly="1" widget="monetary" string="Belastbaar Jaarloon (Art. 14)"/>
+                        </group>
+                        <group string="Geschatte Inhoudingen &amp; Netto">
+                            <field name="sr_preview_lb_periode" readonly="1" widget="monetary" string="Loonbelasting per Periode (Art. 14)"/>
+                            <field name="sr_preview_aov_periode" readonly="1" widget="monetary" string="AOV per Periode (4%)"/>
+                            <field name="sr_preview_netto" readonly="1" widget="monetary" string="Geschat Nettoloon"/>
+                        </group>
+                    </group>
+
                 </page>
             </xpath>
         </field>

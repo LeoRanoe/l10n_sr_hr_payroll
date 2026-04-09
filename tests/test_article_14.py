@@ -42,20 +42,27 @@ class TestArtikel14Berekening(common.TransactionCase):
             'name': 'Test Werknemer SR',
             'company_id': cls.company.id,
         })
+        cls.employee_b = cls.env['hr.employee'].create({
+            'name': 'Test Werknemer SR B',
+            'company_id': cls.company.id,
+        })
 
-        # Salarisstructuur ophalen
+        # Salarisstructuur + structuurtype ophalen
         cls.structure = cls.env.ref(
             'l10n_sr_hr_payroll.sr_payroll_structure'
         )
+        cls.structure_type = cls.structure.type_id
 
     def _create_contract(self, wage, salary_type='monthly',
-                         toelagen=0.0, kinderbijslag=0.0, pensioenpremie=0.0):
+                         toelagen=0.0, kinderbijslag=0.0, pensioenpremie=0.0,
+                         employee=None):
         """Hulpfunctie om een testcontract aan te maken."""
+        emp = employee or self.employee
         return self.env['hr.contract'].create({
-            'name': f'Testcontract — {self.employee.name}',
-            'employee_id': self.employee.id,
+            'name': f'Testcontract — {emp.name}',
+            'employee_id': emp.id,
             'company_id': self.company.id,
-            'struct_id': self.structure.id,
+            'structure_type_id': self.structure_type.id,
             'wage': wage,
             'sr_salary_type': salary_type,
             'sr_toelagen': toelagen,
@@ -69,7 +76,7 @@ class TestArtikel14Berekening(common.TransactionCase):
         """Hulpfunctie om een loonstrook te berekenen en de regels te retourneren."""
         payslip = self.env['hr.payslip'].create({
             'name': f'Testloonstrook {date_from}',
-            'employee_id': self.employee.id,
+            'employee_id': contract.employee_id.id,
             'contract_id': contract.id,
             'struct_id': self.structure.id,
             'date_from': date_from,
@@ -184,7 +191,7 @@ class TestArtikel14Berekening(common.TransactionCase):
     def test_toelagen_verhogen_belastinggrondslag(self):
         """Belastbare toelagen moeten de loonbelasting verhogen."""
         contract_zonder = self._create_contract(wage=20000.0, toelagen=0.0)
-        contract_met = self._create_contract(wage=20000.0, toelagen=2000.0)
+        contract_met = self._create_contract(wage=20000.0, toelagen=2000.0, employee=self.employee_b)
 
         date_from = date(2026, 4, 1)
         date_to = date(2026, 4, 30)
@@ -204,7 +211,7 @@ class TestArtikel14Berekening(common.TransactionCase):
     def test_kinderbijslag_is_belastingvrij(self):
         """Kinderbijslag mag de loonbelasting NIET verhogen."""
         contract_zonder = self._create_contract(wage=20000.0, kinderbijslag=0.0)
-        contract_met = self._create_contract(wage=20000.0, kinderbijslag=500.0)
+        contract_met = self._create_contract(wage=20000.0, kinderbijslag=500.0, employee=self.employee_b)
 
         date_from = date(2026, 4, 1)
         date_to = date(2026, 4, 30)
@@ -238,7 +245,7 @@ class TestArtikel14Berekening(common.TransactionCase):
         fn_loon = jaarloon / 26    # ≈ 9.230,77/fortnight
 
         contract_maand = self._create_contract(wage=maandloon, salary_type='monthly')
-        contract_fn = self._create_contract(wage=fn_loon, salary_type='fn')
+        contract_fn = self._create_contract(wage=fn_loon, salary_type='fn', employee=self.employee_b)
 
         # Maandloon: april (1 maand)
         payslip_maand = self._compute_payslip(
@@ -273,7 +280,7 @@ class TestArtikel14Berekening(common.TransactionCase):
         contract = self._create_contract(
             wage=20000.0, pensioenpremie=pensioenpremie
         )
-        contract_zonder = self._create_contract(wage=20000.0)
+        contract_zonder = self._create_contract(wage=20000.0, employee=self.employee_b)
 
         date_from = date(2026, 4, 1)
         date_to = date(2026, 4, 30)
@@ -464,13 +471,14 @@ class TestArtikel14AOV(common.TransactionCase):
             'company_id': cls.company.id,
         })
         cls.structure = cls.env.ref('l10n_sr_hr_payroll.sr_payroll_structure')
+        cls.structure_type = cls.structure.type_id
 
     def _make_payslip(self, wage, salary_type):
         contract = self.env['hr.contract'].create({
             'name': 'AOV Testcontract',
             'employee_id': self.employee.id,
             'company_id': self.company.id,
-            'struct_id': self.structure.id,
+            'structure_type_id': self.structure_type.id,
             'wage': wage,
             'sr_salary_type': salary_type,
             'date_start': date(2026, 1, 1),
@@ -552,13 +560,14 @@ class TestArtikel14Breakdown(common.TransactionCase):
             'company_id': cls.company.id,
         })
         cls.structure = cls.env.ref('l10n_sr_hr_payroll.sr_payroll_structure')
+        cls.structure_type = cls.structure.type_id
 
     def _make_payslip(self, wage, salary_type='monthly', toelagen=0.0):
         contract = self.env['hr.contract'].create({
             'name': 'Breakdown Testcontract',
             'employee_id': self.employee.id,
             'company_id': self.company.id,
-            'struct_id': self.structure.id,
+            'structure_type_id': self.structure_type.id,
             'wage': wage,
             'sr_salary_type': salary_type,
             'sr_toelagen': toelagen,
@@ -610,7 +619,7 @@ class TestArtikel14Breakdown(common.TransactionCase):
             'name': 'FN Breakdown Contract',
             'employee_id': self.employee.id,
             'company_id': self.company.id,
-            'struct_id': self.structure.id,
+            'structure_type_id': self.structure_type.id,
             'wage': 7692.31,  # ≈ SRD 200.000 / 26
             'sr_salary_type': 'fn',
             'date_start': date(2026, 1, 1),
