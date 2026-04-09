@@ -28,6 +28,11 @@ Berekeningen:
 - Netto loon
     """,
     'depends': ['hr_payroll'],
+    'assets': {
+        'web.assets_backend': [
+            'l10n_sr_hr_payroll/static/src/css/l10n_sr_payroll.css',
+        ],
+    },
     'data': [
         'security/ir.model.access.csv',
         'data/hr_payroll_structure_type_data.xml',

@@ -2,8 +2,8 @@
 <odoo>
     <!--
         Suriname Payroll — Contract Formulier Uitbreiding
-        Voegt het tabblad "Suriname Loon" toe aan het contract formulier
-        met velden voor loontype, toelagen, kinderbijslag en pensioenpremie.
+        Voegt het tabblad "Suriname Loon (Art. 14 WLB)" toe aan het contract
+        formulier met duidelijke sectie-indeling en artikelverwijzingen.
     -->
     <record id="hr_contract_sr_view_form" model="ir.ui.view">
         <field name="name">hr.contract.sr.form</field>
@@ -12,40 +12,103 @@
         <field name="arch" type="xml">
             <!-- Voeg Suriname tabblad toe na het "Salary Information" tabblad -->
             <xpath expr="//notebook" position="inside">
-                <page string="Suriname Loon" name="sr_payroll_tab">
-                    <group string="Verloning Instellingen">
+                <page string="Suriname Loon (Art. 14 WLB)" name="sr_payroll_tab">
+
+                    <!-- ── Artikel 14 badge ──────────────────────────────── -->
+                    <div class="alert alert-info d-flex align-items-center mb-3" role="alert"
+                         style="border-left: 4px solid #0891b2; background: #f0f9ff; border-radius: 6px; padding: 10px 14px;">
+                        <div>
+                            <strong style="color: #0e7490;">&#9679; Artikel 14 WLB — Actief</strong>
+                            <span class="text-muted ms-2">
+                                Loonbelasting wordt automatisch berekend via de progressieve
+                                tariefschijven (8% / 18% / 28% / 38%) per verloonperiode.
+                                Geen handmatige activering vereist.
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- ── Sectie 1: Verloning ───────────────────────────── -->
+                    <group string="Verloning Instellingen" name="sr_verloning">
                         <group>
                             <field name="sr_salary_type"
                                    widget="radio"
                                    string="Loontype"
-                                   required="1"/>
+                                   required="1"
+                                   help="Kies de verloonfrequentie. Dit bepaalt het aantal periodes per jaar (12 of 26) en de AOV-franchise."/>
+                        </group>
+                        <group>
+                            <!-- Informatieblok naast loontype -->
+                            <div class="text-muted" style="font-size: 0.9em; padding-top: 4px;">
+                                <strong>Maandloon:</strong> 12 periodes/jaar · AOV franchise SRD 400<br/>
+                                <strong>Fortnight:</strong> 26 periodes/jaar · Geen AOV franchise
+                            </div>
                         </group>
                     </group>
-                    <group string="Toeslagen &amp; Aftrekken per Periode">
-                        <group string="Toekeningen">
+
+                    <!-- ── Sectie 2: Bruto Componenten ──────────────────── -->
+                    <group string="Bruto Loon Componenten" name="sr_bruto">
+                        <group string="Toeslagen (Art. 10 &amp; basis)">
                             <field name="sr_toelagen"
                                    string="Belastbare Toelagen"
-                                   widget="monetary"/>
+                                   widget="monetary"
+                                   help="Vaste toelagen per periode die meetellen als belastbaar loon voor Artikel 14 WLB (bijv. representatievergoeding boven de vrijstelling)."/>
                             <field name="sr_kinderbijslag"
-                                   string="Kinderbijslag (Vrijgesteld)"
-                                   widget="monetary"/>
+                                   string="Kinderbijslag"
+                                   widget="monetary"
+                                   help="Kinderbijslag per periode — belastingvrij conform Art. 10 WLB. Telt NIET mee in de loonbelastinggrondslag, maar verhoogt wel het nettoloon."/>
                         </group>
+
+                        <!-- ── Sectie 3: Inhoudingen ─────────────────────── -->
                         <group string="Inhoudingen">
                             <field name="sr_pensioenpremie"
                                    string="Pensioenpremie (Werknemer)"
-                                   widget="monetary"/>
+                                   widget="monetary"
+                                   help="Werknemersaandeel in de pensioenpremie per loonperiode. Wordt direct ingehouden op het nettoloon."/>
                         </group>
                     </group>
-                    <group string="Toelichting" col="1">
-                        <div class="text-muted">
-                            <ul>
-                                <li><b>Loontype:</b> Kies maandloon (12×/jaar) of fortnight (26×/jaar).</li>
-                                <li><b>Belastbare Toelagen:</b> Vaste toeslagen die meetellen als belastbaar loon (bijv. representatievergoeding boven vrijstelling).</li>
-                                <li><b>Kinderbijslag:</b> Belastingvrij kinderbijslag — telt NIET mee in de loonbelastinggrondslag.</li>
-                                <li><b>Pensioenpremie:</b> Werknemersaandeel in de pensioenpremie per loonperiode.</li>
-                            </ul>
+
+                    <!-- ── Sectie 4: Referentietarieven (informatief) ────── -->
+                    <group string="Referentie — Artikel 14 Tariefschijven 2026" name="sr_tarieven">
+                        <div colspan="2" style="padding: 4px 0;">
+                            <table style="width: 100%; border-collapse: collapse; font-size: 0.9em;">
+                                <thead>
+                                    <tr style="background: #f1f5f9; font-weight: bold; color: #475569;">
+                                        <th style="padding: 5px 10px; text-align: left; border: 1px solid #e2e8f0;">Schijf</th>
+                                        <th style="padding: 5px 10px; text-align: left; border: 1px solid #e2e8f0;">Belastbaar Jaarloon</th>
+                                        <th style="padding: 5px 10px; text-align: center; border: 1px solid #e2e8f0;">Tarief</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td style="padding: 4px 10px; border: 1px solid #e2e8f0;">1</td>
+                                        <td style="padding: 4px 10px; border: 1px solid #e2e8f0;">t/m SRD 42.000</td>
+                                        <td style="padding: 4px 10px; text-align: center; border: 1px solid #e2e8f0; font-weight: bold; color: #16a34a;">8%</td>
+                                    </tr>
+                                    <tr style="background: #f8fafc;">
+                                        <td style="padding: 4px 10px; border: 1px solid #e2e8f0;">2</td>
+                                        <td style="padding: 4px 10px; border: 1px solid #e2e8f0;">SRD 42.001 – 84.000</td>
+                                        <td style="padding: 4px 10px; text-align: center; border: 1px solid #e2e8f0; font-weight: bold; color: #d97706;">18%</td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 4px 10px; border: 1px solid #e2e8f0;">3</td>
+                                        <td style="padding: 4px 10px; border: 1px solid #e2e8f0;">SRD 84.001 – 126.000</td>
+                                        <td style="padding: 4px 10px; text-align: center; border: 1px solid #e2e8f0; font-weight: bold; color: #dc2626;">28%</td>
+                                    </tr>
+                                    <tr style="background: #f8fafc;">
+                                        <td style="padding: 4px 10px; border: 1px solid #e2e8f0;">4</td>
+                                        <td style="padding: 4px 10px; border: 1px solid #e2e8f0;">Boven SRD 126.000</td>
+                                        <td style="padding: 4px 10px; text-align: center; border: 1px solid #e2e8f0; font-weight: bold; color: #7c3aed;">38%</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <p class="text-muted" style="font-size: 0.85em; margin-top: 6px; margin-bottom: 0;">
+                                <strong>Art. 12:</strong> Forfaitaire aftrek 4% van jaarloon (max SRD 4.800) ·
+                                <strong>Art. 13:</strong> Belastingvrije som SRD 108.000/jaar ·
+                                <strong>Heffingskorting:</strong> SRD 750/maand
+                            </p>
                         </div>
                     </group>
+
                 </page>
             </xpath>
         </field>

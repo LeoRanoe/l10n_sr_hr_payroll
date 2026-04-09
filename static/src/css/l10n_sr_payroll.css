@@ -1,0 +1,86 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   l10n_sr_hr_payroll — Suriname Salarisverwerking Stijlen
+   Teal/slate neutrale kleurstelling; overschrijft standaard Odoo achtergronden
+   voor de Suriname loon tab, zodat de module herkenbaar is.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Contract form tab ───────────────────────────────────────────────────── */
+
+/* Highlight de Suriname Loon tab knop */
+.o_notebook .nav-link[data-name="sr_payroll_tab"] {
+    border-bottom: 3px solid #0891b2;
+    color: #0e7490;
+    font-weight: 600;
+}
+
+.o_notebook .nav-link[data-name="sr_payroll_tab"].active {
+    color: #0e7490;
+    border-bottom-color: #0891b2;
+}
+
+/* Artikel 14 badge binnen het tab */
+.o_field_widget .sr-art14-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #ecfeff;
+    border: 1px solid #a5f3fc;
+    border-left: 4px solid #0891b2;
+    border-radius: 6px;
+    padding: 8px 12px;
+    color: #0e7490;
+    font-size: 0.9em;
+    font-weight: 500;
+}
+
+/* Tariefschijven tabel in contract form */
+.sr-schijven-tabel {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9em;
+    margin-top: 4px;
+}
+
+.sr-schijven-tabel th {
+    background: #f1f5f9;
+    color: #475569;
+    font-weight: 600;
+    padding: 6px 10px;
+    text-align: left;
+    border: 1px solid #e2e8f0;
+}
+
+.sr-schijven-tabel td {
+    padding: 5px 10px;
+    border: 1px solid #e2e8f0;
+}
+
+.sr-schijven-tabel tr:nth-child(even) {
+    background: #f8fafc;
+}
+
+.sr-tarief-1 { color: #16a34a; font-weight: bold; }
+.sr-tarief-2 { color: #d97706; font-weight: bold; }
+.sr-tarief-3 { color: #dc2626; font-weight: bold; }
+.sr-tarief-4 { color: #7c3aed; font-weight: bold; }
+
+/* ── Payroll list view aanpassingen ─────────────────────────────────────── */
+
+/* Markeer Suriname loonstructuur rijen */
+.o_data_row .o_field_widget[name="struct_id"] .o_form_uri:contains("Suriname") {
+    color: #0e7490;
+    font-weight: 600;
+}
+
+/* ── Algemene aanpassingen voor SR salarisregels ────────────────────────── */
+
+/* Deduction regels op de loonstrook weergave in de browser */
+.o_payslip_line[data-code="SR_LB"] .o_field_numeric,
+.o_payslip_line[data-code="SR_AOV"] .o_field_numeric {
+    color: #dc2626;
+}
+
+.o_payslip_line[data-code="NET"] .o_field_numeric {
+    color: #0e7490;
+    font-weight: 700;
+}
