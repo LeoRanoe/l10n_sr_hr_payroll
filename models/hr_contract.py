@@ -4,6 +4,8 @@ from datetime import date as Date
 
 from odoo import api, fields, models
 
+from . import sr_artikel14_calculator as calc
+
 
 class HrContract(models.Model):
     _inherit = 'hr.contract'
@@ -19,11 +21,6 @@ class HrContract(models.Model):
     )
 
     # ── Flexibele vaste loon regels (debit / credit) ───────────────────────
-    # De eindgebruiker beheert hier zijn eigen toeslagen en inhoudingen.
-    # Categorieën:
-    #   belastbaar  → telt mee in de Art. 14 loonbelastinggrondslag
-    #   vrijgesteld → Art. 10 WLB belastingvrij voordeel
-    #   inhouding   → netto aftrek (pensioenpremie, ziektekostenpremie, etc.)
     sr_vaste_regels = fields.One2many(
         comodel_name='hr.contract.sr.line',
         inverse_name='contract_id',
@@ -70,6 +67,14 @@ class HrContract(models.Model):
         store=False,
     )
 
+    # ── Dynamische tarieftabel (uit parameters) ────────────────────────────
+    sr_tax_bracket_html = fields.Html(
+        string='Tariefschijven',
+        compute='_compute_sr_tax_bracket_html',
+        store=False,
+        sanitize=False,
+    )
+
     @api.depends(
         'wage',
         'sr_salary_type',
@@ -77,26 +82,14 @@ class HrContract(models.Model):
         'sr_vaste_regels.sr_categorie',
     )
     def _compute_sr_preview(self):
+        """
+        Berekent Art. 14 loonbelasting preview op basis van contractwaarden.
+
+        Gebruikt de centrale sr_artikel14_calculator zodat preview altijd
+        overeenkomt met de werkelijke payslip berekening.
+        """
         today = Date.today()
-        RuleParam = self.env['hr.rule.parameter']
-
-        def _p(code, fallback):
-            val = RuleParam._get_parameter_from_code(code, today, raise_if_not_found=False)
-            return val if val is not None else fallback
-
-        belastingvrij_jaar = _p('SR_BELASTINGVRIJ_JAAR', 108000.0)
-        forfaitaire_pct    = _p('SR_FORFAITAIRE_PCT', 0.04)
-        forfaitaire_max    = _p('SR_FORFAITAIRE_MAX_JAAR', 4800.0)
-        s1 = _p('SR_SCHIJF_1_GRENS', 42000.0)
-        s2 = _p('SR_SCHIJF_2_GRENS', 84000.0)
-        s3 = _p('SR_SCHIJF_3_GRENS', 126000.0)
-        r1 = _p('SR_TARIEF_1', 0.08)
-        r2 = _p('SR_TARIEF_2', 0.18)
-        r3 = _p('SR_TARIEF_3', 0.28)
-        r4 = _p('SR_TARIEF_4', 0.38)
-        hk_maand = _p('SR_HEFFINGSKORTING_MAAND', 750.0)
-        aov_pct  = _p('SR_AOV_TARIEF', 0.04)
-        franchise = _p('SR_AOV_FRANCHISE_MAAND', 400.0)
+        params = calc.fetch_params_from_rule_parameter(self.env, today)
 
         for contract in self:
             periodes = 26 if contract.sr_salary_type == 'fn' else 12
@@ -112,33 +105,20 @@ class HrContract(models.Model):
             )
 
             bruto_belastbaar = (contract.wage or 0.0) + belastbaar_toelagen
-            bruto_jaar = bruto_belastbaar * periodes
-
-            forfaitaire = min(bruto_jaar * forfaitaire_pct, forfaitaire_max)
-            belastbaar_jaar = max(0.0, bruto_jaar - belastingvrij_jaar - forfaitaire)
-
-            if belastbaar_jaar <= s1:
-                lb_jaar = belastbaar_jaar * r1
-            elif belastbaar_jaar <= s2:
-                lb_jaar = (s1 * r1) + ((belastbaar_jaar - s1) * r2)
-            elif belastbaar_jaar <= s3:
-                lb_jaar = (s1 * r1) + ((s2 - s1) * r2) + ((belastbaar_jaar - s2) * r3)
-            else:
-                lb_jaar = (
-                    (s1 * r1) + ((s2 - s1) * r2)
-                    + ((s3 - s2) * r3) + ((belastbaar_jaar - s3) * r4)
-                )
-
-            lb_jaar_netto = max(0.0, lb_jaar - (hk_maand * 12))
-            lb_periode = lb_jaar_netto / periodes
-
-            franchise_periode = franchise if periodes == 12 else 0.0
-            aov = max(0.0, bruto_belastbaar - franchise_periode) * aov_pct
+            result = calc.calculate_lb(bruto_belastbaar, periodes, params)
 
             bruto_totaal = bruto_belastbaar + vrijgesteld_toelagen
-
             contract.sr_preview_bruto = bruto_totaal
-            contract.sr_preview_belastbaar_jaar = belastbaar_jaar
-            contract.sr_preview_lb_periode = lb_periode
-            contract.sr_preview_aov_periode = aov
-            contract.sr_preview_netto = bruto_totaal - lb_periode - aov - inhoudingen
+            contract.sr_preview_belastbaar_jaar = result['belastbaar_jaar']
+            contract.sr_preview_lb_periode = result['lb_per_periode']
+            contract.sr_preview_aov_periode = result['aov_per_periode']
+            contract.sr_preview_netto = bruto_totaal - result['lb_per_periode'] - result['aov_per_periode'] - inhoudingen
+
+    @api.depends()
+    def _compute_sr_tax_bracket_html(self):
+        """Genereert de Art. 14 tarieftabel HTML uit actuele parameters."""
+        today = Date.today()
+        params = calc.fetch_params_from_rule_parameter(self.env, today)
+        html = calc.generate_tax_bracket_html(params)
+        for contract in self:
+            contract.sr_tax_bracket_html = html

@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Suriname Payroll — Voorgedefinieerde Vaste Loon Regel Types
+    ============================================================
+    Standaard toeslagen en inhoudingen voor de Surinaamse salarisverwerking.
+    De eindgebruiker kan deze lijst uitbreiden via:
+      Configuratie → Salaris → Suriname → Loon Code Types
+-->
+<odoo>
+    <data noupdate="0">
+
+        <!-- ═══════════════════════════════════════════════════════════
+             BELASTBARE TOELAGEN (Art. 14 — LB + AOV grondslag)
+             ═══════════════════════════════════════════════════════════ -->
+
+        <record id="sr_line_type_olie" model="hr.contract.sr.line.type">
+            <field name="name">Olie Toelage</field>
+            <field name="code">OLIE</field>
+            <field name="sr_categorie">belastbaar</field>
+            <field name="sequence">10</field>
+            <field name="description">Vaste olie toelage per periode. Telt mee in de Art. 14 grondslag.</field>
+        </record>
+
+        <record id="sr_line_type_kleding" model="hr.contract.sr.line.type">
+            <field name="name">Kleding Toelage</field>
+            <field name="code">KLEDING</field>
+            <field name="sr_categorie">belastbaar</field>
+            <field name="sequence">20</field>
+            <field name="description">Vaste kleding toelage per periode.</field>
+        </record>
+
+        <record id="sr_line_type_representatie" model="hr.contract.sr.line.type">
+            <field name="name">Representatie Toelage</field>
+            <field name="code">REPRES</field>
+            <field name="sr_categorie">belastbaar</field>
+            <field name="sequence">30</field>
+            <field name="description">Representatiekosten toelage per periode.</field>
+        </record>
+
+        <record id="sr_line_type_telefoon" model="hr.contract.sr.line.type">
+            <field name="name">Telefoonvergoeding</field>
+            <field name="code">TELEFOON</field>
+            <field name="sr_categorie">belastbaar</field>
+            <field name="sequence">40</field>
+            <field name="description">Vaste telefoonvergoeding per periode.</field>
+        </record>
+
+        <record id="sr_line_type_belastbaar_overig" model="hr.contract.sr.line.type">
+            <field name="name">Overige Belastbare Toelage</field>
+            <field name="code">BELASTB_OVR</field>
+            <field name="sr_categorie">belastbaar</field>
+            <field name="sequence">90</field>
+            <field name="description">Belastbare toelage die niet in één van de andere types past.</field>
+        </record>
+
+        <!-- ═══════════════════════════════════════════════════════════
+             BELASTINGVRIJE TOELAGEN (Art. 10 — geen LB of AOV)
+             ═══════════════════════════════════════════════════════════ -->
+
+        <record id="sr_line_type_kinderbijslag" model="hr.contract.sr.line.type">
+            <field name="name">Kinderbijslag</field>
+            <field name="code">KINDBIJ</field>
+            <field name="sr_categorie">vrijgesteld</field>
+            <field name="sequence">10</field>
+            <field name="description">Kinderbijslag per kind per periode. Art. 10 WLB — belastingvrij.</field>
+        </record>
+
+        <record id="sr_line_type_transport" model="hr.contract.sr.line.type">
+            <field name="name">Transportvergoeding</field>
+            <field name="code">TRANSPORT</field>
+            <field name="sr_categorie">vrijgesteld</field>
+            <field name="sequence">20</field>
+            <field name="description">Vaste transportvergoeding per periode. Art. 10 WLB — belastingvrij.</field>
+        </record>
+
+        <record id="sr_line_type_maaltijd" model="hr.contract.sr.line.type">
+            <field name="name">Maaltijdvergoeding</field>
+            <field name="code">MAALTIJD</field>
+            <field name="sr_categorie">vrijgesteld</field>
+            <field name="sequence">30</field>
+            <field name="description">Vaste maaltijdvergoeding per periode. Art. 10 WLB — belastingvrij.</field>
+        </record>
+
+        <record id="sr_line_type_vrijgesteld_overig" model="hr.contract.sr.line.type">
+            <field name="name">Overige Belastingvrije Toelage</field>
+            <field name="code">VRIJ_OVR</field>
+            <field name="sr_categorie">vrijgesteld</field>
+            <field name="sequence">90</field>
+            <field name="description">Belastingvrije toelage die niet in één van de andere types past.</field>
+        </record>
+
+        <!-- ═══════════════════════════════════════════════════════════
+             INHOUDINGEN (netto aftrek)
+             ═══════════════════════════════════════════════════════════ -->
+
+        <record id="sr_line_type_pensioen" model="hr.contract.sr.line.type">
+            <field name="name">Pensioenpremie</field>
+            <field name="code">PENSIOEN</field>
+            <field name="sr_categorie">inhouding</field>
+            <field name="sequence">10</field>
+            <field name="description">Pensioenpremie werknemer per periode. Wordt ingehouden op nettoloon.</field>
+        </record>
+
+        <record id="sr_line_type_ziektekosten" model="hr.contract.sr.line.type">
+            <field name="name">Ziektekostenpremie</field>
+            <field name="code">ZIEKTEK</field>
+            <field name="sr_categorie">inhouding</field>
+            <field name="sequence">20</field>
+            <field name="description">Ziektekostenverzekering werknemer per periode.</field>
+        </record>
+
+        <record id="sr_line_type_vakbond" model="hr.contract.sr.line.type">
+            <field name="name">Vakbondscontributie</field>
+            <field name="code">VAKBOND</field>
+            <field name="sr_categorie">inhouding</field>
+            <field name="sequence">30</field>
+            <field name="description">Vakbondscontributie werknemer per periode.</field>
+        </record>
+
+        <record id="sr_line_type_inhouding_overig" model="hr.contract.sr.line.type">
+            <field name="name">Overige Inhouding</field>
+            <field name="code">INHOUD_OVR</field>
+            <field name="sr_categorie">inhouding</field>
+            <field name="sequence">90</field>
+            <field name="description">Inhouding die niet in één van de andere types past.</field>
+        </record>
+
+    </data>
+</odoo>

@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Suriname Payroll — Centrale Configuratie
+    =========================================
+    Biedt een centraal menu voor alle Suriname-specifieke payroll instellingen:
+      - Loon Code Types (hr.contract.sr.line.type)
+      - SR Belastingparameters (gefilterde hr.rule.parameter)
+      - SR Payslip Input Types (hr.payslip.input.type met sr_categorie)
+
+    Menu structuur:
+      Payroll → Configuratie → Suriname
+        ├── Loon Code Types
+        ├── SR Belastingparameters
+        └── SR Payslip Input Types
+-->
+<odoo>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         VIEWS — Loon Code Types (hr.contract.sr.line.type)
+         ═══════════════════════════════════════════════════════════════ -->
+
+    <record id="sr_line_type_view_list" model="ir.ui.view">
+        <field name="name">hr.contract.sr.line.type.list</field>
+        <field name="model">hr.contract.sr.line.type</field>
+        <field name="arch" type="xml">
+            <list string="Loon Code Types" editable="bottom">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="code"/>
+                <field name="sr_categorie"/>
+                <field name="description" optional="hide"/>
+                <field name="active" column_invisible="True"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="sr_line_type_view_form" model="ir.ui.view">
+        <field name="name">hr.contract.sr.line.type.form</field>
+        <field name="model">hr.contract.sr.line.type</field>
+        <field name="arch" type="xml">
+            <form string="Loon Code Type">
+                <sheet>
+                    <div class="oe_button_box" name="button_box"/>
+                    <widget name="web_ribbon" title="Gearchiveerd" bg_color="text-bg-danger"
+                            invisible="active"/>
+                    <group>
+                        <group>
+                            <field name="name"/>
+                            <field name="code"/>
+                            <field name="sr_categorie" widget="radio"/>
+                        </group>
+                        <group>
+                            <field name="sequence"/>
+                            <field name="active" invisible="1"/>
+                        </group>
+                    </group>
+                    <group string="Toelichting">
+                        <field name="description" nolabel="1" colspan="2"
+                               placeholder="Optionele toelichting voor de gebruiker..."/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         VIEWS — SR Belastingparameters (gefilterde hr.rule.parameter)
+         ═══════════════════════════════════════════════════════════════ -->
+
+    <record id="sr_rule_parameter_view_list" model="ir.ui.view">
+        <field name="name">hr.rule.parameter.sr.list</field>
+        <field name="model">hr.rule.parameter</field>
+        <field name="arch" type="xml">
+            <list string="SR Belastingparameters" create="0">
+                <field name="name"/>
+                <field name="code"/>
+                <field name="country_id"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         ACTIONS
+         ═══════════════════════════════════════════════════════════════ -->
+
+    <record id="action_sr_line_type" model="ir.actions.act_window">
+        <field name="name">Loon Code Types</field>
+        <field name="res_model">hr.contract.sr.line.type</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Maak een nieuw loon code type aan
+            </p>
+            <p>
+                Definieer hier de vaste omschrijvingen (bijv. Olie Toelage, Pensioenpremie)
+                die beschikbaar zijn als keuzemogelijkheid bij het aanmaken van contractregels.
+            </p>
+        </field>
+    </record>
+
+    <record id="action_sr_rule_parameters" model="ir.actions.act_window">
+        <field name="name">SR Belastingparameters</field>
+        <field name="res_model">hr.rule.parameter</field>
+        <field name="view_mode">list,form</field>
+        <field name="view_id" ref="sr_rule_parameter_view_list"/>
+        <field name="domain" eval="[('code', 'like', 'SR_%')]"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Geen Surinaamse belastingparameters gevonden.
+            </p>
+            <p>
+                Alle parameters met prefix SR_ worden hier getoond.
+                Gebruik datum-gebaseerde waarden voor wijzigingen bij wetsherziening.
+            </p>
+        </field>
+    </record>
+
+    <record id="action_sr_payslip_input_types" model="ir.actions.act_window">
+        <field name="name">SR Payslip Input Types</field>
+        <field name="res_model">hr.payslip.input.type</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain" eval="[('sr_categorie', '!=', False)]"/>
+        <field name="context" eval="{'default_country_id': ref('base.sr')}"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Maak een nieuw SR payslip input type aan
+            </p>
+            <p>
+                Beheer hier de variabele/eenmalige loon codes met een SR Loon Categorie
+                (overwerk, vakantietoelage, gratificatie, etc.).
+            </p>
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         MENU — Payroll → Configuratie → Suriname
+         ═══════════════════════════════════════════════════════════════ -->
+
+    <menuitem
+        id="menu_sr_config_root"
+        name="Suriname"
+        parent="hr_work_entry_contract_enterprise.menu_hr_payroll_configuration"
+        sequence="90"
+        groups="hr_payroll.group_hr_payroll_manager"/>
+
+    <menuitem
+        id="menu_sr_line_types"
+        name="Loon Code Types"
+        parent="menu_sr_config_root"
+        action="action_sr_line_type"
+        sequence="10"/>
+
+    <menuitem
+        id="menu_sr_parameters"
+        name="SR Belastingparameters"
+        parent="menu_sr_config_root"
+        action="action_sr_rule_parameters"
+        sequence="20"/>
+
+    <menuitem
+        id="menu_sr_input_types"
+        name="SR Payslip Input Types"
+        parent="menu_sr_config_root"
+        action="action_sr_payslip_input_types"
+        sequence="30"/>
+
+</odoo>

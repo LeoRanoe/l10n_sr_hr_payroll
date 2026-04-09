@@ -70,9 +70,13 @@
                     <field name="sr_vaste_regels" nolabel="1">
                         <list editable="bottom">
                             <field name="sequence" widget="handle"/>
+                            <field name="type_id"
+                                   placeholder="Selecteer een type..."
+                                   style="min-width: 180px;"
+                                   options="{'no_create': False, 'no_create_edit': False}"/>
                             <field name="name"
-                                   placeholder="Bijv. Olie Toelage, Pensioenpremie, Kinderbijslag..."
-                                   style="min-width: 200px;"/>
+                                   placeholder="Automatisch of handmatig..."
+                                   style="min-width: 160px;"/>
                             <field name="sr_categorie"/>
                             <field name="amount" widget="monetary"/>
                             <field name="currency_id" column_invisible="True"/>
@@ -103,46 +107,10 @@
                         </div>
                     </group>
 
-                    <!-- ── Referentietarieven (informatief) ─────────────── -->
-                    <group string="Referentie — Artikel 14 Tariefschijven 2026" name="sr_tarieven">
+                    <!-- ── Referentietarieven (dynamisch uit parameters) ── -->
+                    <group string="Referentie — Artikel 14 Tariefschijven" name="sr_tarieven">
                         <div colspan="2" style="padding: 4px 0;">
-                            <table style="width: 100%; border-collapse: collapse; font-size: 0.9em;">
-                                <thead>
-                                    <tr style="background: #f1f5f9; font-weight: bold; color: #475569;">
-                                        <th style="padding: 5px 10px; text-align: left; border: 1px solid #e2e8f0;">Schijf</th>
-                                        <th style="padding: 5px 10px; text-align: left; border: 1px solid #e2e8f0;">Belastbaar Jaarloon</th>
-                                        <th style="padding: 5px 10px; text-align: center; border: 1px solid #e2e8f0;">Tarief</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <td style="padding: 4px 10px; border: 1px solid #e2e8f0;">1</td>
-                                        <td style="padding: 4px 10px; border: 1px solid #e2e8f0;">t/m SRD 42.000</td>
-                                        <td style="padding: 4px 10px; text-align: center; border: 1px solid #e2e8f0; font-weight: bold; color: #16a34a;">8%</td>
-                                    </tr>
-                                    <tr style="background: #f8fafc;">
-                                        <td style="padding: 4px 10px; border: 1px solid #e2e8f0;">2</td>
-                                        <td style="padding: 4px 10px; border: 1px solid #e2e8f0;">SRD 42.001 – 84.000</td>
-                                        <td style="padding: 4px 10px; text-align: center; border: 1px solid #e2e8f0; font-weight: bold; color: #d97706;">18%</td>
-                                    </tr>
-                                    <tr>
-                                        <td style="padding: 4px 10px; border: 1px solid #e2e8f0;">3</td>
-                                        <td style="padding: 4px 10px; border: 1px solid #e2e8f0;">SRD 84.001 – 126.000</td>
-                                        <td style="padding: 4px 10px; text-align: center; border: 1px solid #e2e8f0; font-weight: bold; color: #dc2626;">28%</td>
-                                    </tr>
-                                    <tr style="background: #f8fafc;">
-                                        <td style="padding: 4px 10px; border: 1px solid #e2e8f0;">4</td>
-                                        <td style="padding: 4px 10px; border: 1px solid #e2e8f0;">Boven SRD 126.000</td>
-                                        <td style="padding: 4px 10px; text-align: center; border: 1px solid #e2e8f0; font-weight: bold; color: #7c3aed;">38%</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                            <p class="text-muted" style="font-size: 0.85em; margin-top: 6px; margin-bottom: 0;">
-                                <strong>Art. 12:</strong> Forfaitaire aftrek 4% van jaarloon (max SRD 4.800) ·
-                                <strong>Art. 13:</strong> Belastingvrije som SRD 108.000/jaar ·
-                                <strong>Heffingskorting:</strong> SRD 750/maand ·
-                                <strong>Overwerk Art. 17c:</strong> 5% / 15% / 25%
-                            </p>
+                            <field name="sr_tax_bracket_html" nolabel="1" readonly="1"/>
                         </div>
                     </group>
 

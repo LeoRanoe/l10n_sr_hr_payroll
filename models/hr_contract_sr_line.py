@@ -1,24 +1,19 @@
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
-from odoo import fields, models
+from odoo import api, fields, models
+
+from .sr_categorie import SR_CATEGORIE_BASE
 
 
 class HrContractSrLine(models.Model):
     """
     Vaste loon regel op het contract — één rij per toelage of inhouding.
 
-    De eindgebruiker beheert hier al zijn eigen debit/credit codes per werknemer:
+    De eindgebruiker kiest een voorgedefinieerd type (hr.contract.sr.line.type)
+    zodat naam en categorie automatisch worden ingevuld:
       - Belastbaar  → telt mee in de Art. 14 loonbelastinggrondslag
       - Belastingvrij → Art. 10 WLB, geen loonbelasting/AOV
       - Inhouding   → netto aftrek (pensioenpremie, ziektekostenpremie, etc.)
-
-    Voorbeelden:
-      "Olie Toelage"       | SRD 500  | Belastbaar
-      "Kleding Toelage"    | SRD 200  | Belastbaar
-      "Kinderbijslag"      | SRD 500  | Belastingvrij
-      "Transport"         | SRD 300  | Belastingvrij
-      "Pensioenpremie"    | SRD 212  | Inhouding
-      "Ziektekostenpremie"| SRD 100  | Inhouding
     """
     _name = 'hr.contract.sr.line'
     _description = 'Suriname Vaste Loon Regel'
@@ -35,10 +30,15 @@ class HrContractSrLine(models.Model):
         string='Volgorde',
         default=10,
     )
+    type_id = fields.Many2one(
+        'hr.contract.sr.line.type',
+        string='Type',
+        help='Selecteer een voorgedefinieerd type. Naam en categorie worden automatisch ingevuld.',
+    )
     name = fields.Char(
         string='Omschrijving',
         required=True,
-        help='Naam van de toelage of inhouding, bijv. "Olie Toelage", "Pensioenpremie".',
+        help='Naam van de toelage of inhouding. Wordt automatisch ingevuld bij keuze van een type.',
     )
     currency_id = fields.Many2one(
         related='contract_id.currency_id',
@@ -50,11 +50,7 @@ class HrContractSrLine(models.Model):
         help='Vaste bedrag dat elke loonperiode verwerkt wordt.',
     )
     sr_categorie = fields.Selection(
-        selection=[
-            ('belastbaar', 'Belastbaar  (Art. 14 — LB + AOV grondslag)'),
-            ('vrijgesteld', 'Belastingvrij  (Art. 10 — geen LB of AOV)'),
-            ('inhouding', 'Inhouding / Aftrek  (netto aftrek)'),
-        ],
+        selection=SR_CATEGORIE_BASE,
         string='Categorie',
         required=True,
         default='belastbaar',
@@ -68,3 +64,10 @@ class HrContractSrLine(models.Model):
             'Geen invloed op loonbelasting of AOV.'
         ),
     )
+
+    @api.onchange('type_id')
+    def _onchange_type_id(self):
+        """Vul naam en categorie automatisch in vanuit het gekozen type."""
+        if self.type_id:
+            self.name = self.type_id.name
+            self.sr_categorie = self.type_id.sr_categorie
