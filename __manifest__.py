@@ -45,6 +45,7 @@ Berekeningen:
         'views/hr_payslip_input_type_views.xml',
         'views/hr_payroll_dashboard_views.xml',
         'views/hr_payroll_config_sr_views.xml',
+        'views/hr_work_entry_views.xml',
         'reports/report_payslip_sr.xml',
     ],
     'demo': [],

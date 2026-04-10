@@ -59,76 +59,108 @@ class HrPayslip(models.Model):
         if not self.date_from or not self.line_ids:
             return {}
 
-        contract = self.contract_id
-        periodes = self._sr_get_periodes()
+        try:
+            contract = self.contract_id
+            periodes = self._sr_get_periodes()
 
-        # ── Loonstrookregels ophalen ──────────────────────────────────────────
-        # sum(mapped('total')) is veilig als meerdere regels met dezelfde code bestaan
-        # (bijv. wanneer Odoo een default GROSS regel heeft gekopieerd bij aanmaken structuur)
-        def _line_total(code):
-            lines = self.line_ids.filtered(lambda l: l.code == code)
-            return sum(lines.mapped('total')) if lines else 0.0
+            # ── Loonstrookregels ophalen ──────────────────────────────────────────
+            # sum(mapped('total')) is veilig als meerdere regels met dezelfde code bestaan
+            # (bijv. wanneer Odoo een default GROSS regel heeft gekopieerd bij aanmaken structuur)
+            def _line_total(code):
+                lines = self.line_ids.filtered(lambda l: l.code == code)
+                return sum(lines.mapped('total')) if lines else 0.0
 
-        basic = _line_total('BASIC')
-        toelagen = _line_total('SR_ALW')
-        kinderbijslag = _line_total('SR_KINDBIJ')
-        pensioen = abs(_line_total('SR_PENSIOEN'))
+            basic = _line_total('BASIC')
+            toelagen = _line_total('SR_ALW')
+            kinderbijslag = _line_total('SR_KINDBIJ')
+            pensioen = abs(_line_total('SR_PENSIOEN'))
 
-        # ── Calculator aanroepen ──────────────────────────────────────────────
-        # Gebruik basic + toelagen als Art. 14 grondslag — dit is dezelfde waarde
-        # die de SR_LB regel gebruikt (categories['GROSS'] op seq 30, vóór SR_KINDBIJ).
-        # Hierdoor klopt het rapport altijd met de werkelijke SR_LB berekening.
-        gross = basic + toelagen
-        params = calc.fetch_params_from_payslip(self)
-        r = calc.calculate_lb(gross, periodes, params)
+            # ── Calculator aanroepen ──────────────────────────────────────────────
+            # Gebruik basic + toelagen als Art. 14 grondslag — dit is dezelfde waarde
+            # die de SR_LB regel gebruikt (categories['GROSS'] op seq 30, vóór SR_KINDBIJ).
+            # Hierdoor klopt het rapport altijd met de werkelijke SR_LB berekening.
+            gross = basic + toelagen
+            params = calc.fetch_params_from_payslip(self)
 
-        totaal_inhoudingen = r['lb_per_periode'] + r['aov_per_periode'] + pensioen
-        netto = basic + toelagen + kinderbijslag - totaal_inhoudingen
+            # Validate params are not None
+            if not all(params.values()):
+                return {}  # Return empty breakdown if params are missing
 
-        return {
-            # Basis
-            'periodes': periodes,
-            'is_fn': periodes == 26,
-            'basic': basic,
-            'toelagen': toelagen,
-            'kinderbijslag': kinderbijslag,
-            'bruto_per_periode': gross,
-            'bruto_totaal': basic + toelagen + kinderbijslag,
-            # Artikel 14 stappen
-            'bruto_jaarloon': r['bruto_jaar'],
-            'belastingvrij_jaar': r['belastingvrij_jaar'],
-            'forfaitaire_pct': r['forfaitaire_pct'] * 100,
-            'forfaitaire_jaar': r['forfaitaire_jaar'],
-            'belastbaar_jaarloon': r['belastbaar_jaar'],
-            # Schijfgrenzen
-            's1_grens': r['s1'],
-            's2_grens': r['s2'],
-            's3_grens': r['s3'],
-            # Schijfbedragen
-            's1_basis': r['s1_basis'],
-            's2_basis': r['s2_basis'],
-            's3_basis': r['s3_basis'],
-            's4_basis': r['s4_basis'],
-            # Belasting per schijf
-            'r1_pct': r['r1'] * 100,
-            'r2_pct': r['r2'] * 100,
-            'r3_pct': r['r3'] * 100,
-            'r4_pct': r['r4'] * 100,
-            'lb_s1': r['lb_s1'],
-            'lb_s2': r['lb_s2'],
-            'lb_s3': r['lb_s3'],
-            'lb_s4': r['lb_s4'],
-            'lb_voor_heffingskorting': r['lb_voor_heffingskorting'],
-            'heffingskorting_jaar': r['heffingskorting_jaar'],
-            'lb_jaar_netto': r['lb_jaar_netto'],
-            'lb_per_periode': r['lb_per_periode'],
-            # AOV
-            'franchise_periode': r['franchise_periode'],
-            'aov_grondslag': r['aov_grondslag'],
-            'aov_tarief_pct': r['aov_tarief'] * 100,
-            'aov_per_periode': r['aov_per_periode'],
-            # Samenvatting
-            'pensioen': pensioen,
-            'totaal_inhoudingen': totaal_inhoudingen,
-            'netto': netto,
-        }
+            r = calc.calculate_lb(gross, periodes, params)
+
+            totaal_inhoudingen = r['lb_per_periode'] + r['aov_per_periode'] + pensioen
+            netto = basic + toelagen + kinderbijslag - totaal_inhoudingen
+
+            return {
+                # Basis
+                'periodes': periodes,
+                'is_fn': periodes == 26,
+                'basic': basic,
+                'toelagen': toelagen,
+                'kinderbijslag': kinderbijslag,
+                'bruto_per_periode': gross,
+                'bruto_totaal': basic + toelagen + kinderbijslag,
+                # Artikel 14 stappen
+                'bruto_jaarloon': r['bruto_jaar'],
+                'belastingvrij_jaar': r['belastingvrij_jaar'],
+                'forfaitaire_pct': r['forfaitaire_pct'] * 100,
+                'forfaitaire_jaar': r['forfaitaire_jaar'],
+                'belastbaar_jaarloon': r['belastbaar_jaar'],
+                # Schijfgrenzen
+                's1_grens': r['s1'],
+                's2_grens': r['s2'],
+                's3_grens': r['s3'],
+                # Schijfbedragen
+                's1_basis': r['s1_basis'],
+                's2_basis': r['s2_basis'],
+                's3_basis': r['s3_basis'],
+                's4_basis': r['s4_basis'],
+                # Belasting per schijf
+                'r1_pct': r['r1'] * 100,
+                'r2_pct': r['r2'] * 100,
+                'r3_pct': r['r3'] * 100,
+                'r4_pct': r['r4'] * 100,
+                'lb_s1': r['lb_s1'],
+                'lb_s2': r['lb_s2'],
+                'lb_s3': r['lb_s3'],
+                'lb_s4': r['lb_s4'],
+                'lb_voor_heffingskorting': r['lb_voor_heffingskorting'],
+                'heffingskorting_jaar': r['heffingskorting_jaar'],
+                'lb_jaar_netto': r['lb_jaar_netto'],
+                'lb_per_periode': r['lb_per_periode'],
+                # AOV
+                'franchise_periode': r['franchise_periode'],
+                'aov_grondslag': r['aov_grondslag'],
+                'aov_tarief_pct': r['aov_tarief'] * 100,
+                'aov_per_periode': r['aov_per_periode'],
+                # Samenvatting
+                'pensioen': pensioen,
+                'totaal_inhoudingen': totaal_inhoudingen,
+                'netto': netto,
+            }
+        except Exception as e:
+            # Log error and return empty breakdown to prevent report crash
+            import logging
+            _logger = logging.getLogger(__name__)
+            _logger.exception(f"Error in _get_sr_artikel14_breakdown for payslip {self.id}: {str(e)}")
+            return {}  # Return empty to allow report to render without data
+
+    def action_print_sr_payslip(self):
+        """
+        Direct actie om de Surinaamse loonstrook als PDF te openen.
+
+        Wordt aangeroepen via de 'Loonstrook' stat-knop op het payslip-formulier.
+        Toont de loonstrook alleen als de SR-loonstructuur is geselecteerd.
+        """
+        self.ensure_one()
+        return self.env.ref('l10n_sr_hr_payroll.action_report_payslip_sr').report_action(self)
+
+    def action_preview_sr_payslip(self):
+        """
+        Direct actie om de Surinaamse loonstrook als HTML preview te openen.
+
+        Handige preview zonder PDF-download — toont de loonstrook inline
+        in de browser. Zichtbaar als stat-knop op het payslip-formulier.
+        """
+        self.ensure_one()
+        return self.env.ref('l10n_sr_hr_payroll.action_report_payslip_sr_preview').report_action(self)

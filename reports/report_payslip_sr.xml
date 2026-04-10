@@ -24,6 +24,19 @@
         <field name="report_id" ref="action_report_payslip_sr"/>
     </record>
 
+    <!-- HTML preview actie — toont dezelfde template als inline HTML in de browser -->
+    <record id="action_report_payslip_sr_preview" model="ir.actions.report">
+        <field name="name">Loonstrook Preview (HTML)</field>
+        <field name="model">hr.payslip</field>
+        <field name="report_type">qweb-html</field>
+        <field name="report_name">l10n_sr_hr_payroll.report_payslip_sr</field>
+        <field name="print_report_name">
+            'Loonstrook Preview - %s - %s' % (object.employee_id.name, object.date_from.strftime('%B %Y') if object.date_from else '')
+        </field>
+        <field name="binding_model_id" ref="hr_payroll.model_hr_payslip"/>
+        <field name="binding_type">report</field>
+    </record>
+
     <!-- ═══════════════════════════════════════════════════════════════
          QWeb-template — transparante Artikel 14 loonstrook
          Berekening stappen:
@@ -35,10 +48,10 @@
            6. Samenvatting: bruto − inhoudingen = nettoloon
          ═══════════════════════════════════════════════════════════════ -->
     <template id="report_payslip_sr">
-        <t t-foreach="docs" t-as="doc">
-            <t t-set="bd" t-value="doc._get_sr_artikel14_breakdown()"/>
-            <t t-call="web.external_layout">
-                <main>
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="doc">
+                <t t-set="bd" t-value="doc._get_sr_artikel14_breakdown()"/>
+                <t t-call="web.external_layout">
                     <div class="page">
 
                         <!-- ── DOCUMENT TITLE ─────────────────────────────────── -->
@@ -303,7 +316,7 @@
                     </table>
 
                     </div>
-                </main>
+                </t>
             </t>
         </t>
     </template>
