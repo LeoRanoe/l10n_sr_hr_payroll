@@ -3,6 +3,7 @@
 from datetime import date as Date
 
 from odoo import api, fields, models
+from odoo.exceptions import UserError
 
 from . import sr_artikel14_calculator as calc
 
@@ -122,3 +123,33 @@ class HrContract(models.Model):
         html = calc.generate_tax_bracket_html(params)
         for contract in self:
             contract.sr_tax_bracket_html = html
+
+    def generate_work_entries(self, date_start, date_stop, force=False):
+        """
+        Override: Allow admin/dev users to regenerate validated work entries.
+        
+        Base Odoo restricts regenerating validated work entries. This override
+        allows System Admins (in the 'base.group_system' group) to bypass this
+        restriction for testing and corrective work.
+        
+        :param date_start: Work entry period start
+        :param date_stop: Work entry period stop
+        :param force: Force deletion of existing entries (for admins)
+        :return: Created work entry recordset
+        """
+        # Check if user is System Admin
+        is_admin = self.env.user.has_group('base.group_system')
+        
+        if is_admin and force:
+            # Allow admin to delete validated entries and regenerate
+            existing = self.env['hr.work.entry'].search([
+                ('contract_id', 'in', self.ids),
+                ('date_start', '>=', date_start),
+                ('date_stop', '<=', date_stop),
+            ])
+            if existing:
+                # Delete with admin context to bypass validation restrictions
+                existing.sudo().unlink()
+        
+        # Call parent implementation
+        return super().generate_work_entries(date_start, date_stop, force=force)

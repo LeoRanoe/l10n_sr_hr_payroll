@@ -38,9 +38,10 @@
         <t t-foreach="docs" t-as="doc">
             <t t-set="bd" t-value="doc._get_sr_artikel14_breakdown()"/>
             <t t-call="web.external_layout">
-                <div class="page">
+                <main>
+                    <div class="page">
 
-                    <!-- ── DOCUMENT TITLE ─────────────────────────────────── -->
+                        <!-- ── DOCUMENT TITLE ─────────────────────────────────── -->
                     <div class="row mb-3">
                         <div class="col">
                             <h2 class="mt-0 mb-0">LOONSTROOK</h2>
@@ -301,7 +302,8 @@
                         </tbody>
                     </table>
 
-                </div>
+                    </div>
+                </main>
             </t>
         </t>
     </template>

@@ -63,17 +63,22 @@ class HrPayslip(models.Model):
         periodes = self._sr_get_periodes()
 
         # ── Loonstrookregels ophalen ──────────────────────────────────────────
+        # sum(mapped('total')) is veilig als meerdere regels met dezelfde code bestaan
+        # (bijv. wanneer Odoo een default GROSS regel heeft gekopieerd bij aanmaken structuur)
         def _line_total(code):
-            line = self.line_ids.filtered(lambda l: l.code == code)
-            return line.total if line else 0.0
+            lines = self.line_ids.filtered(lambda l: l.code == code)
+            return sum(lines.mapped('total')) if lines else 0.0
 
         basic = _line_total('BASIC')
         toelagen = _line_total('SR_ALW')
         kinderbijslag = _line_total('SR_KINDBIJ')
-        gross = _line_total('GROSS')
         pensioen = abs(_line_total('SR_PENSIOEN'))
 
         # ── Calculator aanroepen ──────────────────────────────────────────────
+        # Gebruik basic + toelagen als Art. 14 grondslag — dit is dezelfde waarde
+        # die de SR_LB regel gebruikt (categories['GROSS'] op seq 30, vóór SR_KINDBIJ).
+        # Hierdoor klopt het rapport altijd met de werkelijke SR_LB berekening.
+        gross = basic + toelagen
         params = calc.fetch_params_from_payslip(self)
         r = calc.calculate_lb(gross, periodes, params)
 
