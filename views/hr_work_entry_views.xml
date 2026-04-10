@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        Suriname Payroll — Work Entry formulier uitbreiding
+        =====================================================
+        Staat System Admins toe om gevalideerde work entries te bewerken
+        en terug te zetten naar 'concept' voor correcties.
+
+        Het standaard Odoo-formulier markeert alle velden readonly als
+        state != 'draft'. Voor beheerders (base.group_system) wordt
+        dit versoepeld zodat correcties mogelijk zijn.
+
+        Tevens: 'Terug naar Concept (Admin)' knop voor snelle reset
+        van gevalideerde entries zonder de regeneration wizard.
+    -->
+    <record id="hr_work_entry_view_form_sr_admin" model="ir.ui.view">
+        <field name="name">hr.work.entry.form.sr.admin</field>
+        <field name="model">hr.work.entry</field>
+        <field name="inherit_id" ref="hr_work_entry.hr_work_entry_view_form"/>
+        <field name="arch" type="xml">
+
+            <!-- Voeg sr_is_admin toe als verborgen veld (nodig voor readonly-condities) -->
+            <xpath expr="//field[@name='company_id']" position="after">
+                <field name="sr_is_admin" invisible="1"/>
+            </xpath>
+
+            <!-- Naam: ook bewerkbaar voor admin bij validated-status -->
+            <xpath expr="//field[@name='name']" position="attributes">
+                <attribute name="readonly">state == 'validated' and not sr_is_admin</attribute>
+            </xpath>
+
+            <!-- Medewerker: ook bewerkbaar voor admin buiten draft -->
+            <xpath expr="//field[@name='employee_id']" position="attributes">
+                <attribute name="readonly">state != 'draft' and not sr_is_admin</attribute>
+            </xpath>
+
+            <!-- Work entry type: ook bewerkbaar voor admin bij validated -->
+            <xpath expr="//field[@name='work_entry_type_id']" position="attributes">
+                <attribute name="readonly">state == 'validated' and not sr_is_admin</attribute>
+            </xpath>
+
+            <!-- Startdatum: ook bewerkbaar voor admin buiten draft -->
+            <xpath expr="//field[@name='date_start']" position="attributes">
+                <attribute name="readonly">state != 'draft' and not sr_is_admin</attribute>
+            </xpath>
+
+            <!-- Einddatum: ook bewerkbaar voor admin buiten draft -->
+            <xpath expr="//field[@name='date_stop']" position="attributes">
+                <attribute name="readonly">state != 'draft' and not sr_is_admin</attribute>
+            </xpath>
+
+            <!-- Duur: ook bewerkbaar voor admin buiten draft -->
+            <xpath expr="//field[@name='duration']" position="attributes">
+                <attribute name="readonly">state != 'draft' and not sr_is_admin</attribute>
+            </xpath>
+
+            <!--
+                Admin-knop: zet gevalideerde entry terug naar Concept.
+                Zichtbaar alleen voor System Admins bij validated state.
+                Bevestigingsdialoog ter voorkoming van onbedoeld gebruik.
+            -->
+            <xpath expr="//header/field[@name='state']" position="before">
+                <button
+                    string="↩ Terug naar Concept (Admin)"
+                    name="action_sr_reset_to_draft"
+                    type="object"
+                    class="btn-warning"
+                    invisible="state != 'validated' or not sr_is_admin"
+                    confirm="Weet u zeker dat u deze gevalideerde work entry terug naar Concept wilt zetten? Loonstroken die al zijn verwerkt voor deze periode kunnen hierdoor incorrect worden."/>
+            </xpath>
+
+        </field>
+    </record>
+</odoo>

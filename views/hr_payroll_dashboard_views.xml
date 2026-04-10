@@ -69,4 +69,36 @@
         sequence="10"
         groups="hr_payroll.group_hr_payroll_user"/>
 
+    <!-- ══════════════════════════════════════════════════════════════════
+         Payslip formulier uitbreiding: voeg Print & Preview knoppen toe
+         Zichtbaar als stat-knoppen rechts bovenaan het payslip-formulier.
+         Alleen getoond voor loonstroken met de SR-loonstructuur.
+    ══════════════════════════════════════════════════════════════════ -->
+    <record id="hr_payslip_sr_form_buttons" model="ir.ui.view">
+        <field name="name">hr.payslip.sr.form.buttons</field>
+        <field name="model">hr.payslip</field>
+        <field name="inherit_id" ref="hr_payroll.hr_payslip_view_form"/>
+        <field name="arch" type="xml">
+            <!-- Voeg Print + Preview knoppen toe aan de bestaande button_box -->
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button
+                    name="action_print_sr_payslip"
+                    string="PDF Loonstrook"
+                    type="object"
+                    class="oe_stat_button"
+                    icon="fa-print"
+                    invisible="struct_id.name != 'Suriname — Normaal Loon (Artikel 14 WLB)'"
+                    help="Druk de Surinaamse loonstrook af als PDF (Artikel 14 WLB)"/>
+                <button
+                    name="action_preview_sr_payslip"
+                    string="HTML Preview"
+                    type="object"
+                    class="oe_stat_button"
+                    icon="fa-eye"
+                    invisible="struct_id.name != 'Suriname — Normaal Loon (Artikel 14 WLB)'"
+                    help="Bekijk de loonstrook als HTML — geen download vereist"/>
+            </xpath>
+        </field>
+    </record>
+
 </odoo>
