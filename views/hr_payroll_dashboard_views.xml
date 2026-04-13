@@ -43,12 +43,22 @@
         <field name="domain" eval="[('struct_id', '=', ref('l10n_sr_hr_payroll.sr_payroll_structure'))]"/>
         <field name="context" eval="{'default_struct_id': ref('l10n_sr_hr_payroll.sr_payroll_structure'), 'search_default_filter_by_payslip_period': 1}"/>
         <field name="help" type="html">
-            <p class="o_view_nocontent_smiling_face">
-                Nog geen Surinaamse loonstroken gevonden.
-            </p>
+            <p class="o_view_nocontent_smiling_face">Nog geen Surinaamse loonstroken gevonden.</p>
+            <h3>Loonstroken Suriname — Art. 14 WLB</h3>
             <p>
-                Maak een nieuwe loonstrook aan en selecteer de structuur
-                <strong>Suriname — Artikel 14 WLB</strong>.
+                Dit is een <strong>gefilterd overzicht</strong> van alle loonstroken die verwerkt zijn
+                met de structuur <em>Suriname — Normaal Loon (Artikel 14 WLB)</em>.
+                Het zijn <strong>dezelfde loonstroken</strong> als in
+                <em>Payslips &#x2192; All Payslips</em> — alleen vooraf gefilterd op de SR structuur.
+            </p>
+            <h4>Verschil met Payslips &#x2192; All Payslips?</h4>
+            <ul>
+                <li><strong>All Payslips</strong> toont loonstroken van <em>alle</em> loonstructuren (ook andere landen of andere structuurtypen).</li>
+                <li><strong>Loonstroken SR</strong> toont alleen de Surinaamse Art. 14 loonstroken — overzichtelijker als je uitsluitend met de SR module werkt.</li>
+            </ul>
+            <p>
+                Nieuwe loonstrook aanmaken? Klik op <strong>+ Nieuw</strong> — de structuur
+                <em>Suriname — Normaal Loon (Artikel 14 WLB)</em> wordt automatisch geselecteerd.
             </p>
         </field>
     </record>
@@ -77,7 +87,7 @@
     <record id="hr_payslip_sr_form_buttons" model="ir.ui.view">
         <field name="name">hr.payslip.sr.form.buttons</field>
         <field name="model">hr.payslip</field>
-        <field name="inherit_id" ref="hr_payroll.hr_payslip_view_form"/>
+        <field name="inherit_id" ref="hr_payroll.view_hr_payslip_form"/>
         <field name="arch" type="xml">
             <!-- Voeg Print + Preview knoppen toe aan de bestaande button_box -->
             <xpath expr="//div[@name='button_box']" position="inside">

@@ -21,6 +21,16 @@ class HrContract(models.Model):
         help='Selecteer het betaaltype: maandloon (12 periodes) of fortnight (26 periodes per jaar).',
     )
 
+    sr_aantal_kinderen = fields.Integer(
+        string='Aantal Kinderen',
+        default=0,
+        help=(
+            'Aantal kinderen waarvoor kinderbijslag wordt betaald.\n'
+            'Gebruikt voor de Art. 10h splitsing: max SRD 125/kind/maand, '
+            'max SRD 500/maand is belastingvrij. Het meerdere is belastbaar.'
+        ),
+    )
+
     # ── Flexibele vaste loon regels (debit / credit) ───────────────────────
     sr_vaste_regels = fields.One2many(
         comodel_name='hr.contract.sr.line',
@@ -67,6 +77,18 @@ class HrContract(models.Model):
         compute='_compute_sr_preview',
         store=False,
     )
+    sr_preview_hk_periode = fields.Monetary(
+        string='Heffingskorting per Periode',
+        currency_field='currency_id',
+        compute='_compute_sr_preview',
+        store=False,
+    )
+    sr_preview_breakdown_html = fields.Html(
+        string='Berekeningsdetail',
+        compute='_compute_sr_preview',
+        store=False,
+        sanitize=False,
+    )
 
     # ── Dynamische tarieftabel (uit parameters) ────────────────────────────
     sr_tax_bracket_html = fields.Html(
@@ -79,8 +101,12 @@ class HrContract(models.Model):
     @api.depends(
         'wage',
         'sr_salary_type',
+        'sr_aantal_kinderen',
         'sr_vaste_regels.amount',
         'sr_vaste_regels.sr_categorie',
+        'sr_vaste_regels.amount_type',
+        'sr_vaste_regels.percentage',
+        'sr_vaste_regels.percentage_base',
     )
     def _compute_sr_preview(self):
         """
@@ -95,25 +121,46 @@ class HrContract(models.Model):
         for contract in self:
             periodes = 26 if contract.sr_salary_type == 'fn' else 12
 
-            belastbaar_toelagen = sum(
-                r.amount for r in contract.sr_vaste_regels if r.sr_categorie == 'belastbaar'
-            )
-            vrijgesteld_toelagen = sum(
-                r.amount for r in contract.sr_vaste_regels if r.sr_categorie == 'vrijgesteld'
-            )
-            inhoudingen = sum(
-                r.amount for r in contract.sr_vaste_regels if r.sr_categorie == 'inhouding'
+            belastbaar_toelagen = contract._sr_resolve_regels('belastbaar')
+            vrijgesteld_toelagen = contract._sr_resolve_regels('vrijgesteld')
+            inhoudingen = contract._sr_resolve_regels('inhouding')
+            aftrek_bv = contract._sr_resolve_regels('aftrek_belastingvrij')
+
+            # Kinderbijslag splitsing (Art. 10h)
+            kb_split = contract._sr_kinderbijslag_split(125.0, 500.0)
+            kb_belastbaar = kb_split['belastbaar']
+            kb_vrijgesteld = kb_split['vrijgesteld']
+
+            # Bruto belastbaar = salaris + belastbare toelagen + KB belastbaar
+            bruto_belastbaar = (contract.wage or 0.0) + belastbaar_toelagen + kb_belastbaar
+            result = calc.calculate_lb(
+                bruto_belastbaar, periodes, params,
+                aftrek_bv_per_periode=aftrek_bv,
             )
 
-            bruto_belastbaar = (contract.wage or 0.0) + belastbaar_toelagen
-            result = calc.calculate_lb(bruto_belastbaar, periodes, params)
-
-            bruto_totaal = bruto_belastbaar + vrijgesteld_toelagen
+            bruto_totaal = (contract.wage or 0.0) + belastbaar_toelagen + kb_belastbaar + kb_vrijgesteld + vrijgesteld_toelagen
             contract.sr_preview_bruto = bruto_totaal
             contract.sr_preview_belastbaar_jaar = result['belastbaar_jaar']
-            contract.sr_preview_lb_periode = result['lb_per_periode']
+            contract.sr_preview_lb_periode = result['lb_gross_per_periode']
             contract.sr_preview_aov_periode = result['aov_per_periode']
-            contract.sr_preview_netto = bruto_totaal - result['lb_per_periode'] - result['aov_per_periode'] - inhoudingen
+            contract.sr_preview_hk_periode = result['heffingskorting_per_periode']
+            contract.sr_preview_netto = (
+                bruto_totaal
+                + result['heffingskorting_per_periode']
+                - result['lb_gross_per_periode']
+                - result['aov_per_periode']
+                - inhoudingen
+                - aftrek_bv
+            )
+            contract.sr_preview_breakdown_html = calc.generate_breakdown_html(
+                result=result,
+                wage=contract.wage or 0.0,
+                periodes=periodes,
+                salary_type=contract.sr_salary_type,
+                kb_split=kb_split,
+                vrijgesteld=vrijgesteld_toelagen,
+                inhoudingen=inhoudingen,
+            )
 
     @api.depends()
     def _compute_sr_tax_bracket_html(self):
@@ -123,6 +170,66 @@ class HrContract(models.Model):
         html = calc.generate_tax_bracket_html(params)
         for contract in self:
             contract.sr_tax_bracket_html = html
+
+    # ── Helper methoden voor berekeningen ──────────────────────────────
+
+    def _sr_resolve_line_amount(self, line):
+        """
+        Berekent het effectieve bedrag van een vaste loon regel.
+
+        Handelt zowel vaste bedragen als percentages af.
+        Bij percentage: berekend over basisloon of bruto belastbaar.
+        """
+        if line.amount_type == 'percentage' and line.percentage:
+            if line.percentage_base == 'bruto_belastbaar':
+                base = (self.wage or 0.0) + sum(
+                    l.amount or 0.0 for l in self.sr_vaste_regels
+                    if l.sr_categorie == 'belastbaar'
+                    and l.amount_type != 'percentage'
+                    and l.id != line.id
+                )
+            else:
+                base = self.wage or 0.0
+            return base * (line.percentage / 100.0)
+        return line.amount or 0.0
+
+    def _sr_resolve_regels(self, categorie):
+        """
+        Totale bedrag van vaste regels voor een bepaalde categorie.
+
+        Handelt percentages automatisch af via _sr_resolve_line_amount.
+        """
+        return sum(
+            self._sr_resolve_line_amount(r) for r in self.sr_vaste_regels
+            if r.sr_categorie == categorie
+        )
+
+    def _sr_kinderbijslag_split(self, max_kind_maand=125.0, max_maand=500.0):
+        """
+        Splitst kinderbijslag in belastbaar en vrijgesteld deel (Art. 10h).
+
+        :param max_kind_maand: Maximum vrijstelling per kind per maand (SRD 125)
+        :param max_maand: Maximum vrijstelling per maand (SRD 500)
+        :returns: dict met 'belastbaar' en 'vrijgesteld'
+        """
+        # Kinderbijslag regels (herkenbaar aan type code KINDBIJ)
+        kb_lines = [
+            r for r in self.sr_vaste_regels
+            if r.type_id and r.type_id.code == 'KINDBIJ'
+        ]
+        total_kb = sum(self._sr_resolve_line_amount(r) for r in kb_lines) if kb_lines else 0.0
+
+        if total_kb <= 0 or not self.sr_aantal_kinderen:
+            return {'belastbaar': 0.0, 'vrijgesteld': total_kb}
+
+        periodes = 26 if self.sr_salary_type == 'fn' else 12
+        exempt_maand = min(self.sr_aantal_kinderen * max_kind_maand, max_maand)
+        exempt_per_periode = exempt_maand if periodes == 12 else exempt_maand * 12.0 / 26.0
+
+        kb_exempt = min(total_kb, exempt_per_periode)
+        kb_belastbaar = max(0.0, total_kb - exempt_per_periode)
+
+        return {'belastbaar': kb_belastbaar, 'vrijgesteld': kb_exempt}
 
     def generate_work_entries(self, date_start, date_stop, force=False):
         """

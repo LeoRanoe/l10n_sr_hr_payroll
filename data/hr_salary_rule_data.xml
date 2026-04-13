@@ -4,12 +4,23 @@
     ==========================================================
     Uitvoervolgorde (sequence):
       10  BASIC          — Bruto loon (contract.wage)
-      20  SR_ALW         — Belastbare toelagen (contract.sr_vaste_regels, categorie=belastbaar)
-      30  GROSS          — Bruto belastbaar (BASIC + SR_ALW)
-      50  SR_LB          — Loonbelasting Artikel 14 (negatief)
+      20  SR_ALW         — Belastbare toelagen (contract, categorie=belastbaar)
+      21  SR_KB_BELAST   — Kinderbijslag belastbaar deel (Art. 10h)
+      23  SR_INPUT_BELASTB — Belastbare toelagen (payslip inputs)
+      30  GROSS          — Bruto belastbaar (BASIC + ALW)
+      50  SR_LB          — Loonbelasting Artikel 14 BRUTO (negatief)
+      55  SR_HK          — Heffingskorting (positief credit)
       60  SR_AOV         — AOV bijdrage (negatief)
-      70  SR_PENSIOEN    — Vaste inhoudingen (contract.sr_vaste_regels, categorie=inhouding)
-      80  SR_KINDBIJ     — Vaste vrijgestelde vergoedingen (contract.sr_vaste_regels, categorie=vrijgesteld)
+      65  SR_AFTREK_BV   — Aftrek belastingvrij inhoudingen (negatief)
+      70  SR_PENSIOEN    — Vaste inhoudingen (contract, categorie=inhouding)
+      73  SR_INPUT_AFTREK — Overige inhoudingen (payslip inputs)
+      80  SR_KINDBIJ     — Vrijgestelde vergoedingen excl. kinderbijslag
+      81  SR_KB_VRIJ     — Kinderbijslag vrijgesteld deel (Art. 10h)
+      82  SR_INPUT_VRIJ  — Vrijgestelde vergoedingen (payslip inputs)
+      84-86              — Overwerk (Art. 17c)
+      87-89              — Bijzondere beloningen bruto (vakantie/grat/bijz)
+      91  SR_LB_BIJZ     — LB bijzondere beloningen (Art. 17)
+      92  SR_AOV_BIJZ    — AOV bijzondere beloningen
      100  NET            — Nettoloon
 -->
 <odoo>
@@ -45,23 +56,44 @@ result = contract.wage
             <field name="sequence">20</field>
             <field name="condition_select">python</field>
             <field name="condition_python">
-result = any(
-    r.sr_categorie == 'belastbaar' and r.amount > 0
-    for r in contract.sr_vaste_regels
-)
+result = contract._sr_resolve_regels('belastbaar') > 0
             </field>
             <field name="amount_select">code</field>
             <field name="amount_python_compute">
-result = sum(
-    r.amount for r in contract.sr_vaste_regels
-    if r.sr_categorie == 'belastbaar'
-)
+result = contract._sr_resolve_regels('belastbaar')
+            </field>
+        </record>
+
+        <!-- ─────────────────────────────────────────────────────────
+             21 — SR_KB_BELAST: Kinderbijslag belastbaar deel (Art. 10h)
+             Bedrag boven de vrijstelling (max SRD 125/kind, 500/mnd).
+             Telt mee in GROSS → Art. 14 loonbelastinggrondslag.
+             ───────────────────────────────────────────────────────── -->
+        <record id="sr_rule_kb_belastbaar" model="hr.salary.rule">
+            <field name="struct_id" ref="l10n_sr_hr_payroll.sr_payroll_structure"/>
+            <field name="category_id" ref="hr_payroll.ALW"/>
+            <field name="name">Kinderbijslag Belastbaar Deel (Art. 10h)</field>
+            <field name="code">SR_KB_BELAST</field>
+            <field name="sequence">21</field>
+            <field name="condition_select">python</field>
+            <field name="condition_python">
+max_kind = payslip._rule_parameter('SR_KINDBIJ_MAX_KIND_MAAND')
+max_maand = payslip._rule_parameter('SR_KINDBIJ_MAX_MAAND')
+kb = contract._sr_kinderbijslag_split(max_kind, max_maand)
+result = kb['belastbaar'] > 0
+            </field>
+            <field name="amount_select">code</field>
+            <field name="amount_python_compute">
+max_kind = payslip._rule_parameter('SR_KINDBIJ_MAX_KIND_MAAND')
+max_maand = payslip._rule_parameter('SR_KINDBIJ_MAX_MAAND')
+kb = contract._sr_kinderbijslag_split(max_kind, max_maand)
+result = kb['belastbaar']
             </field>
         </record>
 
         <!-- ─────────────────────────────────────────────────────────
              30 — GROSS: Totaal belastbaar bruto loon
-             Som van BASIC + ALW (inclusief toelagen).
+             Som van BASIC + ALW (inclusief toelagen + KB belastbaar).
              ───────────────────────────────────────────────────────── -->
         <record id="sr_rule_gross" model="hr.salary.rule">
             <field name="struct_id" ref="l10n_sr_hr_payroll.sr_payroll_structure"/>
@@ -97,9 +129,31 @@ result = categories['BASIC'] + categories['ALW']
             <field name="condition_select">none</field>
             <field name="amount_select">code</field>
             <field name="amount_python_compute">
-# Artikel 14 LB berekening via centrale calculator
-# payslip._sr_artikel14_lb() gebruikt dezelfde logica als de contract preview
-result = -float_round(payslip._sr_artikel14_lb(categories['GROSS']), precision_digits=2)
+# Artikel 14 LB — BRUTO bedrag (vóór heffingskorting)
+# Heffingskorting wordt apart getoond als SR_HK (seq 55)
+aftrek_bv = contract._sr_resolve_regels('aftrek_belastingvrij')
+result = -float_round(payslip._sr_artikel14_lb(categories['GROSS'], aftrek_bv=aftrek_bv), precision_digits=2)
+            </field>
+        </record>
+
+        <!-- ─────────────────────────────────────────────────────────
+             55 — SR_HK: Heffingskorting (Art. 14 WLB)
+             ─────────────────────────────────────────────────────────
+             Credit: vermindert de loonbelasting. Wordt apart getoond
+             zodat de loonstrook transparant de bruto LB en HK toont.
+             ───────────────────────────────────────────────────────── -->
+        <record id="sr_rule_heffingskorting" model="hr.salary.rule">
+            <field name="struct_id" ref="l10n_sr_hr_payroll.sr_payroll_structure"/>
+            <field name="category_id" ref="hr_payroll.ALW"/>
+            <field name="name">Heffingskorting</field>
+            <field name="code">SR_HK</field>
+            <field name="sequence">55</field>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="amount_python_compute">
+# Heffingskorting — positief bedrag (credit op loonbelasting)
+aftrek_bv = contract._sr_resolve_regels('aftrek_belastingvrij')
+result = float_round(payslip._sr_artikel14_hk(categories['GROSS'], aftrek_bv=aftrek_bv), precision_digits=2)
             </field>
         </record>
 
@@ -118,8 +172,32 @@ result = -float_round(payslip._sr_artikel14_lb(categories['GROSS']), precision_d
             <field name="condition_select">none</field>
             <field name="amount_select">code</field>
             <field name="amount_python_compute">
-# AOV berekening via centrale calculator
-result = -float_round(payslip._sr_artikel14_aov(categories['GROSS']), precision_digits=2)
+# AOV berekening — ook gecorrigeerd voor aftrek belastingvrij (Art. 10f)
+aftrek_bv = contract._sr_resolve_regels('aftrek_belastingvrij')
+result = -float_round(payslip._sr_artikel14_aov(categories['GROSS'], aftrek_bv=aftrek_bv), precision_digits=2)
+            </field>
+        </record>
+
+        <!-- ─────────────────────────────────────────────────────────
+             65 — SR_AFTREK_BV: Aftrek belastingvrij (Art. 10f)
+             ─────────────────────────────────────────────────────────
+             Pensioenpremie en andere Art. 10f inhoudingen.
+             Vermindert LB+AOV grondslag (via calculator parameter)
+             én wordt ingehouden op nettoloon (via DED categorie).
+             ───────────────────────────────────────────────────────── -->
+        <record id="sr_rule_aftrek_bv" model="hr.salary.rule">
+            <field name="struct_id" ref="l10n_sr_hr_payroll.sr_payroll_structure"/>
+            <field name="category_id" ref="hr_payroll.DED"/>
+            <field name="name">Aftrek Belastingvrij (Art. 10f — Pensioenpremie)</field>
+            <field name="code">SR_AFTREK_BV</field>
+            <field name="sequence">65</field>
+            <field name="condition_select">python</field>
+            <field name="condition_python">
+result = contract._sr_resolve_regels('aftrek_belastingvrij') > 0
+            </field>
+            <field name="amount_select">code</field>
+            <field name="amount_python_compute">
+result = -contract._sr_resolve_regels('aftrek_belastingvrij')
             </field>
         </record>
 
@@ -136,25 +214,19 @@ result = -float_round(payslip._sr_artikel14_aov(categories['GROSS']), precision_
             <field name="sequence">70</field>
             <field name="condition_select">python</field>
             <field name="condition_python">
-result = any(
-    r.sr_categorie == 'inhouding' and r.amount > 0
-    for r in contract.sr_vaste_regels
-)
+result = contract._sr_resolve_regels('inhouding') > 0
             </field>
             <field name="amount_select">code</field>
             <field name="amount_python_compute">
-result = -sum(
-    r.amount for r in contract.sr_vaste_regels
-    if r.sr_categorie == 'inhouding'
-)
+result = -contract._sr_resolve_regels('inhouding')
             </field>
         </record>
 
         <!-- ─────────────────────────────────────────────────────────
-             80 — SR_KINDBIJ: Vrijgestelde vergoedingen (contract.sr_vaste_regels)
-             Som van alle vaste regels met categorie 'vrijgesteld'.
+             80 — SR_KINDBIJ: Vrijgestelde vergoedingen EXCL. kinderbijslag
+             Som van alle vaste regels met categorie 'vrijgesteld' die
+             GEEN kinderbijslag type (KINDBIJ) zijn.
              Telt NIET mee in GROSS → geen Art. 14 loonbelasting.
-             Wordt positief verrekend in het nettoloon (Art. 10 WLB).
              ───────────────────────────────────────────────────────── -->
         <record id="sr_rule_kinderbijslag" model="hr.salary.rule">
             <field name="struct_id" ref="l10n_sr_hr_payroll.sr_payroll_structure"/>
@@ -164,17 +236,47 @@ result = -sum(
             <field name="sequence">80</field>
             <field name="condition_select">python</field>
             <field name="condition_python">
+# Vrijgestelde regels excl. kinderbijslag (KB wordt apart afgehandeld)
 result = any(
-    r.sr_categorie == 'vrijgesteld' and r.amount > 0
+    r.sr_categorie == 'vrijgesteld'
+    and (not r.type_id or r.type_id.code != 'KINDBIJ')
     for r in contract.sr_vaste_regels
 )
             </field>
             <field name="amount_select">code</field>
             <field name="amount_python_compute">
 result = sum(
-    r.amount for r in contract.sr_vaste_regels
+    contract._sr_resolve_line_amount(r) for r in contract.sr_vaste_regels
     if r.sr_categorie == 'vrijgesteld'
+    and (not r.type_id or r.type_id.code != 'KINDBIJ')
 )
+            </field>
+        </record>
+
+        <!-- ─────────────────────────────────────────────────────────
+             81 — SR_KB_VRIJ: Kinderbijslag vrijgesteld deel (Art. 10h)
+             Het deel van de kinderbijslag binnen de vrijstelling:
+             max SRD 125/kind/maand, max SRD 500/maand.
+             ───────────────────────────────────────────────────────── -->
+        <record id="sr_rule_kb_vrijgesteld" model="hr.salary.rule">
+            <field name="struct_id" ref="l10n_sr_hr_payroll.sr_payroll_structure"/>
+            <field name="category_id" ref="hr_payroll.ALW"/>
+            <field name="name">Kinderbijslag Vrijgesteld (Art. 10h)</field>
+            <field name="code">SR_KB_VRIJ</field>
+            <field name="sequence">81</field>
+            <field name="condition_select">python</field>
+            <field name="condition_python">
+max_kind = payslip._rule_parameter('SR_KINDBIJ_MAX_KIND_MAAND')
+max_maand = payslip._rule_parameter('SR_KINDBIJ_MAX_MAAND')
+kb = contract._sr_kinderbijslag_split(max_kind, max_maand)
+result = kb['vrijgesteld'] > 0
+            </field>
+            <field name="amount_select">code</field>
+            <field name="amount_python_compute">
+max_kind = payslip._rule_parameter('SR_KINDBIJ_MAX_KIND_MAAND')
+max_maand = payslip._rule_parameter('SR_KINDBIJ_MAX_MAAND')
+kb = contract._sr_kinderbijslag_split(max_kind, max_maand)
+result = kb['vrijgesteld']
             </field>
         </record>
 
@@ -508,11 +610,13 @@ result = any(
             <field name="amount_python_compute">
 # ── Hulpfunctie: Art. 14 LB per tijdvak ─────────────────────────────────
 # Hergebruikt dezelfde parameterlogica als SR_LB zodat beide regels
-# altijd consistent zijn.
-def _lb_per_tijdvak(bruto_per_tijdvak, periodes, prm):
+# altijd consistent zijn. Inclusief aftrek_bv (Art. 10f).
+def _lb_per_tijdvak(bruto_per_tijdvak, periodes, prm, aftrek_bv=0.0):
     bruto_jaar = bruto_per_tijdvak * periodes
-    forfaitaire = min(bruto_jaar * prm['for_pct'], prm['for_max'])
-    belastbaar = max(0.0, bruto_jaar - prm['bvsom'] - forfaitaire)
+    aftrek_bv_jaar = aftrek_bv * periodes
+    adjusted = max(0.0, bruto_jaar - aftrek_bv_jaar)
+    forfaitaire = min(adjusted * prm['for_pct'], prm['for_max'])
+    belastbaar = max(0.0, adjusted - prm['bvsom'] - forfaitaire)
     s1, s2, s3 = prm['s1'], prm['s2'], prm['s3']
     r1, r2, r3, r4 = prm['r1'], prm['r2'], prm['r3'], prm['r4']
     if belastbaar &lt;= s1:
@@ -528,7 +632,11 @@ def _lb_per_tijdvak(bruto_per_tijdvak, periodes, prm):
 
 periodes = 12 if contract.sr_salary_type == 'monthly' else 26
 gross_per_tijdvak = categories['GROSS']
+aftrek_bv = contract._sr_resolve_regels('aftrek_belastingvrij')
 vrijstelling_max = payslip._rule_parameter('SR_BIJZ_VRIJSTELLING_MAX')
+
+# Bug C fix: maandequivalent voor FN-werkers
+wage_maand = (contract.wage or 0.0) * periodes / 12
 
 prm = {
     'for_pct':  payslip._rule_parameter('SR_FORFAITAIRE_PCT'),
@@ -544,7 +652,7 @@ prm = {
     'hk_maand': payslip._rule_parameter('SR_HEFFINGSKORTING_MAAND'),
 }
 
-lb_normaal = _lb_per_tijdvak(gross_per_tijdvak, periodes, prm)
+lb_normaal = _lb_per_tijdvak(gross_per_tijdvak, periodes, prm, aftrek_bv)
 lb_totaal = 0.0
 
 for inp in payslip.input_line_ids:
@@ -555,9 +663,16 @@ for inp in payslip.input_line_ids:
     if bruto &lt;= 0:
         continue
 
-    # Art. 10i/j: vrijstelling = min(basisloon per periode, max per jaar)
+    # Art. 10i/j: vrijstelling = min(maandloon, max per jaar)
     if cat in ('vakantie', 'gratificatie'):
-        vrijstelling = min(contract.wage or 0.0, vrijstelling_max)
+        vrijstelling = min(wage_maand, vrijstelling_max)
+        # Bug D: gratificatie pro-rata voor onvolledig dienstjaar (Art. 10j)
+        if cat == 'gratificatie' and payslip.date_to and contract.date_start:
+            year_start = payslip.date_to.replace(month=1, day=1)
+            service_start = max(contract.date_start, year_start)
+            months = (payslip.date_to.year - service_start.year) * 12 + payslip.date_to.month - service_start.month + 1
+            months = min(12, max(1, months))
+            vrijstelling = vrijstelling * months / 12
     else:
         # bijz_beloning: geen vaste vrijstelling (Art. 17)
         vrijstelling = 0.0
@@ -569,7 +684,7 @@ for inp in payslip.input_line_ids:
     # Art. 17: marginaal tarief methode
     gemiddelde = belastbaar_bijz / periodes
     gecorrigeerd = gross_per_tijdvak + gemiddelde
-    lb_gecorr = _lb_per_tijdvak(gecorrigeerd, periodes, prm)
+    lb_gecorr = _lb_per_tijdvak(gecorrigeerd, periodes, prm, aftrek_bv)
     lb_bijz = max(0.0, lb_gecorr - lb_normaal) * periodes
     lb_totaal += lb_bijz
 
@@ -599,6 +714,9 @@ result = any(
             <field name="amount_python_compute">
 aov_tarief = payslip._rule_parameter('SR_AOV_TARIEF')
 vrijstelling_max = payslip._rule_parameter('SR_BIJZ_VRIJSTELLING_MAX')
+periodes = 12 if contract.sr_salary_type == 'monthly' else 26
+# Bug C fix: maandequivalent voor FN-werkers
+wage_maand = (contract.wage or 0.0) * periodes / 12
 aov_totaal = 0.0
 
 for inp in payslip.input_line_ids:
@@ -609,7 +727,14 @@ for inp in payslip.input_line_ids:
     if bruto &lt;= 0:
         continue
     if cat in ('vakantie', 'gratificatie'):
-        vrijstelling = min(contract.wage or 0.0, vrijstelling_max)
+        vrijstelling = min(wage_maand, vrijstelling_max)
+        # Bug D: gratificatie pro-rata (Art. 10j)
+        if cat == 'gratificatie' and payslip.date_to and contract.date_start:
+            year_start = payslip.date_to.replace(month=1, day=1)
+            service_start = max(contract.date_start, year_start)
+            months = (payslip.date_to.year - service_start.year) * 12 + payslip.date_to.month - service_start.month + 1
+            months = min(12, max(1, months))
+            vrijstelling = vrijstelling * months / 12
     else:
         vrijstelling = 0.0
     belastbaar = max(0.0, bruto - vrijstelling)

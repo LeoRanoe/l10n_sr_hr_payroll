@@ -14,36 +14,65 @@ class HrPayslip(models.Model):
         contract = self.contract_id
         return 26 if getattr(contract, 'sr_salary_type', 'monthly') == 'fn' else 12
 
-    def _sr_artikel14_lb(self, gross_per_periode):
+    def _sr_get_aftrek_bv(self):
         """
-        Berekent Artikel 14 loonbelasting per periode.
+        Berekent het totale aftrek belastingvrij bedrag per periode.
+
+        Optelsom van vaste contractregels met categorie 'aftrek_belastingvrij'
+        (Art. 10f — pensioenpremie etc.).
+        """
+        self.ensure_one()
+        return self.contract_id._sr_resolve_regels('aftrek_belastingvrij')
+
+    def _sr_artikel14_lb(self, gross_per_periode, aftrek_bv=0.0):
+        """
+        Berekent Artikel 14 BRUTO loonbelasting per periode (vóór heffingskorting).
 
         Wordt aangeroepen door de SR_LB salarisregel.
-        Gebruikt de centrale calculator zodat de berekening altijd
-        overeenkomt met de contract preview.
 
         :param gross_per_periode: Bruto belastbaar loon per periode (categories['GROSS'])
-        :returns: positief bedrag loonbelasting per periode
+        :param aftrek_bv: Aftrek belastingvrij per periode (Art. 10f pensioenpremie)
+        :returns: positief bedrag bruto loonbelasting per periode
         """
         self.ensure_one()
         params = calc.fetch_params_from_payslip(self)
         periodes = self._sr_get_periodes()
-        result = calc.calculate_lb(gross_per_periode, periodes, params)
-        return result['lb_per_periode']
+        result = calc.calculate_lb(gross_per_periode, periodes, params,
+                                   aftrek_bv_per_periode=aftrek_bv)
+        return result['lb_gross_per_periode']
 
-    def _sr_artikel14_aov(self, gross_per_periode):
+    def _sr_artikel14_hk(self, gross_per_periode, aftrek_bv=0.0):
+        """
+        Berekent heffingskorting per periode.
+
+        Wordt aangeroepen door de SR_HK salarisregel.
+
+        :param gross_per_periode: Bruto belastbaar loon per periode
+        :param aftrek_bv: Aftrek belastingvrij per periode
+        :returns: positief bedrag heffingskorting per periode
+        """
+        self.ensure_one()
+        params = calc.fetch_params_from_payslip(self)
+        periodes = self._sr_get_periodes()
+        result = calc.calculate_lb(gross_per_periode, periodes, params,
+                                   aftrek_bv_per_periode=aftrek_bv)
+        return result['heffingskorting_per_periode']
+
+    def _sr_artikel14_aov(self, gross_per_periode, aftrek_bv=0.0):
         """
         Berekent AOV bijdrage per periode.
 
         Wordt aangeroepen door de SR_AOV salarisregel.
 
         :param gross_per_periode: Bruto belastbaar loon per periode
+        :param aftrek_bv: Aftrek belastingvrij per periode
         :returns: positief bedrag AOV per periode
         """
         self.ensure_one()
         params = calc.fetch_params_from_payslip(self)
         periodes = self._sr_get_periodes()
-        result = calc.calculate_lb(gross_per_periode, periodes, params)
+        result = calc.calculate_lb(gross_per_periode, periodes, params,
+                                   aftrek_bv_per_periode=aftrek_bv)
         return result['aov_per_periode']
 
     def _get_sr_artikel14_breakdown(self):
@@ -64,32 +93,39 @@ class HrPayslip(models.Model):
             periodes = self._sr_get_periodes()
 
             # ── Loonstrookregels ophalen ──────────────────────────────────────────
-            # sum(mapped('total')) is veilig als meerdere regels met dezelfde code bestaan
-            # (bijv. wanneer Odoo een default GROSS regel heeft gekopieerd bij aanmaken structuur)
             def _line_total(code):
                 lines = self.line_ids.filtered(lambda l: l.code == code)
                 return sum(lines.mapped('total')) if lines else 0.0
 
             basic = _line_total('BASIC')
             toelagen = _line_total('SR_ALW')
-            kinderbijslag = _line_total('SR_KINDBIJ')
+            kb_belastbaar = _line_total('SR_KB_BELAST')
+            kb_vrijgesteld = _line_total('SR_KB_VRIJ')
+            other_vrijgesteld = _line_total('SR_KINDBIJ')
+            aftrek_bv = abs(_line_total('SR_AFTREK_BV'))
             pensioen = abs(_line_total('SR_PENSIOEN'))
+            heffingskorting = _line_total('SR_HK')
 
             # ── Calculator aanroepen ──────────────────────────────────────────────
-            # Gebruik basic + toelagen als Art. 14 grondslag — dit is dezelfde waarde
-            # die de SR_LB regel gebruikt (categories['GROSS'] op seq 30, vóór SR_KINDBIJ).
-            # Hierdoor klopt het rapport altijd met de werkelijke SR_LB berekening.
-            gross = basic + toelagen
+            gross = basic + toelagen + kb_belastbaar
+            aftrek_bv_calc = contract._sr_resolve_regels('aftrek_belastingvrij')
             params = calc.fetch_params_from_payslip(self)
 
-            # Validate params are not None
             if not all(params.values()):
-                return {}  # Return empty breakdown if params are missing
+                return {}
 
-            r = calc.calculate_lb(gross, periodes, params)
+            r = calc.calculate_lb(gross, periodes, params,
+                                  aftrek_bv_per_periode=aftrek_bv_calc)
 
-            totaal_inhoudingen = r['lb_per_periode'] + r['aov_per_periode'] + pensioen
-            netto = basic + toelagen + kinderbijslag - totaal_inhoudingen
+            totaal_inhoudingen = (
+                r['lb_gross_per_periode']
+                - r['heffingskorting_per_periode']
+                + r['aov_per_periode']
+                + pensioen
+                + aftrek_bv
+            )
+            bruto_totaal = gross + kb_vrijgesteld + other_vrijgesteld
+            netto = bruto_totaal + heffingskorting - r['lb_gross_per_periode'] - r['aov_per_periode'] - pensioen - aftrek_bv
 
             return {
                 # Basis
@@ -97,9 +133,14 @@ class HrPayslip(models.Model):
                 'is_fn': periodes == 26,
                 'basic': basic,
                 'toelagen': toelagen,
-                'kinderbijslag': kinderbijslag,
+                'kb_belastbaar': kb_belastbaar,
+                'kb_vrijgesteld': kb_vrijgesteld,
+                'other_vrijgesteld': other_vrijgesteld,
                 'bruto_per_periode': gross,
-                'bruto_totaal': basic + toelagen + kinderbijslag,
+                'bruto_totaal': bruto_totaal,
+                # Aftrek belastingvrij
+                'aftrek_bv': aftrek_bv_calc,
+                'adjusted_bruto_jaar': r['adjusted_bruto_jaar'],
                 # Artikel 14 stappen
                 'bruto_jaarloon': r['bruto_jaar'],
                 'belastingvrij_jaar': r['belastingvrij_jaar'],
@@ -126,6 +167,8 @@ class HrPayslip(models.Model):
                 'lb_s4': r['lb_s4'],
                 'lb_voor_heffingskorting': r['lb_voor_heffingskorting'],
                 'heffingskorting_jaar': r['heffingskorting_jaar'],
+                'heffingskorting_per_periode': r['heffingskorting_per_periode'],
+                'lb_gross_per_periode': r['lb_gross_per_periode'],
                 'lb_jaar_netto': r['lb_jaar_netto'],
                 'lb_per_periode': r['lb_per_periode'],
                 # AOV
@@ -139,11 +182,10 @@ class HrPayslip(models.Model):
                 'netto': netto,
             }
         except Exception as e:
-            # Log error and return empty breakdown to prevent report crash
             import logging
             _logger = logging.getLogger(__name__)
             _logger.exception(f"Error in _get_sr_artikel14_breakdown for payslip {self.id}: {str(e)}")
-            return {}  # Return empty to allow report to render without data
+            return {}
 
     def action_print_sr_payslip(self):
         """
