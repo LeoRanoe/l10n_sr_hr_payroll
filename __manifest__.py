@@ -1,7 +1,7 @@
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 {
     'name': 'Suriname - Payroll (Artikel 14 Wet Loonbelasting)',
-    'version': '18.0.1.0.0',
+    'version': '18.0.2.0.0',
     'author': 'RPBG - Stage Opdracht 2026',
     'countries': ['sr'],
     'category': 'Human Resources/Payroll',

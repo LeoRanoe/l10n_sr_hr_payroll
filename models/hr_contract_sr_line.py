@@ -47,7 +47,39 @@ class HrContractSrLine(models.Model):
     amount = fields.Monetary(
         string='Bedrag per Periode',
         currency_field='currency_id',
-        help='Vaste bedrag dat elke loonperiode verwerkt wordt.',
+        help='Vaste bedrag dat elke loonperiode verwerkt wordt (bij "Vast bedrag" type).',
+    )
+    amount_type = fields.Selection(
+        selection=[
+            ('fixed', 'Vast bedrag'),
+            ('percentage', 'Percentage'),
+        ],
+        string='Berekeningswijze',
+        default='fixed',
+        required=True,
+        help=(
+            'Hoe het bedrag wordt bepaald:\n'
+            '• Vast bedrag: bedrag per periode zoals ingevuld\n'
+            '• Percentage: berekend percentage over de gekozen basis'
+        ),
+    )
+    percentage = fields.Float(
+        string='Percentage (%)',
+        digits=(5, 2),
+        help='Percentage dat berekend wordt over de gekozen basis.',
+    )
+    percentage_base = fields.Selection(
+        selection=[
+            ('basisloon', 'Basisloon (contract.wage)'),
+            ('bruto_belastbaar', 'Bruto Belastbaar (basis + vaste belastbare toelagen)'),
+        ],
+        string='Percentage Basis',
+        default='basisloon',
+        help=(
+            'Waarover het percentage berekend wordt:\n'
+            '• Basisloon: alleen het bruto contractloon\n'
+            '• Bruto Belastbaar: basisloon + vaste belastbare toelagen (vast bedrag)'
+        ),
     )
     sr_categorie = fields.Selection(
         selection=SR_CATEGORIE_BASE,

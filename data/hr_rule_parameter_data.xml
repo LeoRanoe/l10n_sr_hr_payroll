@@ -12,7 +12,7 @@
              Artikel 14 lid 1: SRD 108.000 per jaar (= SRD 9.000/maand)
              ═══════════════════════════════════════════════════════════ -->
         <record id="sr_param_belastingvrij_jaar" model="hr.rule.parameter">
-            <field name="name">SR — Belastingvrije voet (jaarbasis)</field>
+            <field name="name">SR — Belastingvrije voet — Art. 14 lid 1 (SRD / jaar)</field>
             <field name="code">SR_BELASTINGVRIJ_JAAR</field>
             <field name="country_id" ref="base.sr"/>
         </record>
@@ -27,7 +27,7 @@
              4% van bruto loon, maximaal SRD 4.800 per jaar
              ═══════════════════════════════════════════════════════════ -->
         <record id="sr_param_forfaitaire_pct" model="hr.rule.parameter">
-            <field name="name">SR — Forfaitaire aftrek percentage</field>
+            <field name="name">SR — Forfaitaire beroepskosten % — Art. 12 (decimaal: 0.04 = 4%)</field>
             <field name="code">SR_FORFAITAIRE_PCT</field>
             <field name="country_id" ref="base.sr"/>
         </record>
@@ -38,7 +38,7 @@
         </record>
 
         <record id="sr_param_forfaitaire_max_jaar" model="hr.rule.parameter">
-            <field name="name">SR — Forfaitaire aftrek maximum (jaarbasis)</field>
+            <field name="name">SR — Forfaitaire beroepskosten maximum — Art. 12 (SRD / jaar)</field>
             <field name="code">SR_FORFAITAIRE_MAX_JAAR</field>
             <field name="country_id" ref="base.sr"/>
         </record>
@@ -53,7 +53,7 @@
              Grenstarieven geldig voor belastbaar jaarloon
              ═══════════════════════════════════════════════════════════ -->
         <record id="sr_param_schijf_1_grens" model="hr.rule.parameter">
-            <field name="name">SR — Schijf 1 grens (jaarbasis)</field>
+            <field name="name">SR — Schijf 1 bovengrens — Art. 14 (belastbaar jaarloon, SRD)</field>
             <field name="code">SR_SCHIJF_1_GRENS</field>
             <field name="country_id" ref="base.sr"/>
         </record>
@@ -64,7 +64,7 @@
         </record>
 
         <record id="sr_param_schijf_2_grens" model="hr.rule.parameter">
-            <field name="name">SR — Schijf 2 grens (jaarbasis)</field>
+            <field name="name">SR — Schijf 2 bovengrens — Art. 14 (belastbaar jaarloon, SRD)</field>
             <field name="code">SR_SCHIJF_2_GRENS</field>
             <field name="country_id" ref="base.sr"/>
         </record>
@@ -75,7 +75,7 @@
         </record>
 
         <record id="sr_param_schijf_3_grens" model="hr.rule.parameter">
-            <field name="name">SR — Schijf 3 grens (jaarbasis)</field>
+            <field name="name">SR — Schijf 3 bovengrens — Art. 14 (belastbaar jaarloon, SRD)</field>
             <field name="code">SR_SCHIJF_3_GRENS</field>
             <field name="country_id" ref="base.sr"/>
         </record>
@@ -87,7 +87,7 @@
 
         <!-- Tarieven per schijf -->
         <record id="sr_param_tarief_1" model="hr.rule.parameter">
-            <field name="name">SR — Tarief schijf 1 (8%%)</field>
+            <field name="name">SR — Tarief schijf 1 — Art. 14 (decimaal: 0.08 = 8%%)</field>
             <field name="code">SR_TARIEF_1</field>
             <field name="country_id" ref="base.sr"/>
         </record>
@@ -98,7 +98,7 @@
         </record>
 
         <record id="sr_param_tarief_2" model="hr.rule.parameter">
-            <field name="name">SR — Tarief schijf 2 (18%%)</field>
+            <field name="name">SR — Tarief schijf 2 — Art. 14 (decimaal: 0.18 = 18%%)</field>
             <field name="code">SR_TARIEF_2</field>
             <field name="country_id" ref="base.sr"/>
         </record>
@@ -109,7 +109,7 @@
         </record>
 
         <record id="sr_param_tarief_3" model="hr.rule.parameter">
-            <field name="name">SR — Tarief schijf 3 (28%%)</field>
+            <field name="name">SR — Tarief schijf 3 — Art. 14 (decimaal: 0.28 = 28%%)</field>
             <field name="code">SR_TARIEF_3</field>
             <field name="country_id" ref="base.sr"/>
         </record>
@@ -120,7 +120,7 @@
         </record>
 
         <record id="sr_param_tarief_4" model="hr.rule.parameter">
-            <field name="name">SR — Tarief schijf 4 (38%%)</field>
+            <field name="name">SR — Tarief schijf 4 — Art. 14 (decimaal: 0.38 = 38%%)</field>
             <field name="code">SR_TARIEF_4</field>
             <field name="country_id" ref="base.sr"/>
         </record>
@@ -135,7 +135,7 @@
              SRD 750 per maand = SRD 9.000 per jaar
              ═══════════════════════════════════════════════════════════ -->
         <record id="sr_param_heffingskorting_maand" model="hr.rule.parameter">
-            <field name="name">SR — Heffingskorting per maand</field>
+            <field name="name">SR — Heffingskorting — Art. 14 lid 5 (SRD / maand)</field>
             <field name="code">SR_HEFFINGSKORTING_MAAND</field>
             <field name="country_id" ref="base.sr"/>
         </record>
@@ -150,7 +150,7 @@
              4% over belastbaar loon minus franchise SRD 400/maand
              ═══════════════════════════════════════════════════════════ -->
         <record id="sr_param_aov_tarief" model="hr.rule.parameter">
-            <field name="name">SR — AOV tarief (4%%)</field>
+            <field name="name">SR — AOV tarief — ALS 2005 (decimaal: 0.04 = 4%%)</field>
             <field name="code">SR_AOV_TARIEF</field>
             <field name="country_id" ref="base.sr"/>
         </record>
@@ -161,7 +161,7 @@
         </record>
 
         <record id="sr_param_aov_franchise_maand" model="hr.rule.parameter">
-            <field name="name">SR — AOV franchise per maand</field>
+            <field name="name">SR — AOV franchise (drempel) — ALS 2005 (SRD / maand)</field>
             <field name="code">SR_AOV_FRANCHISE_MAAND</field>
             <field name="country_id" ref="base.sr"/>
         </record>
@@ -179,7 +179,7 @@
              nieuw date_from — historische waarden blijven bewaard.
              ═══════════════════════════════════════════════════════════ -->
         <record id="sr_param_owk_schijf_1_grens" model="hr.rule.parameter">
-            <field name="name">SR — Overwerk schijf 1 grens (per tijdvak)</field>
+            <field name="name">SR — Overwerk schijf 1 grens — Art. 17c (SRD / tijdvak)</field>
             <field name="code">SR_OWK_SCHIJF_1_GRENS</field>
             <field name="country_id" ref="base.sr"/>
         </record>
@@ -190,7 +190,7 @@
         </record>
 
         <record id="sr_param_owk_schijf_2_grens" model="hr.rule.parameter">
-            <field name="name">SR — Overwerk schijf 2 grens (per tijdvak)</field>
+            <field name="name">SR — Overwerk schijf 2 grens — Art. 17c (SRD / tijdvak)</field>
             <field name="code">SR_OWK_SCHIJF_2_GRENS</field>
             <field name="country_id" ref="base.sr"/>
         </record>
@@ -201,7 +201,7 @@
         </record>
 
         <record id="sr_param_owk_tarief_1" model="hr.rule.parameter">
-            <field name="name">SR — Overwerk tarief schijf 1 (5%%)</field>
+            <field name="name">SR — Overwerk tarief 1 — Art. 17c (decimaal: 0.05 = 5%%)</field>
             <field name="code">SR_OWK_TARIEF_1</field>
             <field name="country_id" ref="base.sr"/>
         </record>
@@ -212,7 +212,7 @@
         </record>
 
         <record id="sr_param_owk_tarief_2" model="hr.rule.parameter">
-            <field name="name">SR — Overwerk tarief schijf 2 (15%%)</field>
+            <field name="name">SR — Overwerk tarief 2 — Art. 17c (decimaal: 0.15 = 15%%)</field>
             <field name="code">SR_OWK_TARIEF_2</field>
             <field name="country_id" ref="base.sr"/>
         </record>
@@ -223,7 +223,7 @@
         </record>
 
         <record id="sr_param_owk_tarief_3" model="hr.rule.parameter">
-            <field name="name">SR — Overwerk tarief schijf 3 (25%%)</field>
+            <field name="name">SR — Overwerk tarief 3 — Art. 17c (decimaal: 0.25 = 25%%)</field>
             <field name="code">SR_OWK_TARIEF_3</field>
             <field name="country_id" ref="base.sr"/>
         </record>
@@ -246,6 +246,32 @@
             <field name="rule_parameter_id" ref="sr_param_bijz_vrijstelling_max"/>
             <field name="date_from" eval="datetime(2026, 1, 1).date()"/>
             <field name="parameter_value">10016.0</field>
+        </record>
+
+        <!-- ═══════════════════════════════════════════════════════════
+             KINDERBIJSLAG VRIJSTELLING — Art. 10h WLB
+             Max SRD 125 per kind per maand, max SRD 500 per maand.
+             ═══════════════════════════════════════════════════════════ -->
+        <record id="sr_param_kindbij_max_kind_maand" model="hr.rule.parameter">
+            <field name="name">SR — Kinderbijslag max per kind per maand (Art. 10h)</field>
+            <field name="code">SR_KINDBIJ_MAX_KIND_MAAND</field>
+            <field name="country_id" ref="base.sr"/>
+        </record>
+        <record id="sr_param_kindbij_max_kind_maand_2026" model="hr.rule.parameter.value">
+            <field name="rule_parameter_id" ref="sr_param_kindbij_max_kind_maand"/>
+            <field name="date_from" eval="datetime(2026, 1, 1).date()"/>
+            <field name="parameter_value">125.0</field>
+        </record>
+
+        <record id="sr_param_kindbij_max_maand" model="hr.rule.parameter">
+            <field name="name">SR — Kinderbijslag max per maand (Art. 10h)</field>
+            <field name="code">SR_KINDBIJ_MAX_MAAND</field>
+            <field name="country_id" ref="base.sr"/>
+        </record>
+        <record id="sr_param_kindbij_max_maand_2026" model="hr.rule.parameter.value">
+            <field name="rule_parameter_id" ref="sr_param_kindbij_max_maand"/>
+            <field name="date_from" eval="datetime(2026, 1, 1).date()"/>
+            <field name="parameter_value">500.0</field>
         </record>
 
     </data>

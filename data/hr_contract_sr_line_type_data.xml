@@ -18,7 +18,7 @@
             <field name="code">OLIE</field>
             <field name="sr_categorie">belastbaar</field>
             <field name="sequence">10</field>
-            <field name="description">Vaste olie toelage per periode. Telt mee in de Art. 14 grondslag.</field>
+            <field name="description">Vaste olie toelage per periode. Art. 14 WLB — telt mee in de belastbare grondslag voor LB en AOV.</field>
         </record>
 
         <record id="sr_line_type_kleding" model="hr.contract.sr.line.type">
@@ -26,7 +26,7 @@
             <field name="code">KLEDING</field>
             <field name="sr_categorie">belastbaar</field>
             <field name="sequence">20</field>
-            <field name="description">Vaste kleding toelage per periode.</field>
+            <field name="description">Vaste kleding toelage per periode. Art. 14 WLB — belastbaar loonbestanddeel.</field>
         </record>
 
         <record id="sr_line_type_representatie" model="hr.contract.sr.line.type">
@@ -34,7 +34,7 @@
             <field name="code">REPRES</field>
             <field name="sr_categorie">belastbaar</field>
             <field name="sequence">30</field>
-            <field name="description">Representatiekosten toelage per periode.</field>
+            <field name="description">Representatiekosten toelage per periode. Art. 14 WLB — belastbaar loonbestanddeel.</field>
         </record>
 
         <record id="sr_line_type_telefoon" model="hr.contract.sr.line.type">
@@ -42,7 +42,7 @@
             <field name="code">TELEFOON</field>
             <field name="sr_categorie">belastbaar</field>
             <field name="sequence">40</field>
-            <field name="description">Vaste telefoonvergoeding per periode.</field>
+            <field name="description">Vaste telefoonvergoeding per periode. Art. 14 WLB — belastbaar loonbestanddeel.</field>
         </record>
 
         <record id="sr_line_type_belastbaar_overig" model="hr.contract.sr.line.type">
@@ -50,7 +50,7 @@
             <field name="code">BELASTB_OVR</field>
             <field name="sr_categorie">belastbaar</field>
             <field name="sequence">90</field>
-            <field name="description">Belastbare toelage die niet in één van de andere types past.</field>
+            <field name="description">Belastbare toelage die niet in één van de andere types past. Art. 14 WLB — telt mee in de grondslag.</field>
         </record>
 
         <!-- ═══════════════════════════════════════════════════════════
@@ -62,7 +62,7 @@
             <field name="code">KINDBIJ</field>
             <field name="sr_categorie">vrijgesteld</field>
             <field name="sequence">10</field>
-            <field name="description">Kinderbijslag per kind per periode. Art. 10 WLB — belastingvrij.</field>
+            <field name="description">Kinderbijslag per kind per periode. Art. 10h WLB — vrijgesteld tot max SRD 125/kind/maand (max SRD 500/maand). Het meerdere is belastbaar en telt mee in de Art. 14 grondslag. Stel 'Aantal Kinderen' in op het contract.</field>
         </record>
 
         <record id="sr_line_type_transport" model="hr.contract.sr.line.type">
@@ -70,7 +70,7 @@
             <field name="code">TRANSPORT</field>
             <field name="sr_categorie">vrijgesteld</field>
             <field name="sequence">20</field>
-            <field name="description">Vaste transportvergoeding per periode. Art. 10 WLB — belastingvrij.</field>
+            <field name="description">Vaste transportvergoeding per periode. Art. 10 WLB — belastingvrij, telt niet mee voor LB of AOV.</field>
         </record>
 
         <record id="sr_line_type_maaltijd" model="hr.contract.sr.line.type">
@@ -78,7 +78,7 @@
             <field name="code">MAALTIJD</field>
             <field name="sr_categorie">vrijgesteld</field>
             <field name="sequence">30</field>
-            <field name="description">Vaste maaltijdvergoeding per periode. Art. 10 WLB — belastingvrij.</field>
+            <field name="description">Vaste maaltijdvergoeding per periode. Art. 10 WLB — belastingvrij, telt niet mee voor LB of AOV.</field>
         </record>
 
         <record id="sr_line_type_vrijgesteld_overig" model="hr.contract.sr.line.type">
@@ -86,27 +86,31 @@
             <field name="code">VRIJ_OVR</field>
             <field name="sr_categorie">vrijgesteld</field>
             <field name="sequence">90</field>
-            <field name="description">Belastingvrije toelage die niet in één van de andere types past.</field>
+            <field name="description">Belastingvrije toelage die niet in één van de andere types past. Art. 10 WLB — geen LB of AOV.</field>
         </record>
 
         <!-- ═══════════════════════════════════════════════════════════
-             INHOUDINGEN (netto aftrek)
+             AFTREK BELASTINGVRIJ (Art. 10f — vermindert LB + AOV basis)
              ═══════════════════════════════════════════════════════════ -->
 
         <record id="sr_line_type_pensioen" model="hr.contract.sr.line.type">
             <field name="name">Pensioenpremie</field>
             <field name="code">PENSIOEN</field>
-            <field name="sr_categorie">inhouding</field>
+            <field name="sr_categorie">aftrek_belastingvrij</field>
             <field name="sequence">10</field>
-            <field name="description">Pensioenpremie werknemer per periode. Wordt ingehouden op nettoloon.</field>
+            <field name="description">Pensioenpremie werknemer per periode. Art. 10f WLB — wordt afgetrokken van de LB- en AOV-grondslag én ingehouden op nettoloon. Dubbel effect: verlaagt belasting én netto-uitbetaling.</field>
         </record>
+
+        <!-- ═══════════════════════════════════════════════════════════
+             INHOUDINGEN (netto aftrek — geen invloed op LB/AOV)
+             ═══════════════════════════════════════════════════════════ -->
 
         <record id="sr_line_type_ziektekosten" model="hr.contract.sr.line.type">
             <field name="name">Ziektekostenpremie</field>
             <field name="code">ZIEKTEK</field>
             <field name="sr_categorie">inhouding</field>
             <field name="sequence">20</field>
-            <field name="description">Ziektekostenverzekering werknemer per periode.</field>
+            <field name="description">Ziektekostenverzekering werknemer per periode. Wordt ingehouden op nettoloon. Geen invloed op LB of AOV grondslag.</field>
         </record>
 
         <record id="sr_line_type_vakbond" model="hr.contract.sr.line.type">
@@ -114,7 +118,7 @@
             <field name="code">VAKBOND</field>
             <field name="sr_categorie">inhouding</field>
             <field name="sequence">30</field>
-            <field name="description">Vakbondscontributie werknemer per periode.</field>
+            <field name="description">Vakbondscontributie werknemer per periode. Wordt ingehouden op nettoloon. Geen invloed op LB of AOV grondslag.</field>
         </record>
 
         <record id="sr_line_type_inhouding_overig" model="hr.contract.sr.line.type">
@@ -122,7 +126,7 @@
             <field name="code">INHOUD_OVR</field>
             <field name="sr_categorie">inhouding</field>
             <field name="sequence">90</field>
-            <field name="description">Inhouding die niet in één van de andere types past.</field>
+            <field name="description">Inhouding die niet in één van de andere types past. Wordt ingehouden op nettoloon. Geen invloed op LB of AOV grondslag.</field>
         </record>
 
     </data>

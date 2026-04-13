@@ -13,6 +13,7 @@ SR_CATEGORIE_BASE = [
     ('belastbaar', 'Belastbaar  (Art. 14 — LB + AOV grondslag)'),
     ('vrijgesteld', 'Belastingvrij  (Art. 10 — geen LB of AOV)'),
     ('inhouding', 'Inhouding / Aftrek  (netto aftrek)'),
+    ('aftrek_belastingvrij', 'Aftrek Belastingvrij  (Art. 10f — vermindert LB + AOV grondslag)'),
 ]
 
 SR_CATEGORIE_EXTENDED = SR_CATEGORIE_BASE + [

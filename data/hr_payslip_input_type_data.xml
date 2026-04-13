@@ -46,7 +46,7 @@
         <record id="sr_input_medische_vergoeding" model="hr.payslip.input.type">
             <field name="name">Vrije Geneeskundige Behandeling</field>
             <field name="code">SR_IN_GENEESKUNDE</field>
-            <field name="sr_categorie">vrijgesteld</field>
+            <field name="sr_categorie">belastbaar</field>
             <field name="country_id" ref="base.sr"/>
         </record>
 

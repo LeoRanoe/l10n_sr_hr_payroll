@@ -43,6 +43,9 @@
                                    widget="radio"
                                    string="Loontype"
                                    required="1"/>
+                            <field name="sr_aantal_kinderen"
+                                   string="Aantal Kinderen (Art. 10h)"
+                                   help="Aantal kinderen voor kinderbijslag vrijstelling. Max SRD 125/kind/mnd, max SRD 500/mnd belastingvrij."/>
                         </group>
                         <group>
                             <div class="text-muted" style="font-size: 0.9em; padding-top: 4px;">
@@ -78,7 +81,18 @@
                                    placeholder="Automatisch of handmatig..."
                                    style="min-width: 160px;"/>
                             <field name="sr_categorie"/>
-                            <field name="amount" widget="monetary"/>
+                            <field name="amount_type" string="Berekening"/>
+                            <field name="amount" widget="monetary"
+                                   column_invisible="False"
+                                   readonly="amount_type == 'percentage'"/>
+                            <field name="percentage"
+                                   string="%"
+                                   column_invisible="False"
+                                   readonly="amount_type != 'percentage'"/>
+                            <field name="percentage_base"
+                                   string="% Basis"
+                                   column_invisible="False"
+                                   readonly="amount_type != 'percentage'"/>
                             <field name="currency_id" column_invisible="True"/>
                         </list>
                     </field>
@@ -125,9 +139,21 @@
                         </group>
                         <group string="Geschatte Inhoudingen &amp; Netto">
                             <field name="sr_preview_lb_periode" readonly="1" widget="monetary" string="Loonbelasting per Periode (Art. 14)"/>
+                            <field name="sr_preview_hk_periode" readonly="1" widget="monetary" string="Heffingskorting per Periode"/>
                             <field name="sr_preview_aov_periode" readonly="1" widget="monetary" string="AOV per Periode (4%)"/>
                             <field name="sr_preview_netto" readonly="1" widget="monetary" string="Geschat Nettoloon"/>
                         </group>
+                    </group>
+
+                    <!-- ── Berekeningsdetail (Debug Panel) ──────────────── -->
+                    <group string="Berekeningsdetail — Stap-voor-Stap (Art. 14)" name="sr_debug_panel">
+                        <div colspan="2" style="font-size: 0.85em; color: #6b7280; margin-bottom: 6px;">
+                            Alle tussenliggende berekenstappen voor controle en verificatie.
+                            Gebruik dit om de loonstrookbedragen te begrijpen en te vergelijken.
+                        </div>
+                        <div colspan="2">
+                            <field name="sr_preview_breakdown_html" nolabel="1" readonly="1"/>
+                        </div>
                     </group>
 
                 </page>

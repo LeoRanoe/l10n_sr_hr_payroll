@@ -65,17 +65,50 @@
 
     <!-- ═══════════════════════════════════════════════════════════════
          VIEWS — SR Belastingparameters (gefilterde hr.rule.parameter)
+
+         VERSCHIL MET Configuratie → Salary → Rule Parameters:
+           Salary > Rule Parameters toont ALLE parameters van alle landen.
+           Deze view toont alleen de SR_* parameters voor Suriname.
+           Ze zijn hetzelfde model (hr.rule.parameter) — alleen gefilterd.
          ═══════════════════════════════════════════════════════════════ -->
 
     <record id="sr_rule_parameter_view_list" model="ir.ui.view">
         <field name="name">hr.rule.parameter.sr.list</field>
         <field name="model">hr.rule.parameter</field>
         <field name="arch" type="xml">
-            <list string="SR Belastingparameters" create="0">
-                <field name="name"/>
-                <field name="code"/>
-                <field name="country_id"/>
+            <list string="SR Belastingparameters — Wet Loonbelasting" create="0">
+                <field name="name" string="Parameter (met wetsbasis en eenheid)"/>
+                <field name="code" string="Code" optional="show"/>
+                <field name="country_id" optional="hide"/>
             </list>
+        </field>
+    </record>
+
+    <!-- Zoekvenster met filters per parametergroep -->
+    <record id="sr_rule_parameter_view_search" model="ir.ui.view">
+        <field name="name">hr.rule.parameter.sr.search</field>
+        <field name="model">hr.rule.parameter</field>
+        <field name="arch" type="xml">
+            <search string="Zoek SR Belastingparameters">
+                <field name="name" string="Omschrijving"/>
+                <field name="code" string="Code (bijv. SR_TARIEF_1)"/>
+                <separator/>
+                <filter name="filter_lb"
+                        string="Loonbelasting — Art. 14"
+                        domain="[('code', 'in', ['SR_BELASTINGVRIJ_JAAR','SR_FORFAITAIRE_PCT','SR_FORFAITAIRE_MAX_JAAR','SR_SCHIJF_1_GRENS','SR_SCHIJF_2_GRENS','SR_SCHIJF_3_GRENS','SR_TARIEF_1','SR_TARIEF_2','SR_TARIEF_3','SR_TARIEF_4','SR_HEFFINGSKORTING_MAAND'])]"/>
+                <filter name="filter_aov"
+                        string="AOV (Pensioen)"
+                        domain="[('code', 'in', ['SR_AOV_TARIEF','SR_AOV_FRANCHISE_MAAND'])]"/>
+                <filter name="filter_overwerk"
+                        string="Overwerk — Art. 17c"
+                        domain="[('code', 'in', ['SR_OWK_SCHIJF_1_GRENS','SR_OWK_SCHIJF_2_GRENS','SR_OWK_TARIEF_1','SR_OWK_TARIEF_2','SR_OWK_TARIEF_3'])]"/>
+                <filter name="filter_bijz"
+                        string="Bijz. Beloningen — Art. 10i/j"
+                        domain="[('code', '=', 'SR_BIJZ_VRIJSTELLING_MAX')]"/>
+                <filter name="filter_kindbij"
+                        string="Kinderbijslag — Art. 10h"
+                        domain="[('code', 'in', ['SR_KINDBIJ_MAX_KIND_MAAND','SR_KINDBIJ_MAX_MAAND'])]"/>
+            </search>
         </field>
     </record>
 
@@ -84,50 +117,117 @@
          ═══════════════════════════════════════════════════════════════ -->
 
     <record id="action_sr_line_type" model="ir.actions.act_window">
-        <field name="name">Loon Code Types</field>
+        <field name="name">Loon Code Types (Vaste Contract Regels)</field>
         <field name="res_model">hr.contract.sr.line.type</field>
         <field name="view_mode">list,form</field>
         <field name="help" type="html">
-            <p class="o_view_nocontent_smiling_face">
-                Maak een nieuw loon code type aan
-            </p>
+            <p class="o_view_nocontent_smiling_face">Maak een nieuw Loon Code Type aan.</p>
+            <h3>Wat zijn Loon Code Types?</h3>
             <p>
-                Definieer hier de vaste omschrijvingen (bijv. Olie Toelage, Pensioenpremie)
-                die beschikbaar zijn als keuzemogelijkheid bij het aanmaken van contractregels.
+                Dit zijn de <strong>sjablonen</strong> voor vaste loonregels op een contract.
+                Je maakt ze hier één keer aan; daarna zijn ze beschikbaar als keuzelijst
+                wanneer je bij een werknemer een vaste toelage of inhouding toevoegt.
+            </p>
+            <h4>Categorieën (bepalen belasting)</h4>
+            <ul>
+                <li><strong>Belastbaar</strong> — Telt mee in de Art. 14 LB + AOV grondslag (bijv. olie toelage, telefoonvergoeding).</li>
+                <li><strong>Belastingvrij</strong> — Art. 10 WLB: geen LB of AOV (bijv. transportvergoeding, maaltijdvergoeding).</li>
+                <li><strong>Inhouding</strong> — Netto-aftrek zonder invloed op belastinggrondslag (bijv. vakbondscontributie).</li>
+                <li><strong>Aftrek Belastingvrij</strong> — Art. 10f WLB: pensioenpremie e.d. — vermindert zowel de LB- als AOV-grondslag én het nettoloon.</li>
+            </ul>
+            <h4>Verschil met SR Payslip Input Types?</h4>
+            <p>
+                Loon Code Types → <strong>vaste maandelijkse bedragen</strong> op het contract
+                (bijv. altijd SRD 500 olie toelage elke periode).<br/>
+                SR Payslip Input Types → <strong>variabele/eenmalige bedragen</strong> per loonstrook
+                (bijv. overwerk deze maand: SRD 1.200, of vakantietoelage in juni).
             </p>
         </field>
     </record>
 
     <record id="action_sr_rule_parameters" model="ir.actions.act_window">
-        <field name="name">SR Belastingparameters</field>
+        <field name="name">SR Belastingparameters (Wet Loonbelasting)</field>
         <field name="res_model">hr.rule.parameter</field>
         <field name="view_mode">list,form</field>
         <field name="view_id" ref="sr_rule_parameter_view_list"/>
+        <field name="search_view_id" ref="sr_rule_parameter_view_search"/>
         <field name="domain" eval="[('code', 'like', 'SR_%')]"/>
         <field name="help" type="html">
-            <p class="o_view_nocontent_smiling_face">
-                Geen Surinaamse belastingparameters gevonden.
-            </p>
+            <p class="o_view_nocontent_smiling_face">Geen SR parameters gevonden.</p>
+            <h3>Wat zijn SR Belastingparameters?</h3>
             <p>
-                Alle parameters met prefix SR_ worden hier getoond.
-                Gebruik datum-gebaseerde waarden voor wijzigingen bij wetsherziening.
+                Dit zijn alle wettelijke getallen waarmee de loonbelastingberekeningen werken,
+                gebaseerd op de <strong>Wet Loonbelasting Suriname (S.B. 1981 no. 181,
+                gewijzigd S.B. 2024 no. 2)</strong>. Ze worden herkend aan
+                de prefix <code>SR_</code>.
+            </p>
+            <h4>Parametergroepen (gebruik de filterknop &#x25BC; bovenaan)</h4>
+            <ul>
+                <li><strong>Loonbelasting Art. 14</strong>: belastingvrije voet, forfaitaire beroepskosten aftrek (%), schijfgrenzen (3x) en tarieven (4x).</li>
+                <li><strong>Heffingskorting Art. 14 lid 5</strong>: vaste maandelijkse korting op de bruto belasting.</li>
+                <li><strong>AOV</strong>: tarief (%) en de franchise/drempel (SRD/maand) onder het Algemeen Pensioenfonds.</li>
+                <li><strong>Overwerk Art. 17c</strong>: eigen schijfgrenzen (per tijdvak) en tarieven voor overwerkvergoedingen.</li>
+                <li><strong>Bijz. Beloningen Art. 10i/j</strong>: maximale vrijstelling voor vakantietoelage en gratificatie (SRD/jaar).</li>
+                <li><strong>Kinderbijslag Art. 10h</strong>: vrijstellingsgrenzen per kind en totaal per maand.</li>
+            </ul>
+            <h4>&#9888; Eenheid van tariefvelden</h4>
+            <p>
+                Tariefvelden worden opgeslagen als <strong>decimale breuk</strong>:
+                <code>0.08 = 8%</code>, <code>0.04 = 4%</code>.
+                Bedragen (voeten, grenzen, maxima) zijn in <strong>SRD</strong>.
+                De kolom &quot;Waarde (vandaag)&quot; toont automatisch de huidige waarde.
+            </p>
+            <h4>Waarde aanpassen bij wetswijziging</h4>
+            <p>
+                Klik op een parameter &#x2192; ga naar het tabblad <em>Parameterwaarden</em>
+                &#x2192; klik <em>+ Toevoegen</em> &#x2192; vul de
+                <strong>nieuwe ingangsdatum</strong> en <strong>nieuwe waarde</strong> in.
+                Historische waarden blijven bewaard voor afgesloten loonperiodes.
+                <strong>Verwijder nooit bestaande waarden.</strong>
+            </p>
+            <h4>Verschil met Configuratie &#x2192; Salary &#x2192; Rule Parameters?</h4>
+            <p>
+                <em>Salary &#x2192; Rule Parameters</em> toont parameters van
+                <strong>alle landen en modules</strong>. Dit scherm toont
+                <strong>alleen de Surinaamse parameters</strong> (gefilterd op <code>SR_</code>).
+                Het is dezelfde data — alleen overzichtelijker voor dagelijks gebruik.
             </p>
         </field>
     </record>
 
     <record id="action_sr_payslip_input_types" model="ir.actions.act_window">
-        <field name="name">SR Payslip Input Types</field>
+        <field name="name">SR Payslip Input Types (Eenmalige Loon Codes)</field>
         <field name="res_model">hr.payslip.input.type</field>
         <field name="view_mode">list,form</field>
         <field name="domain" eval="[('sr_categorie', '!=', False)]"/>
         <field name="context" eval="{'default_country_id': ref('base.sr')}"/>
         <field name="help" type="html">
-            <p class="o_view_nocontent_smiling_face">
-                Maak een nieuw SR payslip input type aan
-            </p>
+            <p class="o_view_nocontent_smiling_face">Maak een nieuw SR Payslip Input Type aan.</p>
+            <h3>Wat zijn SR Payslip Input Types?</h3>
             <p>
-                Beheer hier de variabele/eenmalige loon codes met een SR Loon Categorie
-                (overwerk, vakantietoelage, gratificatie, etc.).
+                Dit zijn de loon codes voor <strong>variabele of eenmalige betalingen</strong>
+                die per loonstrook handmatig worden ingevoerd. Ze worden toegevoegd
+                bij het aanmaken van een loonstrook via het veld <em>Other Inputs</em>.
+            </p>
+            <h4>Categorieën (bepalen belastingbehandeling)</h4>
+            <ul>
+                <li><strong>Belastbaar</strong> — Telt mee in GROSS + Art. 14 LB + AOV grondslag.</li>
+                <li><strong>Belastingvrij</strong> — Geen LB/AOV (Art. 10 WLB vergoedingen).</li>
+                <li><strong>Overwerk</strong> — Art. 17c: eigen schijven 5%/15%/25%.</li>
+                <li><strong>Vakantietoelage</strong> — Art. 10i: vrijstelling = min(maandloon, SRD 10.016/jaar).</li>
+                <li><strong>Gratificatie/Bonus</strong> — Art. 10j: zelfde vrijstelling als vakantie, pro-rata bij onvolledig dienstjaar.</li>
+                <li><strong>Bijzondere Beloning</strong> — Art. 17: geen vaste vrijstelling, marginaal tarief methode.</li>
+            </ul>
+            <h4>Verschil met Loon Code Types en Salary &#x2192; Other Input Types?</h4>
+            <p>
+                <strong>Loon Code Types</strong> = vaste bedragen elke periode op het contract
+                (bijv. altijd SRD 500 olie toelage).<br/>
+                <strong>SR Payslip Input Types</strong> = variabele bedragen per loonstrook
+                (bijv. overwerk, vakantietoelage, bonus — wisselend per maand).<br/><br/>
+                <em>Salary &#x2192; Other Input Types</em> toont input types van
+                <strong>alle landen en modules</strong>. Dit scherm toont
+                <strong>alleen de Surinaamse types</strong> met een SR Loon Categorie.
+                Hetzelfde model, alleen gefilterd voor dagelijks gebruik.
             </p>
         </field>
     </record>
