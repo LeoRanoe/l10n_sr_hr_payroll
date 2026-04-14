@@ -132,3 +132,13 @@ class HrPayslip(models.Model):
             'totaal_inhoudingen': totaal_inhoudingen,
             'netto': netto,
         }
+
+    def action_print_sr_payslip(self):
+        """Print de Surinaamse Loonstrook als PDF (Artikel 14 WLB)."""
+        self.ensure_one()
+        return self.env.ref('l10n_sr_hr_payroll.action_report_payslip_sr').report_action(self)
+
+    def action_preview_sr_payslip(self):
+        """Bekijk de Surinaamse Loonstrook als HTML preview."""
+        self.ensure_one()
+        return self.env.ref('l10n_sr_hr_payroll.action_report_payslip_sr_preview').report_action(self)

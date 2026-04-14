@@ -314,14 +314,22 @@ def generate_breakdown_html(result, wage, periodes, salary_type, kb_split=None,
                         m(r['lb_s4'])))
     rows.append(row('<strong>LB jaar (vóór HK)</strong>', 'som schijven',
                     m(r['lb_voor_heffingskorting']), '#f0f9ff'))
-    rows.append(row('Heffingskorting jaar', f"min(9.000/12 × {periodes if periodes==12 else '12'}, LB jaar)",
+    rows.append(row('Heffingskorting jaar',
+                    f"min(SRD 750 × 12, LB jaar) = min(9.000, {r['lb_voor_heffingskorting']:,.0f})".replace(",", "."),
                     m(r['heffingskorting_applied'], '-')))
-    rows.append(row('= LB jaar (netto)', '',
+    rows.append(row('= LB jaar (netto, na HK)',
+                    f"{r['lb_voor_heffingskorting']:,.0f} − {r['heffingskorting_applied']:,.0f}".replace(",", "."),
                     m(r['lb_jaar_netto'])))
-    rows.append(row('<strong>LB per periode</strong>', f"÷ {periodes}",
+    rows.append(row('──────────────────', 'Op loonstrook verschijnen SR_LB (bruto) + SR_HK (korting) apart:', ''))
+    rows.append(row('<strong>SR_LB op loonstrook (bruto, vóór HK)</strong>',
+                    f"{r['lb_voor_heffingskorting']:,.0f} ÷ {periodes} (SR_LB regel)".replace(",", "."),
                     m(r['lb_gross_per_periode']), '#fef9c3'))
-    rows.append(row('<strong>HK per periode</strong>', f"÷ {periodes}",
+    rows.append(row('<strong>SR_HK op loonstrook (korting)</strong>',
+                    f"{r['heffingskorting_applied']:,.0f} ÷ {periodes} (SR_HK regel)".replace(",", "."),
                     m(r['heffingskorting_per_periode']), '#f0fdf4'))
+    rows.append(row('Netto LB effect per periode',
+                    f"{r['lb_gross_per_periode']:,.2f} − {r['heffingskorting_per_periode']:,.2f}".replace(",", "."),
+                    m(r['lb_per_periode']), '#f0f9ff'))
 
     # ─── Sectie 4: AOV ─────────────────────────────
     rows.append(sep('④ AOV BIJDRAGE (4%)'))
