@@ -104,7 +104,7 @@
                     <!-- ── BRUTO LOON ──────────────────────────────────── -->
                     <table class="table table-sm table-bordered mb-2">
                         <thead>
-                            <tr style="background:#0891b2;color:#fff;">
+                            <tr class="table-secondary">
                                 <th colspan="2" class="text-uppercase" style="font-size:8pt;">Bruto Loon</th>
                             </tr>
                         </thead>
@@ -128,7 +128,7 @@
                                     <td class="text-end text-success"><t t-esc="'SRD {:,.2f}'.format(bd.get('kinderbijslag', 0))"/></td>
                                 </tr>
                             </t>
-                            <tr class="fw-bold" style="background:#dbeafe;">
+                            <tr class="fw-bold table-light">
                                 <td>Totaal Bruto Loon</td>
                                 <td class="text-end"><t t-esc="'SRD {:,.2f}'.format(bd.get('bruto_totaal', 0))"/></td>
                             </tr>
@@ -138,7 +138,7 @@
                     <!-- ── ARTIKEL 14 WLB BEREKENING ──────────────────── -->
                     <table class="table table-sm table-bordered mb-2">
                         <thead>
-                            <tr style="background:#1e40af;color:#fff;">
+                            <tr class="table-secondary">
                                 <th colspan="2" class="text-uppercase" style="font-size:8pt;">Loonbelasting Berekening &#8212; Artikel 14 WLB</th>
                             </tr>
                         </thead>
@@ -153,24 +153,24 @@
                                 </td>
                                 <td class="text-end"><t t-esc="'SRD {:,.2f}'.format(bd.get('bruto_jaarloon', 0))"/></td>
                             </tr>
-                            <tr>
-                                <td style="color:#7c3aed;">&#8722; Belastingvrije som (Art. 13)</td>
-                                <td class="text-end" style="color:#7c3aed;"><t t-esc="'SRD {:,.2f}'.format(bd.get('belastingvrij_jaar', 0))"/></td>
+                            <tr class="text-muted">
+                                <td>&#8722; Belastingvrije som (Art. 13)</td>
+                                <td class="text-end"><t t-esc="'SRD {:,.2f}'.format(bd.get('belastingvrij_jaar', 0))"/></td>
                             </tr>
-                            <tr>
-                                <td style="color:#7c3aed;">
+                            <tr class="text-muted">
+                                <td>
                                     &#8722; Forfaitaire beroepskosten (Art. 12) &#8212;
                                     <t t-esc="'{:.0f}'.format(bd.get('forfaitaire_pct', 4))"/>%,
                                     max SRD 4.800/jaar
                                 </td>
-                                <td class="text-end" style="color:#7c3aed;"><t t-esc="'SRD {:,.2f}'.format(bd.get('forfaitaire_jaar', 0))"/></td>
+                                <td class="text-end"><t t-esc="'SRD {:,.2f}'.format(bd.get('forfaitaire_jaar', 0))"/></td>
                             </tr>
-                            <tr class="fw-bold" style="background:#eff6ff;">
+                            <tr class="fw-bold table-light">
                                 <td>= Belastbaar Jaarloon</td>
                                 <td class="text-end"><t t-esc="'SRD {:,.2f}'.format(bd.get('belastbaar_jaarloon', 0))"/></td>
                             </tr>
-                            <tr style="background:#e0e7ff;">
-                                <td colspan="2" style="font-size:7.5pt;font-style:italic;color:#3730a3;font-weight:600;">
+                            <tr>
+                                <td colspan="2" class="text-muted fst-italic" style="font-size:7.5pt;">
                                     Tariefschijven Artikel 14 &#8212; Progressief belastingtarief
                                 </td>
                             </tr>
@@ -232,15 +232,15 @@
                                 <td>Loonbelasting v&#243;&#243;r heffingskorting</td>
                                 <td class="text-end"><t t-esc="'SRD {:,.2f}'.format(bd.get('lb_voor_heffingskorting', 0))"/></td>
                             </tr>
-                            <tr>
-                                <td class="text-success">&#8722; Heffingskorting (SRD 750/maand &#215; 12)</td>
-                                <td class="text-end text-success"><t t-esc="'SRD {:,.2f}'.format(bd.get('heffingskorting_jaar', 0))"/></td>
+                            <tr class="text-success">
+                                <td>&#8722; Heffingskorting (SRD 750/maand &#215; 12)</td>
+                                <td class="text-end"><t t-esc="'SRD {:,.2f}'.format(bd.get('heffingskorting_jaar', 0))"/></td>
                             </tr>
                             <tr>
                                 <td>Loonbelasting per jaar (netto)</td>
                                 <td class="text-end"><t t-esc="'SRD {:,.2f}'.format(bd.get('lb_jaar_netto', 0))"/></td>
                             </tr>
-                            <tr class="fw-bold text-danger" style="background:#fef2f2;">
+                            <tr class="fw-bold text-danger">
                                 <td>Loonbelasting per periode (&#247; <t t-esc="bd.get('periodes', 12)"/>)</td>
                                 <td class="text-end">&#8722; <t t-esc="'SRD {:,.2f}'.format(bd.get('lb_per_periode', 0))"/></td>
                             </tr>
@@ -250,7 +250,7 @@
                     <!-- ── AOV BEREKENING ──────────────────────────────── -->
                     <table class="table table-sm table-bordered mb-2">
                         <thead>
-                            <tr style="background:#0e7490;color:#fff;">
+                            <tr class="table-secondary">
                                 <th colspan="2" class="text-uppercase" style="font-size:8pt;">AOV Berekening (Algemene Ouderdomsvoorziening)</th>
                             </tr>
                         </thead>
@@ -260,9 +260,9 @@
                                 <td class="text-end"><t t-esc="'SRD {:,.2f}'.format(bd.get('bruto_per_periode', 0))"/></td>
                             </tr>
                             <t t-if="not bd.get('is_fn')">
-                                <tr>
-                                    <td style="color:#7c3aed;">&#8722; Franchise (maandloon)</td>
-                                    <td class="text-end" style="color:#7c3aed;"><t t-esc="'SRD {:,.2f}'.format(bd.get('franchise_periode', 0))"/></td>
+                                <tr class="text-muted">
+                                    <td>&#8722; Franchise (maandloon)</td>
+                                    <td class="text-end"><t t-esc="'SRD {:,.2f}'.format(bd.get('franchise_periode', 0))"/></td>
                                 </tr>
                             </t>
                             <t t-else="">
@@ -275,7 +275,7 @@
                                 <td>AOV grondslag</td>
                                 <td class="text-end"><t t-esc="'SRD {:,.2f}'.format(bd.get('aov_grondslag', 0))"/></td>
                             </tr>
-                            <tr class="fw-bold text-danger" style="background:#fef2f2;">
+                            <tr class="fw-bold text-danger">
                                 <td>AOV (<t t-esc="'{:.0f}'.format(bd.get('aov_tarief_pct', 4))"/>%)</td>
                                 <td class="text-end">&#8722; <t t-esc="'SRD {:,.2f}'.format(bd.get('aov_per_periode', 0))"/></td>
                             </tr>
@@ -285,7 +285,7 @@
                     <!-- ── NETTO LOON SAMENVATTING ─────────────────────── -->
                     <table class="table table-sm table-bordered mt-3">
                         <thead>
-                            <tr style="background:#0f172a;color:#fff;">
+                            <tr class="table-secondary">
                                 <th colspan="2" class="text-uppercase" style="font-size:8pt;">Samenvatting</th>
                             </tr>
                         </thead>
@@ -294,23 +294,27 @@
                                 <td style="width:70%;">Totaal Bruto Loon</td>
                                 <td class="text-end"><t t-esc="'SRD {:,.2f}'.format(bd.get('bruto_totaal', 0))"/></td>
                             </tr>
-                            <tr class="text-danger" style="background:#fef2f2;">
+                            <tr class="text-danger">
                                 <td>&#8722; Loonbelasting (Art. 14 WLB)</td>
-                                <td class="text-end"><t t-esc="'SRD {:,.2f}'.format(bd.get('lb_per_periode', 0))"/></td>
+                                <td class="text-end"><t t-esc="'SRD {:,.2f}'.format(bd.get('lb_gross_per_periode', 0))"/></td>
                             </tr>
-                            <tr class="text-danger" style="background:#fef2f2;">
+                            <tr class="text-success">
+                                <td>+ Heffingskorting</td>
+                                <td class="text-end"><t t-esc="'SRD {:,.2f}'.format(bd.get('heffingskorting_per_periode', 0))"/></td>
+                            </tr>
+                            <tr class="text-danger">
                                 <td>&#8722; AOV (<t t-esc="'{:.0f}'.format(bd.get('aov_tarief_pct', 4))"/>%)</td>
                                 <td class="text-end"><t t-esc="'SRD {:,.2f}'.format(bd.get('aov_per_periode', 0))"/></td>
                             </tr>
                             <t t-if="bd.get('pensioen', 0) > 0">
-                                <tr class="text-danger" style="background:#fef2f2;">
+                                <tr class="text-danger">
                                     <td>&#8722; Pensioenpremie</td>
                                     <td class="text-end"><t t-esc="'SRD {:,.2f}'.format(bd.get('pensioen', 0))"/></td>
                                 </tr>
                             </t>
-                            <tr class="fw-bold" style="background:#0f172a;color:#fff;font-size:11pt;">
-                                <td>NETTO LOON</td>
-                                <td class="text-end"><t t-esc="'SRD {:,.2f}'.format(bd.get('netto', 0))"/></td>
+                            <tr class="fw-bold table-dark">
+                                <td style="font-size:11pt;">NETTO LOON</td>
+                                <td class="text-end" style="font-size:11pt;"><t t-esc="'SRD {:,.2f}'.format(bd.get('netto', 0))"/></td>
                             </tr>
                         </tbody>
                     </table>

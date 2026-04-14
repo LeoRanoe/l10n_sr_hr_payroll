@@ -122,6 +122,8 @@ class HrPayslip(models.Model):
             'heffingskorting_jaar': r['heffingskorting_jaar'],
             'lb_jaar_netto': r['lb_jaar_netto'],
             'lb_per_periode': r['lb_per_periode'],
+            'lb_gross_per_periode': r['lb_gross_per_periode'],
+            'heffingskorting_per_periode': r['heffingskorting_per_periode'],
             # AOV
             'franchise_periode': r['franchise_periode'],
             'aov_grondslag': r['aov_grondslag'],

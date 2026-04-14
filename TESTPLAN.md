@@ -593,50 +593,59 @@ Art. 17 LB gratificatie:
 
 ---
 
-## FASE 8 — Salarisrun (Batch Verwerking)
+## FASE 8 — Loonstroken Batch Aanmaken (Vrijwillig)
 
-### Stap 8.1 — Salarisrun aanmaken voor april 2026
-1. Ga naar **Loonverwerking → Salarisruns** (of **Loonruns**)
-2. Klik **Nieuw**
-3. Vul in:
-   - Naam: `April 2026 — SR Test Run`
-   - Periode: `01/04/2026 – 30/04/2026`
-   - Salarisstructuur: **SR Loonstrook**
-4. Klik **Medewerkers toevoegen** → selecteer E1, E2, E3, E4
-5. Klik **Loonstroken genereren**
+> **Opmerking:** De SR-module werkt met individuele loonstroken (hr.payslip), niet met een aparte Salarisrun-wrapper.
+> Je kunt loonstroken één-voor-één aanmaken, of de standaard Odoo **Payroll Batches** gebruiken.
+
+### Stap 8.1 — Loonstroken aanmaken voor april 2026 (Optie A: Individueel)
+1. Ga naar **Loonverwerking → Loonstroken** (of **Payroll → All Payslips**)
+2. Klik **+ Nieuw** voor elke medewerker:
+   - Kies medewerker E1, E2, E3, E4
+   - Selecteer periode: `01/04/2026 – 30/04/2026`
+   - Selecteer structuur: **Suriname — Normaal Loon (Artikel 14 WLB)**
+3. Sla op. Alle 4 loonstroken verschijnen in status "Concept"
 
 **Verwacht:** 4 loonstroken aangemaakt in status "Concept"
 
-### Stap 8.2 — Batch berekenen
-1. Vanuit de salarisrun: klik **Bereken** (selecteer alle loonstroken)
-2. **Verwacht:** Alle 4 loonstroken berekend, status = "Berekend"
+### Stap 8.2 — Loonstroken berekenen (Batch)
+1. Ga naar **Loonverwerking → Loonstroken** (of de SR snelkoppeling **Suriname → Loonstroken SR**)
+2. Filter periode: `april 2026` of selecteer alle 4 loonstroken met vinkjes
+3. Klik **Acties** → **Bereken** (of bereken ze één-voor-één met de knop in elk formulier)
+4. **Verwacht:** Alle 4 loonstroken berekend, status = "Berekend"
 
-### Stap 8.3 — Batch bevestigen
-1. Klik **Bevestigen**
-2. **Verwacht:** Status = "Bevestigd" voor alle 4 loonstroken
+### Stap 8.3 — Loonstroken bevestigen (Batch)
+1. Ga naar de gefilterde loonstrokenlijst en selecteer alle 4 loonstroken
+2. Klik **Acties** → **Bevestigen** (of bevestig ze één-voor-één)
+3. **Verwacht:** Status = "Bevestigd" voor alle 4 loonstroken
+
+> **Alternatief (Optie B: Payroll Batches):** Als je een formele salarisrun wilt bijhouden:
+> 1. Ga naar **Payroll → Payroll Batches** (standaard Odoo functie, niet SR-specifiek)
+> 2. Maak een batch aan en voeg loonstroken toe — maar dit is **optioneel**.
 
 ---
 
 ## FASE 9 — Suriname-sectie Navigatie Controleren
 
-### Stap 9.1 — Payslip Suriname sectie
-1. Ga naar het hoofdmenu **Loonverwerking**
-2. Zoek de sectie **Suriname** in het menu
-3. Klik op **Suriname → Loonstroken**
+### Stap 9.1 — Snelkoppeling: Suriname → Loonstroken SR
+1. Ga naar **Loonverwerking** (hoofd-menu)
+2. Je ziet nu een sectie **Suriname** (toegevoegd door de SR-module)
+3. Klik op **Suriname → Loonstroken SR (Art. 14)**
 
 **Verwacht:**  
-- Dezelfde loonstroken als via Loonverwerking → Alle Loonstroken maar **gefilterd op SR structuur**
-- Dit is een **snelkoppeling**, geen aparte module
+- Een gefilterd loonstrokenoverzicht alleen voor Surinaamse Art. 14 loonstroken
+- Dezelfde loonstroken als via **Loonverwerking → Loonstroken**, maar vooraf gefilterd
+- Dit is een **snelkoppeling** (geen aparte data, alleen filter)
 
-### Stap 9.2 — Configuratie Suriname sectie
+### Stap 9.2 — Configuratie Suriname-menu
 1. Ga naar **Configuratie → Suriname**
-2. Controleer aanwezigheid van:
-   - SR Belastingparameters
-   - Loon Code Types
-   - SR Payslip Input Types
+2. Je ziet de volgende opties (toegevoegd door de SR-module):
+   - **SR Belastingparameters** — Art. 14 parameters (tarieven, grenzen, etc.)
+   - **Loon Code Types** — Categorieën voor loonregels (belastbaar, vrijgesteld, aftrek, etc.)
+   - **SR Payslip Input Types** — Payslip input types (overwerk, vakantie, gratificatie, etc.)
 
-> 💡 Configuratie → **Salaris** beheert Odoo-standaard salary regels  
-> Configuratie → **Suriname** beheert Surinaams-specifieke codes en parameters
+> 💡 Dit is een aparte **Configuratie → Suriname** sectie.
+> Het standaard **Configuratie → Salaris** beheert Odoo payroll structuren en salary rules.
 
 ---
 
