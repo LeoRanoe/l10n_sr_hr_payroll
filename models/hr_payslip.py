@@ -14,36 +14,59 @@ class HrPayslip(models.Model):
         contract = self.contract_id
         return 26 if getattr(contract, 'sr_salary_type', 'monthly') == 'fn' else 12
 
-    def _sr_artikel14_lb(self, gross_per_periode):
+    def _sr_artikel14_lb(self, gross_per_periode, aftrek_bv=0.0):
         """
-        Berekent Artikel 14 loonbelasting per periode.
+        Berekent Artikel 14 loonbelasting BRUTO per periode (vóór heffingskorting).
 
         Wordt aangeroepen door de SR_LB salarisregel.
         Gebruikt de centrale calculator zodat de berekening altijd
         overeenkomt met de contract preview.
 
         :param gross_per_periode: Bruto belastbaar loon per periode (categories['GROSS'])
-        :returns: positief bedrag loonbelasting per periode
+        :param aftrek_bv: Aftrek belastingvrij per periode (Art. 10f, bijv. pensioenpremie)
+        :returns: positief bedrag loonbelasting BRUTO per periode
         """
         self.ensure_one()
         params = calc.fetch_params_from_payslip(self)
         periodes = self._sr_get_periodes()
-        result = calc.calculate_lb(gross_per_periode, periodes, params)
-        return result['lb_per_periode']
+        result = calc.calculate_lb(gross_per_periode, periodes, params,
+                                   aftrek_bv_per_periode=aftrek_bv)
+        return result['lb_gross_per_periode']
 
-    def _sr_artikel14_aov(self, gross_per_periode):
+    def _sr_artikel14_hk(self, gross_per_periode, aftrek_bv=0.0):
+        """
+        Berekent de heffingskorting per periode.
+
+        Wordt aangeroepen door de SR_HK salarisregel.
+        De heffingskorting wordt apart teruggegeven zodat de loonstrook
+        de bruto LB en de HK transparant kan tonen.
+
+        :param gross_per_periode: Bruto belastbaar loon per periode (categories['GROSS'])
+        :param aftrek_bv: Aftrek belastingvrij per periode (Art. 10f)
+        :returns: positief bedrag heffingskorting per periode
+        """
+        self.ensure_one()
+        params = calc.fetch_params_from_payslip(self)
+        periodes = self._sr_get_periodes()
+        result = calc.calculate_lb(gross_per_periode, periodes, params,
+                                   aftrek_bv_per_periode=aftrek_bv)
+        return result['heffingskorting_per_periode']
+
+    def _sr_artikel14_aov(self, gross_per_periode, aftrek_bv=0.0):
         """
         Berekent AOV bijdrage per periode.
 
         Wordt aangeroepen door de SR_AOV salarisregel.
 
         :param gross_per_periode: Bruto belastbaar loon per periode
+        :param aftrek_bv: Aftrek belastingvrij per periode (Art. 10f)
         :returns: positief bedrag AOV per periode
         """
         self.ensure_one()
         params = calc.fetch_params_from_payslip(self)
         periodes = self._sr_get_periodes()
-        result = calc.calculate_lb(gross_per_periode, periodes, params)
+        result = calc.calculate_lb(gross_per_periode, periodes, params,
+                                   aftrek_bv_per_periode=aftrek_bv)
         return result['aov_per_periode']
 
     def _get_sr_artikel14_breakdown(self):

@@ -148,6 +148,7 @@ class TestArtikel14Berekening(common.TransactionCase):
 
         lb = self._get_line_total(payslip, 'SR_LB')
         aov = self._get_line_total(payslip, 'SR_AOV')
+        hk = self._get_line_total(payslip, 'SR_HK')
         gross = self._get_line_total(payslip, 'GROSS')
         net = self._get_line_total(payslip, 'NET')
 
@@ -161,8 +162,8 @@ class TestArtikel14Berekening(common.TransactionCase):
         # AOV moet negatief zijn
         self.assertLess(aov, 0.0, 'AOV bijdrage moet negatief zijn (inhouding)')
 
-        # Nettoloon = bruto + LB + AOV (beide negatief)
-        self.assertAlmostEqual(net, gross + lb + aov, places=2,
+        # Nettoloon = bruto + LB (bruto) + AOV + HK (credit)
+        self.assertAlmostEqual(net, gross + lb + aov + hk, places=2,
                                msg='Nettoloon berekening klopt niet')
 
         # Nettoloon moet lager zijn dan brutoloon
@@ -658,7 +659,7 @@ class TestArtikel14Breakdown(common.TransactionCase):
         bd = payslip._get_sr_artikel14_breakdown()
         lb_regel = payslip.line_ids.filtered(lambda l: l.code == 'SR_LB').total
         # Breakdown geeft positief bedrag, regel geeft negatief
-        self.assertAlmostEqual(bd['lb_per_periode'], abs(lb_regel), delta=0.02,
+        self.assertAlmostEqual(bd['lb_gross_per_periode'], abs(lb_regel), delta=0.02,
                                msg='Breakdown LB moet overeenkomen met SR_LB salarisregel')
 
     def test_breakdown_lege_loonstrook(self):

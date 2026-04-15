@@ -26,6 +26,18 @@
 <odoo>
     <data noupdate="0">
 
+        <!-- ═══════════════════════════════════════════════════════════════
+             Aangepaste salarisregel categorie — post-GROSS vergoedingen
+             Regels die NIET in de Art. 14 belastinggrondslag (GROSS) tellen
+             maar WEL bijdragen aan het nettoloon. Door deze categorie te
+             gebruiken (i.p.v. ALW) blijft de GROSS-waarde zuiver = alleen
+             belastbare toelagen vóór seq 30.
+             ═══════════════════════════════════════════════════════════════ -->
+        <record id="sr_vrij_cat" model="hr.salary.rule.category">
+            <field name="name">Vergoedingen (na grondslag)</field>
+            <field name="code">SR_VRIJ</field>
+        </record>
+
         <!-- ─────────────────────────────────────────────────────────
              10 — BASIC: Bruto loon per periode
              Het brutoloon staat op het contract (contract.wage).
@@ -144,7 +156,7 @@ result = -float_round(payslip._sr_artikel14_lb(categories['GROSS'], aftrek_bv=af
              ───────────────────────────────────────────────────────── -->
         <record id="sr_rule_heffingskorting" model="hr.salary.rule">
             <field name="struct_id" ref="l10n_sr_hr_payroll.sr_payroll_structure"/>
-            <field name="category_id" ref="hr_payroll.ALW"/>
+            <field name="category_id" ref="l10n_sr_hr_payroll.sr_vrij_cat"/>
             <field name="name">Heffingskorting</field>
             <field name="code">SR_HK</field>
             <field name="sequence">55</field>
@@ -230,7 +242,7 @@ result = -contract._sr_resolve_regels('inhouding')
              ───────────────────────────────────────────────────────── -->
         <record id="sr_rule_kinderbijslag" model="hr.salary.rule">
             <field name="struct_id" ref="l10n_sr_hr_payroll.sr_payroll_structure"/>
-            <field name="category_id" ref="hr_payroll.ALW"/>
+            <field name="category_id" ref="l10n_sr_hr_payroll.sr_vrij_cat"/>
             <field name="name">Vaste Vrijgestelde Vergoedingen (Contract)</field>
             <field name="code">SR_KINDBIJ</field>
             <field name="sequence">80</field>
@@ -260,7 +272,7 @@ result = sum(
              ───────────────────────────────────────────────────────── -->
         <record id="sr_rule_kb_vrijgesteld" model="hr.salary.rule">
             <field name="struct_id" ref="l10n_sr_hr_payroll.sr_payroll_structure"/>
-            <field name="category_id" ref="hr_payroll.ALW"/>
+            <field name="category_id" ref="l10n_sr_hr_payroll.sr_vrij_cat"/>
             <field name="name">Kinderbijslag Vrijgesteld (Art. 10h)</field>
             <field name="code">SR_KB_VRIJ</field>
             <field name="sequence">81</field>
@@ -281,21 +293,23 @@ result = kb['vrijgesteld']
         </record>
 
         <!-- ─────────────────────────────────────────────────────────
-             100 — NET: Nettoloon
+             250 — NET: Nettoloon
              BASIC + ALW (bruto + toelagen + kinderbijslag) + DED
-             (loonbelasting + AOV + pensioen zijn negatief)
+             (loonbelasting + AOV + pensioen zijn negatief) + SR_VRIJ
+             Seq=250 (> 200) zodat deze regel de standaard NET-regel
+             van Odoo (seq=200) overschrijft met de juiste formule.
              ───────────────────────────────────────────────────────── -->
         <record id="sr_rule_net" model="hr.salary.rule">
             <field name="struct_id" ref="l10n_sr_hr_payroll.sr_payroll_structure"/>
             <field name="category_id" ref="hr_payroll.NET"/>
             <field name="name">Netto Loon</field>
             <field name="code">NET</field>
-            <field name="sequence">100</field>
+            <field name="sequence">250</field>
             <field name="appears_on_employee_cost_dashboard">True</field>
             <field name="condition_select">none</field>
             <field name="amount_select">code</field>
             <field name="amount_python_compute">
-result = categories['BASIC'] + categories['ALW'] + categories['DED']
+result = categories['BASIC'] + categories['ALW'] + categories['DED'] + categories['SR_VRIJ']
             </field>
         </record>
 
@@ -366,7 +380,7 @@ result = -sum(
              ───────────────────────────────────────────────────────── -->
         <record id="sr_rule_input_vrijgesteld" model="hr.salary.rule">
             <field name="struct_id" ref="l10n_sr_hr_payroll.sr_payroll_structure"/>
-            <field name="category_id" ref="hr_payroll.ALW"/>
+            <field name="category_id" ref="l10n_sr_hr_payroll.sr_vrij_cat"/>
             <field name="name">Vrijgestelde Vergoedingen (Payslip)</field>
             <field name="code">SR_INPUT_VRIJ</field>
             <field name="sequence">82</field>
@@ -398,7 +412,7 @@ result = sum(
              ───────────────────────────────────────────────────────── -->
         <record id="sr_rule_overwerk" model="hr.salary.rule">
             <field name="struct_id" ref="l10n_sr_hr_payroll.sr_payroll_structure"/>
-            <field name="category_id" ref="hr_payroll.ALW"/>
+            <field name="category_id" ref="l10n_sr_hr_payroll.sr_vrij_cat"/>
             <field name="name">Overwerk</field>
             <field name="code">SR_OVERWERK</field>
             <field name="sequence">84</field>
@@ -505,7 +519,7 @@ result = -float_round(bruto_overwerk * aov_tarief, precision_digits=2)
              ───────────────────────────────────────────────────────── -->
         <record id="sr_rule_vakantie" model="hr.salary.rule">
             <field name="struct_id" ref="l10n_sr_hr_payroll.sr_payroll_structure"/>
-            <field name="category_id" ref="hr_payroll.ALW"/>
+            <field name="category_id" ref="l10n_sr_hr_payroll.sr_vrij_cat"/>
             <field name="name">Vakantietoelage</field>
             <field name="code">SR_VAKANTIE</field>
             <field name="sequence">87</field>
@@ -532,7 +546,7 @@ result = sum(
              ───────────────────────────────────────────────────────── -->
         <record id="sr_rule_gratificatie" model="hr.salary.rule">
             <field name="struct_id" ref="l10n_sr_hr_payroll.sr_payroll_structure"/>
-            <field name="category_id" ref="hr_payroll.ALW"/>
+            <field name="category_id" ref="l10n_sr_hr_payroll.sr_vrij_cat"/>
             <field name="name">Gratificatie / Bonus</field>
             <field name="code">SR_GRAT</field>
             <field name="sequence">88</field>
@@ -558,7 +572,7 @@ result = sum(
              ───────────────────────────────────────────────────────── -->
         <record id="sr_rule_bijz_beloning" model="hr.salary.rule">
             <field name="struct_id" ref="l10n_sr_hr_payroll.sr_payroll_structure"/>
-            <field name="category_id" ref="hr_payroll.ALW"/>
+            <field name="category_id" ref="l10n_sr_hr_payroll.sr_vrij_cat"/>
             <field name="name">Bijzondere Beloning</field>
             <field name="code">SR_BIJZ</field>
             <field name="sequence">89</field>

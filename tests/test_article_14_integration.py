@@ -123,11 +123,12 @@ class TestIntegratieVolledigeCyclus(common.TransactionCase):
         gross = self._haal_totaal(payslip, 'GROSS')
         lb = self._haal_totaal(payslip, 'SR_LB')
         aov = self._haal_totaal(payslip, 'SR_AOV')
+        hk = self._haal_totaal(payslip, 'SR_HK')
         net = self._haal_totaal(payslip, 'NET')
 
         self.assertAlmostEqual(
-            net, gross + lb + aov, places=2,
-            msg='Nettoloon ≠ Bruto + LB + AOV (saldo klopt niet)',
+            net, gross + lb + aov + hk, places=2,
+            msg='Nettoloon ≠ Bruto + LB (bruto) + AOV + HK (saldo klopt niet)',
         )
 
     # ──────────────────────────────────────────────────────────────────
@@ -255,8 +256,8 @@ class TestIntegratieVolledigeCyclus(common.TransactionCase):
 
         if bd:
             self.assertAlmostEqual(
-                bd['lb_per_periode'], abs(lb_regel), delta=0.05,
-                msg='breakdown lb_per_periode ≠ SR_LB.total (integratieconflict)',
+                bd['lb_gross_per_periode'], abs(lb_regel), delta=0.05,
+                msg='breakdown lb_gross_per_periode ≠ SR_LB.total (integratieconflict)',
             )
 
 
@@ -451,13 +452,14 @@ class TestIntegratieContractPreview(common.TransactionCase):
     # Test 8: Preview netto = bruto - LB - AOV - pensioen
     # ──────────────────────────────────────────────────────────────────
     def test_preview_netto_berekening(self):
-        """sr_preview_netto = sr_preview_bruto − lb − aov − pensioen."""
+        """sr_preview_netto = sr_preview_bruto + hk − lb_bruto − aov − pensioen."""
         pensioen = 800.0
         contract = self._maak_contract(
             wage=20000.0, pensioenpremie=pensioen
         )
         verwacht_netto = (
             contract.sr_preview_bruto
+            + contract.sr_preview_hk_periode
             - contract.sr_preview_lb_periode
             - contract.sr_preview_aov_periode
             - pensioen
