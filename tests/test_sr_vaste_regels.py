@@ -41,15 +41,32 @@ class TestSrVasteRegels(common.TransactionCase):
             'name': 'Test Werknemer SR VR',
             'company_id': cls.company.id,
         })
+        cls.employee_b = cls.env['hr.employee'].create({
+            'name': 'Test Werknemer SR VR B',
+            'company_id': cls.company.id,
+        })
 
         cls.structure = cls.env.ref('l10n_sr_hr_payroll.sr_payroll_structure')
         cls.structure_type = cls.structure.type_id
 
-    def _create_contract(self, wage, salary_type='monthly', vaste_regels=None):
-        """Maak een contract aan met optionele vaste regels."""
+    def _create_contract(self, wage, salary_type='monthly', vaste_regels=None, employee=None):
+        """Maak een contract aan met optionele vaste regels.
+
+        Annuleert bestaande open contracten van dezelfde werknemer zodat
+        meerdere aanroepen binnen één testmethode niet conflicteren.
+        """
+        emp = employee or self.employee
+        # Annuleer bestaande open/running contracten om datum-overlap te voorkomen
+        existing = self.env['hr.contract'].search([
+            ('employee_id', '=', emp.id),
+            ('state', 'in', ('open', 'pending')),
+        ])
+        if existing:
+            existing.write({'state': 'cancel'})
+
         return self.env['hr.contract'].create({
             'name': 'Test Contract VR',
-            'employee_id': self.employee.id,
+            'employee_id': emp.id,
             'company_id': self.company.id,
             'structure_type_id': self.structure_type.id,
             'wage': wage,
@@ -130,8 +147,8 @@ class TestSrVasteRegels(common.TransactionCase):
         self.assertEqual(len(contract.sr_vaste_regels), 0)
 
         payslip = self._compute_payslip(contract)
-        # SR_BASIC moet aanwezig zijn
-        basic = self._line_total(payslip, 'SR_BASIC')
+        # BASIC moet aanwezig zijn
+        basic = self._line_total(payslip, 'BASIC')
         self.assertAlmostEqual(basic, 15000.0, delta=0.01)
 
         # SR_ALW moet 0 zijn (geen belastbare toelagen)
@@ -152,7 +169,7 @@ class TestSrVasteRegels(common.TransactionCase):
     def test_belastbaar_verhoogt_alw(self):
         """Een belastbare toelage van SRD 1.000 moet SR_ALW met 1.000 verhogen."""
         contract_zonder = self._create_contract(wage=20000.0)
-        contract_met = self._create_contract(wage=20000.0, vaste_regels=[
+        contract_met = self._create_contract(wage=20000.0, employee=self.employee_b, vaste_regels=[
             (0, 0, {'name': 'Olie Toelage', 'sr_categorie': 'belastbaar', 'amount': 1000.0}),
         ])
 
@@ -168,7 +185,7 @@ class TestSrVasteRegels(common.TransactionCase):
     def test_belastbaar_verhoogt_lb(self):
         """Een belastbare toelage verhoogt de loonbelasting (SR_LB)."""
         contract_zonder = self._create_contract(wage=20000.0)
-        contract_met = self._create_contract(wage=20000.0, vaste_regels=[
+        contract_met = self._create_contract(wage=20000.0, employee=self.employee_b, vaste_regels=[
             (0, 0, {'name': 'Repr. Toelage', 'sr_categorie': 'belastbaar', 'amount': 2000.0}),
         ])
 
@@ -195,7 +212,7 @@ class TestSrVasteRegels(common.TransactionCase):
     def test_vrijgesteld_niet_in_gross(self):
         """Een vrijgestelde toelage mag SR_ALW NIET verhogen (geen LB grondslag)."""
         contract_zonder = self._create_contract(wage=20000.0)
-        contract_met = self._create_contract(wage=20000.0, vaste_regels=[
+        contract_met = self._create_contract(wage=20000.0, employee=self.employee_b, vaste_regels=[
             (0, 0, {'name': 'Kinderbijslag', 'sr_categorie': 'vrijgesteld', 'amount': 800.0}),
         ])
 
@@ -210,7 +227,7 @@ class TestSrVasteRegels(common.TransactionCase):
     def test_vrijgesteld_niet_in_lb(self):
         """Vrijgestelde toelage mag de loonbelasting niet verhogen."""
         contract_zonder = self._create_contract(wage=20000.0)
-        contract_met = self._create_contract(wage=20000.0, vaste_regels=[
+        contract_met = self._create_contract(wage=20000.0, employee=self.employee_b, vaste_regels=[
             (0, 0, {'name': 'Transport', 'sr_categorie': 'vrijgesteld', 'amount': 300.0}),
         ])
 
@@ -256,7 +273,7 @@ class TestSrVasteRegels(common.TransactionCase):
     def test_inhouding_verhoogt_geen_lb(self):
         """Een inhouding mag de loonbelasting niet verhogen of verlagen."""
         contract_zonder = self._create_contract(wage=20000.0)
-        contract_met = self._create_contract(wage=20000.0, vaste_regels=[
+        contract_met = self._create_contract(wage=20000.0, employee=self.employee_b, vaste_regels=[
             (0, 0, {'name': 'Ziektekostenpremie', 'sr_categorie': 'inhouding', 'amount': 150.0}),
         ])
 
