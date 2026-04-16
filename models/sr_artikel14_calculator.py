@@ -18,7 +18,6 @@ PARAM_KEYS = [
     'forfaitaire_max',
     's1', 's2', 's3',
     'r1', 'r2', 'r3', 'r4',
-    'hk_maand',
     'aov_tarief',
     'aov_franchise_maand',
 ]
@@ -35,7 +34,6 @@ PARAM_CODE_MAP = {
     'SR_TARIEF_2': 'r2',
     'SR_TARIEF_3': 'r3',
     'SR_TARIEF_4': 'r4',
-    'SR_HEFFINGSKORTING_MAAND': 'hk_maand',
     'SR_AOV_TARIEF': 'aov_tarief',
     'SR_AOV_FRANCHISE_MAAND': 'aov_franchise_maand',
 }
@@ -118,21 +116,10 @@ def calculate_lb(bruto_per_periode, periodes, params, aftrek_bv_per_periode=0.0)
     lb_s2 = s2_basis * r2
     lb_s3 = s3_basis * r3
     lb_s4 = s4_basis * r4
-    lb_voor_heffingskorting = lb_s1 + lb_s2 + lb_s3 + lb_s4
+    lb_jaar = lb_s1 + lb_s2 + lb_s3 + lb_s4
 
-    # Heffingskorting — max gelijk aan bruto LB (geen terugbetaling)
-    heffingskorting_jaar = params['hk_maand'] * 12
-    heffingskorting_applied = min(heffingskorting_jaar, lb_voor_heffingskorting)
-
-    # Bruto LB per periode (vóór HK) — voor SR_LB salarisregel
-    lb_gross_per_periode = lb_voor_heffingskorting / periodes
-
-    # Heffingskorting per periode — voor SR_HK salarisregel
-    heffingskorting_per_periode = heffingskorting_applied / periodes
-
-    # Netto LB per periode (na HK) — voor SR_LB_BIJZ marginaal tarief
-    lb_jaar_netto = max(0.0, lb_voor_heffingskorting - heffingskorting_applied)
-    lb_per_periode = lb_jaar_netto / periodes
+    # LB per periode — conform context formules (geen heffingskorting)
+    lb_per_periode = lb_jaar / periodes
 
     # AOV — ook over gecorrigeerd bruto (Art. 10f aftrek)
     effective_bruto_per_periode = max(0.0, bruto_per_periode - aftrek_bv_per_periode)
@@ -165,12 +152,7 @@ def calculate_lb(bruto_per_periode, periodes, params, aftrek_bv_per_periode=0.0)
         'lb_s2': lb_s2,
         'lb_s3': lb_s3,
         'lb_s4': lb_s4,
-        'lb_voor_heffingskorting': lb_voor_heffingskorting,
-        'heffingskorting_jaar': heffingskorting_jaar,
-        'heffingskorting_applied': heffingskorting_applied,
-        'lb_gross_per_periode': lb_gross_per_periode,
-        'heffingskorting_per_periode': heffingskorting_per_periode,
-        'lb_jaar_netto': lb_jaar_netto,
+        'lb_jaar': lb_jaar,
         'lb_per_periode': lb_per_periode,
         # AOV
         'franchise_periode': franchise_periode,
@@ -181,7 +163,8 @@ def calculate_lb(bruto_per_periode, periodes, params, aftrek_bv_per_periode=0.0)
 
 
 def generate_breakdown_html(result, wage, periodes, salary_type, kb_split=None,
-                            vrijgesteld=0.0, inhoudingen=0.0):
+                            vrijgesteld=0.0, inhoudingen=0.0,
+                            belastbaar_toelagen=0.0):
     """
     Genereert een stap-voor-stap berekeningsoverzicht (debug panel) als HTML.
 
@@ -192,6 +175,7 @@ def generate_breakdown_html(result, wage, periodes, salary_type, kb_split=None,
     :param kb_split:      dict {'belastbaar': x, 'vrijgesteld': y} of None
     :param vrijgesteld:   Vrijgestelde toelagen per periode (transport etc.)
     :param inhoudingen:   Inhoudingen per periode (ziektekostenpremie etc.)
+    :param belastbaar_toelagen: Belastbare toelagen per periode (contract regels)
     :returns: HTML string
     """
     def m(n, sign=''):
@@ -246,12 +230,12 @@ def generate_breakdown_html(result, wage, periodes, salary_type, kb_split=None,
     kb_v = kb.get('vrijgesteld', 0.0)
     gross_per_periode = wage + r.get('aftrek_bv_per_periode', 0.0) + 0.0  # original gross before aftrek
 
-    # Netto berekening
+    # Netto berekening — moet overeenkomen met sr_preview_netto in hr_contract.py
     netto = (
         wage
+        + belastbaar_toelagen
         + kb_b + kb_v + vrijgesteld
-        + r['heffingskorting_per_periode']
-        - r['lb_gross_per_periode']
+        - r['lb_per_periode']
         - r['aov_per_periode']
         - inhoudingen
         - r.get('aftrek_bv_per_periode', 0.0)
@@ -262,6 +246,8 @@ def generate_breakdown_html(result, wage, periodes, salary_type, kb_split=None,
     # ─── Sectie 1: Bruto ───────────────────────────
     rows.append(sep('① BRUTO LOON (per periode)'))
     rows.append(row('Loontype', loon_type_str, m(wage)))
+    if belastbaar_toelagen > 0:
+        rows.append(row('Belastbare toelagen', '(contract regels)', m(belastbaar_toelagen)))
     if kb_b > 0 or kb_v > 0:
         rows.append(row('Kinderbijslag belastbaar deel', f'KB &gt; {periodes}×SRD 125/kind', m(kb_b)))
         rows.append(row('Kinderbijslag vrijgesteld deel', f'max SRD 125/kind/mnd', m(kb_v)))
@@ -309,24 +295,11 @@ def generate_breakdown_html(result, wage, periodes, salary_type, kb_split=None,
         rows.append(row(f"Schijf 4 ({r['r4']*100:.0f}%)",
                         f"SRD {r['s4_basis']:,.0f} × {r['r4']*100:.0f}%".replace(",", "."),
                         m(r['lb_s4'])))
-    rows.append(row('<strong>LB jaar (vóór HK)</strong>', 'som schijven',
-                    m(r['lb_voor_heffingskorting']), '#f0f9ff'))
-    rows.append(row('Heffingskorting jaar',
-                    f"min(SRD 750 × 12, LB jaar) = min(9.000, {r['lb_voor_heffingskorting']:,.0f})".replace(",", "."),
-                    m(r['heffingskorting_applied'], '-')))
-    rows.append(row('= LB jaar (netto, na HK)',
-                    f"{r['lb_voor_heffingskorting']:,.0f} − {r['heffingskorting_applied']:,.0f}".replace(",", "."),
-                    m(r['lb_jaar_netto'])))
-    rows.append(row('──────────────────', 'Op loonstrook verschijnen SR_LB (bruto) + SR_HK (korting) apart:', ''))
-    rows.append(row('<strong>SR_LB op loonstrook (bruto, vóór HK)</strong>',
-                    f"{r['lb_voor_heffingskorting']:,.0f} ÷ {periodes} (SR_LB regel)".replace(",", "."),
-                    m(r['lb_gross_per_periode']), '#fef9c3'))
-    rows.append(row('<strong>SR_HK op loonstrook (korting)</strong>',
-                    f"{r['heffingskorting_applied']:,.0f} ÷ {periodes} (SR_HK regel)".replace(",", "."),
-                    m(r['heffingskorting_per_periode']), '#f0fdf4'))
-    rows.append(row('Netto LB effect per periode',
-                    f"{r['lb_gross_per_periode']:,.2f} − {r['heffingskorting_per_periode']:,.2f}".replace(",", "."),
-                    m(r['lb_per_periode']), '#f0f9ff'))
+    rows.append(row('<strong>LB jaar</strong>', 'som schijven',
+                    m(r['lb_jaar']), '#f0f9ff'))
+    rows.append(row('<strong>LB per periode</strong>',
+                    f"{r['lb_jaar']:,.0f} ÷ {periodes}".replace(",", "."),
+                    m(r['lb_per_periode']), '#fef9c3'))
 
     # ─── Sectie 4: AOV ─────────────────────────────
     rows.append(sep('④ AOV BIJDRAGE (4%)'))
@@ -343,14 +316,15 @@ def generate_breakdown_html(result, wage, periodes, salary_type, kb_split=None,
     # ─── Sectie 5: Netto Berekening ────────────────
     rows.append(sep('⑤ GESCHAT NETTOLOON PER PERIODE'))
     rows.append(row('Basisloon', '', m(wage, '+')))
+    if belastbaar_toelagen > 0:
+        rows.append(row('+ Belastbare toelagen', '', m(belastbaar_toelagen, '+')))
     if kb_b > 0:
         rows.append(row('+ KB belastbaar deel', '', m(kb_b, '+')))
     if kb_v > 0:
         rows.append(row('+ KB vrijgesteld deel', '', m(kb_v, '+')))
     if vrijgesteld > 0:
         rows.append(row('+ Vrijgestelde toelagen', '', m(vrijgesteld, '+')))
-    rows.append(row('− LB (Art. 14)', '', m(r['lb_gross_per_periode'], '-')))
-    rows.append(row('+ Heffingskorting', '', m(r['heffingskorting_per_periode'], '+')))
+    rows.append(row('− LB (Art. 14)', '', m(r['lb_per_periode'], '-')))
     rows.append(row('− AOV (4%)', '', m(r['aov_per_periode'], '-')))
     if inhoudingen > 0:
         rows.append(row('− Inhoudingen (netto)', '', m(inhoudingen, '-')))
@@ -381,7 +355,7 @@ def generate_tax_bracket_html(params):
     Genereert een HTML-tabel van de tariefschijven op basis van parameters.
 
     :param params: dict met s1, s2, s3, r1, r2, r3, r4, belastingvrij_jaar,
-                   forfaitaire_pct, forfaitaire_max, hk_maand
+                   forfaitaire_pct, forfaitaire_max
     :returns: HTML string
     """
     def fmt(n):
@@ -426,7 +400,6 @@ def generate_tax_bracket_html(params):
         f'<strong>Art. 12:</strong> Forfaitaire aftrek {pct(params["forfaitaire_pct"])} van jaarloon '
         f'(max {fmt(forfaitaire_max)}) · '
         f'<strong>Art. 13:</strong> Belastingvrije som {fmt(params["belastingvrij_jaar"])}/jaar · '
-        f'<strong>Heffingskorting:</strong> {fmt(params["hk_maand"])}/maand · '
         '<strong>Overwerk Art. 17c:</strong> 5% / 15% / 25%'
         '</p>'
     )

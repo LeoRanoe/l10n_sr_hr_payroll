@@ -116,19 +116,18 @@ class TestIntegratieVolledigeCyclus(common.TransactionCase):
     # Test 2: Netto = Bruto + alle inhoudingen (balanscontrole)
     # ──────────────────────────────────────────────────────────────────
     def test_netto_is_bruto_min_inhoudingen(self):
-        """NET = GROSS + SR_LB + SR_AOV (LB en AOV zijn negatief)."""
+        """NET = GROSS + SR_LB + SR_AOV (LB en AOV zijn negatief, geen HK)."""
         contract = self._maak_contract(wage=20000.0)
         payslip = self._maak_loonstrook(contract)
 
         gross = self._haal_totaal(payslip, 'GROSS')
         lb = self._haal_totaal(payslip, 'SR_LB')
         aov = self._haal_totaal(payslip, 'SR_AOV')
-        hk = self._haal_totaal(payslip, 'SR_HK')
         net = self._haal_totaal(payslip, 'NET')
 
         self.assertAlmostEqual(
-            net, gross + lb + aov + hk, places=2,
-            msg='Nettoloon ≠ Bruto + LB (bruto) + AOV + HK (saldo klopt niet)',
+            net, gross + lb + aov, places=2,
+            msg='Nettoloon ≠ Bruto + LB + AOV (saldo klopt niet)',
         )
 
     # ──────────────────────────────────────────────────────────────────
@@ -225,7 +224,7 @@ class TestIntegratieVolledigeCyclus(common.TransactionCase):
     def test_fortnight_loonstrook_aangemaakt(self):
         """
         Fortnight contract genereert een geldige loonstrook met
-        SR_LB en SR_AOV regels. AOV franchise is pro-rata (400 × 12/26).
+        SR_LB en SR_AOV regels. Geen AOV franchise voor fortnight.
         """
         fn_loon = 8000.0  # SRD 8.000 per fortnight
         contract = self._maak_contract(wage=fn_loon, salary_type='fn')
@@ -257,8 +256,8 @@ class TestIntegratieVolledigeCyclus(common.TransactionCase):
 
         if bd:
             self.assertAlmostEqual(
-                bd['lb_gross_per_periode'], abs(lb_regel), delta=0.05,
-                msg='breakdown lb_gross_per_periode ≠ SR_LB.total (integratieconflict)',
+                bd['lb_per_periode'], abs(lb_regel), delta=0.05,
+                msg='breakdown lb_per_periode ≠ SR_LB.total (integratieconflict)',
             )
 
 
@@ -453,14 +452,13 @@ class TestIntegratieContractPreview(common.TransactionCase):
     # Test 8: Preview netto = bruto - LB - AOV - pensioen
     # ──────────────────────────────────────────────────────────────────
     def test_preview_netto_berekening(self):
-        """sr_preview_netto = sr_preview_bruto + hk − lb_bruto − aov − pensioen."""
+        """sr_preview_netto = sr_preview_bruto − lb − aov − pensioen."""
         pensioen = 800.0
         contract = self._maak_contract(
             wage=20000.0, pensioenpremie=pensioen
         )
         verwacht_netto = (
             contract.sr_preview_bruto
-            + contract.sr_preview_hk_periode
             - contract.sr_preview_lb_periode
             - contract.sr_preview_aov_periode
             - pensioen

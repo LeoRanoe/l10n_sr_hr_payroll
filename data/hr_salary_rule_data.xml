@@ -8,8 +8,7 @@
       21  SR_KB_BELAST   — Kinderbijslag belastbaar deel (Art. 10h)
       23  SR_INPUT_BELASTB — Belastbare toelagen (payslip inputs)
       30  GROSS          — Bruto belastbaar (BASIC + ALW)
-      50  SR_LB          — Loonbelasting Artikel 14 BRUTO (negatief)
-      55  SR_HK          — Heffingskorting (positief credit)
+      50  SR_LB          — Loonbelasting Artikel 14 (negatief)
       60  SR_AOV         — AOV bijdrage (negatief)
       65  SR_AFTREK_BV   — Aftrek belastingvrij inhoudingen (negatief)
       70  SR_PENSIOEN    — Vaste inhoudingen (contract, categorie=inhouding)
@@ -126,11 +125,10 @@ result = categories['BASIC'] + categories['ALW']
              Berekening stappen:
                1. Bepaal het aantal periodes per jaar (12 of 26)
                2. Herbereken het bruto jaarloon
-               3. Bereken forfaitaire beroepskosten aftrek
-               4. Bereken het belastbaar jaarloon na aftrekken
-               5. Bereken de belasting via tariefschijven
-               6. Pas heffingskorting toe
-               7. Deel terug door periodes voor periodebedrag
+               3. Bereken forfaitaire beroepskosten aftrek (Art. 12)
+               4. Belastingvrije som (Art. 13)
+               5. Bereken de belasting via tariefschijven (Art. 14)
+               6. Deel terug door periodes voor periodebedrag
              ───────────────────────────────────────────────────────── -->
         <record id="sr_rule_loonbelasting" model="hr.salary.rule">
             <field name="struct_id" ref="l10n_sr_hr_payroll.sr_payroll_structure"/>
@@ -141,32 +139,30 @@ result = categories['BASIC'] + categories['ALW']
             <field name="condition_select">none</field>
             <field name="amount_select">code</field>
             <field name="amount_python_compute">
-# Artikel 14 LB — BRUTO bedrag (vóór heffingskorting)
-# Heffingskorting wordt apart getoond als SR_HK (seq 55)
+# Artikel 14 LB per periode
 aftrek_bv = contract._sr_resolve_regels('aftrek_belastingvrij')
 result = -float_round(payslip._sr_artikel14_lb(categories['GROSS'], aftrek_bv=aftrek_bv), precision_digits=2)
             </field>
         </record>
 
         <!-- ─────────────────────────────────────────────────────────
-             55 — SR_HK: Heffingskorting (Art. 14 WLB)
+             55 — SR_HK: Heffingskorting (VERWIJDERD / GEARCHIVEERD)
              ─────────────────────────────────────────────────────────
-             Credit: vermindert de loonbelasting. Wordt apart getoond
-             zodat de loonstrook transparant de bruto LB en HK toont.
+             Deze regel is niet meer actief. Het record wordt bewaard
+             zodat bestaande payslip-regels (hr.payslip.line) die ernaar
+             verwijzen niet gebroken worden door een foreign key fout.
              ───────────────────────────────────────────────────────── -->
         <record id="sr_rule_heffingskorting" model="hr.salary.rule">
             <field name="struct_id" ref="l10n_sr_hr_payroll.sr_payroll_structure"/>
-            <field name="category_id" ref="l10n_sr_hr_payroll.sr_vrij_cat"/>
-            <field name="name">Heffingskorting</field>
+            <field name="category_id" ref="hr_payroll.ALW"/>
+            <field name="name">Heffingskorting (VERVALLEN)</field>
             <field name="code">SR_HK</field>
             <field name="sequence">55</field>
-            <field name="condition_select">none</field>
+            <field name="active" eval="False"/>
+            <field name="condition_select">python</field>
+            <field name="condition_python">result = False</field>
             <field name="amount_select">code</field>
-            <field name="amount_python_compute">
-# Heffingskorting — positief bedrag (credit op loonbelasting)
-aftrek_bv = contract._sr_resolve_regels('aftrek_belastingvrij')
-result = float_round(payslip._sr_artikel14_hk(categories['GROSS'], aftrek_bv=aftrek_bv), precision_digits=2)
-            </field>
+            <field name="amount_python_compute">result = 0</field>
         </record>
 
         <!-- ─────────────────────────────────────────────────────────
@@ -592,14 +588,45 @@ result = sum(
             </field>
         </record>
 
+        <!-- ─────────────────────────────────────────────────────────
+             90 — SR_UITK_INEENS: Uitkering Ineens bruto (Art. 17a)
+             Belast via eigen tariefschijven Art. 17a.
+             ───────────────────────────────────────────────────────── -->
+        <record id="sr_rule_uitkering_ineens" model="hr.salary.rule">
+            <field name="struct_id" ref="l10n_sr_hr_payroll.sr_payroll_structure"/>
+            <field name="category_id" ref="l10n_sr_hr_payroll.sr_vrij_cat"/>
+            <field name="name">Uitkering Ineens / Jubileum</field>
+            <field name="code">SR_UITK_INEENS</field>
+            <field name="sequence">90</field>
+            <field name="condition_select">python</field>
+            <field name="condition_python">
+result = any(
+    inp.input_type_id.sr_categorie == 'uitkering_ineens' and inp.amount > 0
+    for inp in payslip.input_line_ids
+)
+            </field>
+            <field name="amount_select">code</field>
+            <field name="amount_python_compute">
+result = sum(
+    inp.amount for inp in payslip.input_line_ids
+    if inp.input_type_id.sr_categorie == 'uitkering_ineens'
+)
+            </field>
+        </record>
+
         <!-- ═══════════════════════════════════════════════════════════════
              LB + AOV OP BIJZONDERE BELONINGEN (seq 91–92)
-             Art. 17 marginaal tarief methode:
-               1. vrijstelling aftrekken (vakantie/grat: min(loon, 10.016))
-               2. gemiddelde bijstelling per tijdvak berekenen
-               3. gecorrigeerd loon = regulier_gross + gemiddelde
-               4. lb_tijdvak(gecorrigeerd) - lb_tijdvak(regulier)
-               5. lb_bijz = verschil × periodes
+             Art. 17 marginaal tarief methode (conform context):
+               1. Bepaal reeds gebruikte jaarcap vrijstelling (YTD lookup)
+               2. Combineer alle bijz. beloningen; vrijstelling aftrekken
+                  - vakantie: min(2 × basisloon, resterende jaarcap)
+                  - gratificatie: min(basisloon, resterende jaarcap) + prorata
+                  - bijz_beloning: geen vrijstelling
+               3. Eén gecombineerd belastbaar_bijz_totaal
+               4. gemiddelde = belastbaar_bijz_totaal / periodes
+               5. gecorrigeerd loon = regulier_gross + gemiddelde
+               6. lb_bijz = lb_per_tijdvak(gecorrigeerd) - lb_per_tijdvak(regulier)
+               7. Niet vermenigvuldigen met periodes (context: informatief)
              ═══════════════════════════════════════════════════════════════ -->
 
         <!-- ─────────────────────────────────────────────────────────
@@ -622,9 +649,7 @@ result = any(
             </field>
             <field name="amount_select">code</field>
             <field name="amount_python_compute">
-# ── Hulpfunctie: Art. 14 LB per tijdvak ─────────────────────────────────
-# Hergebruikt dezelfde parameterlogica als SR_LB zodat beide regels
-# altijd consistent zijn. Inclusief aftrek_bv (Art. 10f).
+# ── Hulpfunctie: Art. 14 LB per tijdvak (geen heffingskorting) ──────────
 def _lb_per_tijdvak(bruto_per_tijdvak, periodes, prm, aftrek_bv=0.0):
     bruto_jaar = bruto_per_tijdvak * periodes
     aftrek_bv_jaar = aftrek_bv * periodes
@@ -641,15 +666,14 @@ def _lb_per_tijdvak(bruto_per_tijdvak, periodes, prm, aftrek_bv=0.0):
         lb_j = s1 * r1 + (s2 - s1) * r2 + (belastbaar - s2) * r3
     else:
         lb_j = s1 * r1 + (s2 - s1) * r2 + (s3 - s2) * r3 + (belastbaar - s3) * r4
-    hk_j = prm['hk_maand'] * 12
-    return max(0.0, lb_j - hk_j) / periodes
+    return max(0.0, lb_j) / periodes
 
 periodes = 12 if contract.sr_salary_type == 'monthly' else 26
 gross_per_tijdvak = categories['GROSS']
 aftrek_bv = contract._sr_resolve_regels('aftrek_belastingvrij')
 vrijstelling_max = payslip._rule_parameter('SR_BIJZ_VRIJSTELLING_MAX')
 
-# Bug C fix: maandequivalent voor FN-werkers
+# Maandequivalent voor FN-werkers
 wage_maand = (contract.wage or 0.0) * periodes / 12
 
 prm = {
@@ -663,12 +687,40 @@ prm = {
     'r2':       payslip._rule_parameter('SR_TARIEF_2'),
     'r3':       payslip._rule_parameter('SR_TARIEF_3'),
     'r4':       payslip._rule_parameter('SR_TARIEF_4'),
-    'hk_maand': payslip._rule_parameter('SR_HEFFINGSKORTING_MAAND'),
 }
 
-lb_normaal = _lb_per_tijdvak(gross_per_tijdvak, periodes, prm, aftrek_bv)
-lb_totaal = 0.0
+# ── Issue 6: Year-to-date cap lookup ────────────────────────────────────
+# Zoek reeds gebruikte vrijstelling in eerdere bevestigde loonstroken
+# van dezelfde werknemer in hetzelfde kalenderjaar.
+year_start = payslip.date_from.replace(month=1, day=1) if payslip.date_from else False
+ytd_used = 0.0
+if year_start:
+    prev_slips = payslip.env['hr.payslip'].search([
+        ('employee_id', '=', payslip.employee_id.id),
+        ('date_from', '>=', year_start),
+        ('date_from', '&lt;', payslip.date_from),
+        ('state', 'in', ['done', 'paid']),
+        ('id', '!=', payslip.id),
+    ])
+    for ps in prev_slips:
+        for inp in ps.input_line_ids:
+            cat = inp.input_type_id.sr_categorie
+            if cat in ('vakantie', 'gratificatie') and inp.amount > 0:
+                if cat == 'vakantie':
+                    cap = min(2 * wage_maand, vrijstelling_max)
+                else:
+                    cap = min(wage_maand, vrijstelling_max)
+                    if ps.date_to and contract.date_start:
+                        ys = ps.date_to.replace(month=1, day=1)
+                        ss = max(contract.date_start, ys)
+                        mo = (ps.date_to.year - ss.year) * 12 + ps.date_to.month - ss.month + 1
+                        mo = min(12, max(1, mo))
+                        cap = cap * mo / 12
+                ytd_used += min(inp.amount, cap)
+remaining_cap = max(0.0, vrijstelling_max - ytd_used)
 
+# ── Combineer alle bijzondere beloningen (Issue 3) ──────────────────────
+belastbaar_bijz_totaal = 0.0
 for inp in payslip.input_line_ids:
     cat = inp.input_type_id.sr_categorie
     if cat not in ('vakantie', 'gratificatie', 'bijz_beloning'):
@@ -677,38 +729,43 @@ for inp in payslip.input_line_ids:
     if bruto &lt;= 0:
         continue
 
-    # Art. 10i/j: vrijstelling = min(maandloon, max per jaar)
-    if cat in ('vakantie', 'gratificatie'):
-        vrijstelling = min(wage_maand, vrijstelling_max)
-        # Bug D: gratificatie pro-rata voor onvolledig dienstjaar (Art. 10j)
-        if cat == 'gratificatie' and payslip.date_to and contract.date_start:
-            year_start = payslip.date_to.replace(month=1, day=1)
-            service_start = max(contract.date_start, year_start)
-            months = (payslip.date_to.year - service_start.year) * 12 + payslip.date_to.month - service_start.month + 1
-            months = min(12, max(1, months))
-            vrijstelling = vrijstelling * months / 12
+    if cat == 'vakantie':
+        # Issue 5: min(2 × basisloon, resterende jaarcap)
+        vrijstelling = min(2 * wage_maand, remaining_cap)
+    elif cat == 'gratificatie':
+        vrijstelling = min(wage_maand, remaining_cap)
+        # Pro-rata voor onvolledig dienstjaar (Art. 10j)
+        if payslip.date_to and contract.date_start:
+            ys = payslip.date_to.replace(month=1, day=1)
+            ss = max(contract.date_start, ys)
+            mo = (payslip.date_to.year - ss.year) * 12 + payslip.date_to.month - ss.month + 1
+            mo = min(12, max(1, mo))
+            vrijstelling = vrijstelling * mo / 12
     else:
-        # bijz_beloning: geen vaste vrijstelling (Art. 17)
         vrijstelling = 0.0
 
-    belastbaar_bijz = max(0.0, bruto - vrijstelling)
-    if belastbaar_bijz &lt;= 0:
-        continue
+    actual_vrijstelling = min(vrijstelling, bruto)
+    remaining_cap -= actual_vrijstelling
+    remaining_cap = max(0.0, remaining_cap)
+    belastbaar_bijz_totaal += max(0.0, bruto - actual_vrijstelling)
 
-    # Art. 17: marginaal tarief methode
-    gemiddelde = belastbaar_bijz / periodes
+if belastbaar_bijz_totaal &lt;= 0:
+    result = 0.0
+else:
+    # Art. 17: marginaal tarief methode — één gecombineerd verschil
+    # Issue 2: NIET vermenigvuldigen met periodes
+    lb_normaal = _lb_per_tijdvak(gross_per_tijdvak, periodes, prm, aftrek_bv)
+    gemiddelde = belastbaar_bijz_totaal / periodes
     gecorrigeerd = gross_per_tijdvak + gemiddelde
     lb_gecorr = _lb_per_tijdvak(gecorrigeerd, periodes, prm, aftrek_bv)
-    lb_bijz = max(0.0, lb_gecorr - lb_normaal) * periodes
-    lb_totaal += lb_bijz
-
-result = -float_round(lb_totaal, precision_digits=2)
+    lb_bijz = max(0.0, lb_gecorr - lb_normaal)
+    result = -float_round(lb_bijz, precision_digits=2)
             </field>
         </record>
 
         <!-- ─────────────────────────────────────────────────────────
              92 — SR_AOV_BIJZ: AOV over bijzondere beloningen
-             4% over het belastbaar deel (na vrijstelling).
+             Issue 4: AOV = verschil per tijdvak, niet volledige bedrag.
              ───────────────────────────────────────────────────────── -->
         <record id="sr_rule_aov_bijz" model="hr.salary.rule">
             <field name="struct_id" ref="l10n_sr_hr_payroll.sr_payroll_structure"/>
@@ -729,10 +786,38 @@ result = any(
 aov_tarief = payslip._rule_parameter('SR_AOV_TARIEF')
 vrijstelling_max = payslip._rule_parameter('SR_BIJZ_VRIJSTELLING_MAX')
 periodes = 12 if contract.sr_salary_type == 'monthly' else 26
-# Bug C fix: maandequivalent voor FN-werkers
 wage_maand = (contract.wage or 0.0) * periodes / 12
-aov_totaal = 0.0
 
+# ── Year-to-date cap lookup (zelfde als SR_LB_BIJZ) ────────────────────
+year_start = payslip.date_from.replace(month=1, day=1) if payslip.date_from else False
+ytd_used = 0.0
+if year_start:
+    prev_slips = payslip.env['hr.payslip'].search([
+        ('employee_id', '=', payslip.employee_id.id),
+        ('date_from', '>=', year_start),
+        ('date_from', '&lt;', payslip.date_from),
+        ('state', 'in', ['done', 'paid']),
+        ('id', '!=', payslip.id),
+    ])
+    for ps in prev_slips:
+        for inp in ps.input_line_ids:
+            cat = inp.input_type_id.sr_categorie
+            if cat in ('vakantie', 'gratificatie') and inp.amount > 0:
+                if cat == 'vakantie':
+                    cap = min(2 * wage_maand, vrijstelling_max)
+                else:
+                    cap = min(wage_maand, vrijstelling_max)
+                    if ps.date_to and contract.date_start:
+                        ys = ps.date_to.replace(month=1, day=1)
+                        ss = max(contract.date_start, ys)
+                        mo = (ps.date_to.year - ss.year) * 12 + ps.date_to.month - ss.month + 1
+                        mo = min(12, max(1, mo))
+                        cap = cap * mo / 12
+                ytd_used += min(inp.amount, cap)
+remaining_cap = max(0.0, vrijstelling_max - ytd_used)
+
+# ── Combineer belastbare bijzondere bedragen ────────────────────────────
+belastbaar_bijz_totaal = 0.0
 for inp in payslip.input_line_ids:
     cat = inp.input_type_id.sr_categorie
     if cat not in ('vakantie', 'gratificatie', 'bijz_beloning'):
@@ -740,21 +825,114 @@ for inp in payslip.input_line_ids:
     bruto = inp.amount
     if bruto &lt;= 0:
         continue
-    if cat in ('vakantie', 'gratificatie'):
-        vrijstelling = min(wage_maand, vrijstelling_max)
-        # Bug D: gratificatie pro-rata (Art. 10j)
-        if cat == 'gratificatie' and payslip.date_to and contract.date_start:
-            year_start = payslip.date_to.replace(month=1, day=1)
-            service_start = max(contract.date_start, year_start)
-            months = (payslip.date_to.year - service_start.year) * 12 + payslip.date_to.month - service_start.month + 1
-            months = min(12, max(1, months))
-            vrijstelling = vrijstelling * months / 12
+    if cat == 'vakantie':
+        vrijstelling = min(2 * wage_maand, remaining_cap)
+    elif cat == 'gratificatie':
+        vrijstelling = min(wage_maand, remaining_cap)
+        if payslip.date_to and contract.date_start:
+            ys = payslip.date_to.replace(month=1, day=1)
+            ss = max(contract.date_start, ys)
+            mo = (payslip.date_to.year - ss.year) * 12 + payslip.date_to.month - ss.month + 1
+            mo = min(12, max(1, mo))
+            vrijstelling = vrijstelling * mo / 12
     else:
         vrijstelling = 0.0
-    belastbaar = max(0.0, bruto - vrijstelling)
-    aov_totaal += belastbaar * aov_tarief
+    actual_vrijstelling = min(vrijstelling, bruto)
+    remaining_cap -= actual_vrijstelling
+    remaining_cap = max(0.0, remaining_cap)
+    belastbaar_bijz_totaal += max(0.0, bruto - actual_vrijstelling)
 
-result = -float_round(aov_totaal, precision_digits=2)
+# Issue 4: AOV = gemiddelde per tijdvak × tarief (niet volledig bedrag)
+if belastbaar_bijz_totaal &lt;= 0:
+    result = 0.0
+else:
+    aov_bijz = (belastbaar_bijz_totaal / periodes) * aov_tarief
+    result = -float_round(aov_bijz, precision_digits=2)
+            </field>
+        </record>
+
+        <!-- ═══════════════════════════════════════════════════════════════
+             LB + AOV OP UITKERING INEENS (seq 93–94)
+             Art. 17a: eigen tariefschijven 5%/15%/25%/35%/45%
+             Geen belastingvrije som. AOV = 4% van het bedrag.
+             ═══════════════════════════════════════════════════════════════ -->
+
+        <!-- ─────────────────────────────────────────────────────────
+             93 — SR_LB_17A: LB over uitkering ineens (Art. 17a)
+             ───────────────────────────────────────────────────────── -->
+        <record id="sr_rule_lb_17a" model="hr.salary.rule">
+            <field name="struct_id" ref="l10n_sr_hr_payroll.sr_payroll_structure"/>
+            <field name="category_id" ref="hr_payroll.DED"/>
+            <field name="name">Loonbelasting Uitkering Ineens (Art. 17a)</field>
+            <field name="code">SR_LB_17A</field>
+            <field name="sequence">93</field>
+            <field name="condition_select">python</field>
+            <field name="condition_python">
+result = any(
+    inp.input_type_id.sr_categorie == 'uitkering_ineens'
+    and inp.amount > 0
+    for inp in payslip.input_line_ids
+)
+            </field>
+            <field name="amount_select">code</field>
+            <field name="amount_python_compute">
+# Art. 17a: eigen tariefschijven, geen belastingvrije som
+s1 = payslip._rule_parameter('SR_17A_SCHIJF_1_GRENS')
+s2 = payslip._rule_parameter('SR_17A_SCHIJF_2_GRENS')
+s3 = payslip._rule_parameter('SR_17A_SCHIJF_3_GRENS')
+s4 = payslip._rule_parameter('SR_17A_SCHIJF_4_GRENS')
+r1 = payslip._rule_parameter('SR_17A_TARIEF_1')
+r2 = payslip._rule_parameter('SR_17A_TARIEF_2')
+r3 = payslip._rule_parameter('SR_17A_TARIEF_3')
+r4 = payslip._rule_parameter('SR_17A_TARIEF_4')
+r5 = payslip._rule_parameter('SR_17A_TARIEF_5')
+
+bedrag = sum(
+    inp.amount for inp in payslip.input_line_ids
+    if inp.input_type_id.sr_categorie == 'uitkering_ineens' and inp.amount > 0
+)
+
+if bedrag &lt;= s1:
+    lb = bedrag * r1
+elif bedrag &lt;= s2:
+    lb = s1 * r1 + (bedrag - s1) * r2
+elif bedrag &lt;= s3:
+    lb = s1 * r1 + (s2 - s1) * r2 + (bedrag - s2) * r3
+elif bedrag &lt;= s4:
+    lb = s1 * r1 + (s2 - s1) * r2 + (s3 - s2) * r3 + (bedrag - s3) * r4
+else:
+    lb = s1 * r1 + (s2 - s1) * r2 + (s3 - s2) * r3 + (s4 - s3) * r4 + (bedrag - s4) * r5
+
+result = -float_round(lb, precision_digits=2)
+            </field>
+        </record>
+
+        <!-- ─────────────────────────────────────────────────────────
+             94 — SR_AOV_17A: AOV over uitkering ineens (Art. 17a)
+             4% van het volledige bedrag (geen franchise).
+             ───────────────────────────────────────────────────────── -->
+        <record id="sr_rule_aov_17a" model="hr.salary.rule">
+            <field name="struct_id" ref="l10n_sr_hr_payroll.sr_payroll_structure"/>
+            <field name="category_id" ref="hr_payroll.DED"/>
+            <field name="name">AOV Uitkering Ineens (Art. 17a)</field>
+            <field name="code">SR_AOV_17A</field>
+            <field name="sequence">94</field>
+            <field name="condition_select">python</field>
+            <field name="condition_python">
+result = any(
+    inp.input_type_id.sr_categorie == 'uitkering_ineens'
+    and inp.amount > 0
+    for inp in payslip.input_line_ids
+)
+            </field>
+            <field name="amount_select">code</field>
+            <field name="amount_python_compute">
+aov_tarief = payslip._rule_parameter('SR_AOV_TARIEF')
+bedrag = sum(
+    inp.amount for inp in payslip.input_line_ids
+    if inp.input_type_id.sr_categorie == 'uitkering_ineens' and inp.amount > 0
+)
+result = -float_round(bedrag * aov_tarief, precision_digits=2)
             </field>
         </record>
 

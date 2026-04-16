@@ -142,11 +142,8 @@ class TestImprovements(common.TransactionCase):
             'company_id': self.company.id,
         })
         lb1 = payslip._sr_artikel14_lb(8000.0)
-        hk1 = payslip._sr_artikel14_hk(8000.0)
         aov1 = payslip._sr_artikel14_aov(8000.0)
         lb2 = payslip._sr_artikel14_lb(8000.0)
-        hk2 = payslip._sr_artikel14_hk(8000.0)
         aov2 = payslip._sr_artikel14_aov(8000.0)
         self.assertEqual(lb1, lb2, "LB moet consistent zijn bij herhaalde aanroep")
-        self.assertEqual(hk1, hk2, "HK moet consistent zijn bij herhaalde aanroep")
         self.assertEqual(aov1, aov2, "AOV moet consistent zijn bij herhaalde aanroep")

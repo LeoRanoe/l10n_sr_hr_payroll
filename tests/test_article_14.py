@@ -7,9 +7,9 @@ Wet Loonbelasting 2026 (Artikel 14) context.
 
 Voorbeeldsalaris uit de context:
   Bruto maandloon       : SRD  20.255,60
-  Loonbelasting (LB)    : SRD   2.634,71
-  AOV bijdrage          : SRD     858,39
-  Netto loon            : SRD  20.590,50  (benadering)
+  Loonbelasting (LB)    : SRD   2.025,13
+  AOV bijdrage          : SRD     794,22
+  Netto loon            : SRD  17.436,25  (benadering)
 """
 
 from datetime import date
@@ -133,9 +133,7 @@ class TestArtikel14Berekening(common.TransactionCase):
           S3: 42.000 × 28% = 11.760,00
           S4: (130.267,20 - 126.000) × 38% = 4.267,20 × 38% = 1.621,54
           Totaal lb jaar  = 24.301,54
-        Heffingskorting : 750 × 12 = 9.000
-          LB jaar netto   = 15.301,54
-          LB per maand    = 15.301,54 / 12 = 1.275,13
+          LB per maand    = 24.301,54 / 12 = 2.025,13
         AOV grondslag   : 20.255,60 - 400 = 19.855,60
         AOV per maand   : 19.855,60 × 4% = 794,22
         """
@@ -148,7 +146,6 @@ class TestArtikel14Berekening(common.TransactionCase):
 
         lb = self._get_line_total(payslip, 'SR_LB')
         aov = self._get_line_total(payslip, 'SR_AOV')
-        hk = self._get_line_total(payslip, 'SR_HK')
         gross = self._get_line_total(payslip, 'GROSS')
         net = self._get_line_total(payslip, 'NET')
 
@@ -162,8 +159,8 @@ class TestArtikel14Berekening(common.TransactionCase):
         # AOV moet negatief zijn
         self.assertLess(aov, 0.0, 'AOV bijdrage moet negatief zijn (inhouding)')
 
-        # Nettoloon = bruto + LB (bruto) + AOV + HK (credit)
-        self.assertAlmostEqual(net, gross + lb + aov + hk, places=2,
+        # Nettoloon = bruto + LB + AOV (geen heffingskorting)
+        self.assertAlmostEqual(net, gross + lb + aov, places=2,
                                msg='Nettoloon berekening klopt niet')
 
         # Nettoloon moet lager zijn dan brutoloon
@@ -175,7 +172,7 @@ class TestArtikel14Berekening(common.TransactionCase):
     # → alleen schijf 1 (8%) en schijf 2 (18%) van toepassing
     # ──────────────────────────────────────────────────────────────────────
     def test_maandloon_schijf_1_en_2(self):
-        """Belastbaar jaarloon ≈ 72.000 → LB ≥ 0 (schijven 1 en 2)."""
+        """Belastbaar jaarloon ≈ 73.200 → schijven 1+2."""
         contract = self._create_contract(wage=15500.0, salary_type='monthly')
         payslip = self._compute_payslip(
             contract,
@@ -186,10 +183,10 @@ class TestArtikel14Berekening(common.TransactionCase):
         lb = self._get_line_total(payslip, 'SR_LB')
         # Belastbaar jaarloon: 15500×12 − 108000 − min(15500×12×0.04, 4800)
         # = 186000 − 108000 − 4800 = 73200 → schijven 1+2
-        # LB jaar = 42000×0.08 + 31200×0.18 − 9000 = 3360 + 5616 − 9000 = -24 → 0
-        # Dus LB kan 0 zijn na heffingskorting
-        self.assertLessEqual(lb, 0.0,
-                             'LB moet 0 of negatief zijn (inhouding of geen belasting)')
+        # LB jaar = 42000×0.08 + 31200×0.18 = 3360 + 5616 = 8976
+        # LB per maand = 8976 / 12 = 748
+        self.assertLess(lb, 0.0,
+                        'LB moet negatief zijn (inhouding)')
 
     # ──────────────────────────────────────────────────────────────────────
     # Test 4: Toelagen worden meegenomen in de belastinggrondslag
@@ -319,6 +316,7 @@ class TestArtikel14Schijven(common.TransactionCase):
         """
         Zuivere Python implementatie van de Artikel 14 schijvenberekening.
         Identiek aan de logica in hr_salary_rule_data.xml (SR_LB).
+        Geen heffingskorting — conform context document.
         """
         s1, s2, s3 = 42000.0, 84000.0, 126000.0
         r1, r2, r3, r4 = 0.08, 0.18, 0.28, 0.38
@@ -334,9 +332,7 @@ class TestArtikel14Schijven(common.TransactionCase):
         else:
             lb = (s1 * r1) + ((s2 - s1) * r2) + ((s3 - s2) * r3) + ((belastbaar_jaarloon - s3) * r4)
 
-        # Heffingskorting
-        heffingskorting_jaar = 750.0 * 12
-        return max(0.0, lb - heffingskorting_jaar)
+        return lb
 
     def test_schijf_0_geen_belasting(self):
         """Belastbaar jaarloon 0 → LB = 0."""
@@ -345,37 +341,27 @@ class TestArtikel14Schijven(common.TransactionCase):
     def test_schijf_1_grens(self):
         """Belastbaar jaarloon = SRD 42.000 → schijf 1."""
         lb = self._bereken_lb_jaar(42000.0)
-        verwacht = max(0.0, 42000.0 * 0.08 - 9000.0)
+        verwacht = 42000.0 * 0.08  # = 3360
         self.assertAlmostEqual(lb, verwacht, places=2)
 
     def test_schijf_2(self):
         """Belastbaar jaarloon = SRD 70.000 → schijven 1+2."""
         lb = self._bereken_lb_jaar(70000.0)
-        verwacht = max(0.0, (42000 * 0.08) + (28000 * 0.18) - 9000.0)
+        verwacht = (42000 * 0.08) + (28000 * 0.18)  # 3360 + 5040 = 8400
         self.assertAlmostEqual(lb, verwacht, places=2)
 
     def test_schijf_3(self):
         """Belastbaar jaarloon = SRD 100.000 → schijven 1+2+3."""
         lb = self._bereken_lb_jaar(100000.0)
-        verwacht = max(0.0, (42000 * 0.08) + (42000 * 0.18) + (16000 * 0.28) - 9000.0)
+        verwacht = (42000 * 0.08) + (42000 * 0.18) + (16000 * 0.28)  # 15400
         self.assertAlmostEqual(lb, verwacht, places=2)
 
     def test_schijf_4(self):
         """Belastbaar jaarloon = SRD 150.000 → alle 4 schijven."""
         lb = self._bereken_lb_jaar(150000.0)
-        verwacht = max(0.0,
-                       (42000 * 0.08) + (42000 * 0.18) + (42000 * 0.28)
-                       + (24000 * 0.38) - 9000.0)
+        verwacht = ((42000 * 0.08) + (42000 * 0.18) + (42000 * 0.28)
+                    + (24000 * 0.38))  # 31800
         self.assertAlmostEqual(lb, verwacht, places=2)
-
-    def test_heffingskorting_elimineert_kleine_belasting(self):
-        """
-        Als LB < heffingskorting → netto LB = 0.
-        SRD 42.000 belastbaar × 8% = SRD 3.360 < SRD 9.000 → LB = 0.
-        """
-        lb = self._bereken_lb_jaar(42000.0)
-        self.assertEqual(lb, 0.0,
-                         'Heffingskorting moet kleine belasting elimineren')
 
     def test_progressieve_belasting(self):
         """Hogere jaarlonen moeten hogere LB produceren."""
@@ -397,8 +383,7 @@ class TestArtikel14Schijven(common.TransactionCase):
         belastbaar = 200000 - 108000 - 4800
         lb = self._bereken_lb_jaar(belastbaar)
         # s1 = 42.000×8% = 3.360; s2 = 42.000×18% = 7.560; rest = 3.200×28% = 896
-        verwacht = max(0.0,
-                       (42000 * 0.08) + (42000 * 0.18) + (3200 * 0.28) - 9000)
+        verwacht = (42000 * 0.08) + (42000 * 0.18) + (3200 * 0.28)  # 11816
         self.assertAlmostEqual(lb, verwacht, places=2,
                                msg='Forfaitaire cap of LB berekening klopt niet')
 
@@ -422,31 +407,30 @@ class TestArtikel14Schijven(common.TransactionCase):
     def test_exacte_schijfgrens_1(self):
         """
         Belastbaar jaarloon precies op schijfgrens 1 (SRD 42.000).
-        LB = 42.000 × 8% − 9.000 = 3.360 − 9.000 = 0 (heffingskorting elimineert)
+        LB = 42.000 × 8% = 3.360
         """
         lb = self._bereken_lb_jaar(42000.0)
-        verwacht = max(0.0, 42000 * 0.08 - 9000)
-        self.assertEqual(lb, verwacht,
-                         'Exacte schijfgrens 1 berekening klopt niet')
+        verwacht = 42000 * 0.08  # = 3360
+        self.assertAlmostEqual(lb, verwacht, places=2,
+                               msg='Exacte schijfgrens 1 berekening klopt niet')
 
     def test_exacte_schijfgrens_2(self):
         """
         Belastbaar jaarloon precies op schijfgrens 2 (SRD 84.000).
-        LB = 42.000×8% + 42.000×18% − 9.000 = 3.360 + 7.560 − 9.000 = 1.920
+        LB = 42.000×8% + 42.000×18% = 3.360 + 7.560 = 10.920
         """
         lb = self._bereken_lb_jaar(84000.0)
-        verwacht = max(0.0, (42000 * 0.08) + (42000 * 0.18) - 9000)
+        verwacht = (42000 * 0.08) + (42000 * 0.18)  # = 10920
         self.assertAlmostEqual(lb, verwacht, places=2,
                                msg='Exacte schijfgrens 2 berekening klopt niet')
 
     def test_exacte_schijfgrens_3(self):
         """
         Belastbaar jaarloon precies op schijfgrens 3 (SRD 126.000).
-        LB = 42.000×8% + 42.000×18% + 42.000×28% − 9.000 = 13.680
+        LB = 42.000×8% + 42.000×18% + 42.000×28% = 22.680
         """
         lb = self._bereken_lb_jaar(126000.0)
-        verwacht = max(0.0,
-                       (42000 * 0.08) + (42000 * 0.18) + (42000 * 0.28) - 9000)
+        verwacht = (42000 * 0.08) + (42000 * 0.18) + (42000 * 0.28)  # = 22680
         self.assertAlmostEqual(lb, verwacht, places=2,
                                msg='Exacte schijfgrens 3 berekening klopt niet')
 
@@ -606,10 +590,12 @@ class TestArtikel14Breakdown(common.TransactionCase):
             'belastingvrij_jaar', 'forfaitaire_pct', 'forfaitaire_jaar',
             'belastbaar_jaarloon', 's1_grens', 's2_grens', 's3_grens',
             'lb_s1', 'lb_s2', 'lb_s3', 'lb_s4',
-            'lb_voor_heffingskorting', 'heffingskorting_jaar',
-            'lb_jaar_netto', 'lb_per_periode',
+            'lb_jaar', 'lb_per_periode',
+            'lb_bijz', 'lb_17a', 'lb_overwerk',
+            'aov_bijz', 'aov_17a', 'aov_overwerk',
             'franchise_periode', 'aov_grondslag', 'aov_tarief_pct', 'aov_per_periode',
-            'pensioen', 'totaal_inhoudingen', 'netto',
+            'aftrek_bv', 'pensioen', 'totaal_lb', 'totaal_aov',
+            'totaal_inhoudingen', 'netto',
         ]
         for sleutel in verwachte_sleutels:
             self.assertIn(sleutel, bd,
@@ -653,13 +639,13 @@ class TestArtikel14Breakdown(common.TransactionCase):
     def test_breakdown_lb_stemt_overeen_met_salarisregel(self):
         """
         lb_per_periode uit breakdown moet overeenkomen met SR_LB salarisregel
-        (zelfde berekening, andere uitvoersource).
+        (breakdown leest werkelijke payslip regels).
         """
         payslip = self._make_payslip(wage=20255.60)
         bd = payslip._get_sr_artikel14_breakdown()
         lb_regel = payslip.line_ids.filtered(lambda l: l.code == 'SR_LB').total
         # Breakdown geeft positief bedrag, regel geeft negatief
-        self.assertAlmostEqual(bd['lb_gross_per_periode'], abs(lb_regel), delta=0.02,
+        self.assertAlmostEqual(bd['lb_per_periode'], abs(lb_regel), delta=0.02,
                                msg='Breakdown LB moet overeenkomen met SR_LB salarisregel')
 
     def test_breakdown_lege_loonstrook(self):

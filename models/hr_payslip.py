@@ -43,7 +43,7 @@ class HrPayslip(models.Model):
         """
         Berekent Artikel 14 één keer per (payslip, gross, aftrek_bv) combinatie
         en cached het resultaat in een module-level dict om redundante
-        berekeningen te voorkomen wanneer SR_LB, SR_HK en SR_AOV regels
+        berekeningen te voorkomen wanneer SR_LB en SR_AOV regels
         achtereenvolgens dezelfde waarden opvragen.
         """
         self.ensure_one()
@@ -62,7 +62,7 @@ class HrPayslip(models.Model):
 
     def _sr_artikel14_lb(self, gross_per_periode, aftrek_bv=0.0):
         """
-        Berekent Artikel 14 loonbelasting BRUTO per periode (vóór heffingskorting).
+        Berekent Artikel 14 loonbelasting per periode.
 
         Wordt aangeroepen door de SR_LB salarisregel.
         Gebruikt de centrale calculator zodat de berekening altijd
@@ -70,23 +70,9 @@ class HrPayslip(models.Model):
 
         :param gross_per_periode: Bruto belastbaar loon per periode (categories['GROSS'])
         :param aftrek_bv: Aftrek belastingvrij per periode (Art. 10f, bijv. pensioenpremie)
-        :returns: positief bedrag loonbelasting BRUTO per periode
+        :returns: positief bedrag loonbelasting per periode
         """
-        return self._sr_get_cached_result(gross_per_periode, aftrek_bv)['lb_gross_per_periode']
-
-    def _sr_artikel14_hk(self, gross_per_periode, aftrek_bv=0.0):
-        """
-        Berekent de heffingskorting per periode.
-
-        Wordt aangeroepen door de SR_HK salarisregel.
-        De heffingskorting wordt apart teruggegeven zodat de loonstrook
-        de bruto LB en de HK transparant kan tonen.
-
-        :param gross_per_periode: Bruto belastbaar loon per periode (categories['GROSS'])
-        :param aftrek_bv: Aftrek belastingvrij per periode (Art. 10f)
-        :returns: positief bedrag heffingskorting per periode
-        """
-        return self._sr_get_cached_result(gross_per_periode, aftrek_bv)['heffingskorting_per_periode']
+        return self._sr_get_cached_result(gross_per_periode, aftrek_bv)['lb_per_periode']
 
     def _sr_artikel14_aov(self, gross_per_periode, aftrek_bv=0.0):
         """
@@ -125,19 +111,51 @@ class HrPayslip(models.Model):
 
         basic = _line_total('BASIC')
         toelagen = _line_total('SR_ALW')
-        kinderbijslag = _line_total('SR_KINDBIJ')
+        kb_belastbaar = _line_total('SR_KB_BELAST')
+        kb_vrijgesteld = _line_total('SR_KB_VRIJ')
+        input_belastbaar = _line_total('SR_INPUT_BELASTB')
+        input_vrijgesteld = _line_total('SR_INPUT_VRIJ')
         pensioen = abs(_line_total('SR_PENSIOEN'))
+        input_aftrek = abs(_line_total('SR_INPUT_AFTREK'))
+        aftrek_bv = abs(_line_total('SR_AFTREK_BV'))
+        vrijgesteld_contract = _line_total('SR_KINDBIJ')  # Vaste vrijgestelde vergoedingen (excl. KB)
 
-        # ── Calculator aanroepen ──────────────────────────────────────────────
-        # Gebruik basic + toelagen als Art. 14 grondslag — dit is dezelfde waarde
-        # die de SR_LB regel gebruikt (categories['GROSS'] op seq 30, vóór SR_KINDBIJ).
-        # Hierdoor klopt het rapport altijd met de werkelijke SR_LB berekening.
-        gross = basic + toelagen
+        # Post-GROSS positieve inkomsten
+        overwerk = _line_total('SR_OVERWERK')
+        vakantie = _line_total('SR_VAKANTIE')
+        gratificatie = _line_total('SR_GRAT')
+        bijz_beloning = _line_total('SR_BIJZ')
+        uitkering_ineens = _line_total('SR_UITK_INEENS')
+
+        # Werkelijke LB/AOV van de payslip regels (inclusief bijzondere/overwerk/17a)
+        lb_per_periode = abs(_line_total('SR_LB'))
+        lb_bijz = abs(_line_total('SR_LB_BIJZ'))
+        lb_17a = abs(_line_total('SR_LB_17A'))
+        aov_per_periode = abs(_line_total('SR_AOV'))
+        aov_bijz = abs(_line_total('SR_AOV_BIJZ'))
+        aov_17a = abs(_line_total('SR_AOV_17A'))
+        lb_overwerk = abs(_line_total('SR_LB_OVERWERK'))
+        aov_overwerk = abs(_line_total('SR_AOV_OVERWERK'))
+
+        # ── Calculator voor Art. 14 stap-detail ──────────────────────────────
+        # Gebruik de werkelijke GROSS grondslag van de payslip
+        gross = _line_total('GROSS')
         params = calc.fetch_params_from_payslip(self)
-        r = calc.calculate_lb(gross, periodes, params)
+        r = calc.calculate_lb(gross, periodes, params, aftrek_bv_per_periode=aftrek_bv)
 
-        totaal_inhoudingen = r['lb_per_periode'] + r['aov_per_periode'] + pensioen
-        netto = basic + toelagen + kinderbijslag - totaal_inhoudingen
+        # Totalen van alle feitelijke debet-regels
+        totaal_lb = lb_per_periode + lb_bijz + lb_17a + lb_overwerk
+        totaal_aov = aov_per_periode + aov_bijz + aov_17a + aov_overwerk
+        totaal_inhoudingen = totaal_lb + totaal_aov + pensioen + input_aftrek
+
+        kinderbijslag = kb_belastbaar + kb_vrijgesteld
+        bruto_totaal = (
+            basic + toelagen + kinderbijslag
+            + vrijgesteld_contract
+            + input_belastbaar + input_vrijgesteld
+            + overwerk + vakantie + gratificatie + bijz_beloning + uitkering_ineens
+        )
+        netto = bruto_totaal - totaal_inhoudingen - aftrek_bv
 
         return {
             # Basis
@@ -146,8 +164,14 @@ class HrPayslip(models.Model):
             'basic': basic,
             'toelagen': toelagen,
             'kinderbijslag': kinderbijslag,
+            'vrijgesteld_contract': vrijgesteld_contract,
+            'overwerk': overwerk,
+            'vakantie': vakantie,
+            'gratificatie': gratificatie,
+            'bijz_beloning': bijz_beloning,
+            'uitkering_ineens': uitkering_ineens,
             'bruto_per_periode': gross,
-            'bruto_totaal': basic + toelagen + kinderbijslag,
+            'bruto_totaal': bruto_totaal,
             # Artikel 14 stappen
             'bruto_jaarloon': r['bruto_jaar'],
             'belastingvrij_jaar': r['belastingvrij_jaar'],
@@ -172,19 +196,26 @@ class HrPayslip(models.Model):
             'lb_s2': r['lb_s2'],
             'lb_s3': r['lb_s3'],
             'lb_s4': r['lb_s4'],
-            'lb_voor_heffingskorting': r['lb_voor_heffingskorting'],
-            'heffingskorting_jaar': r['heffingskorting_jaar'],
-            'lb_jaar_netto': r['lb_jaar_netto'],
-            'lb_per_periode': r['lb_per_periode'],
-            'lb_gross_per_periode': r['lb_gross_per_periode'],
-            'heffingskorting_per_periode': r['heffingskorting_per_periode'],
+            'lb_jaar': r['lb_jaar'],
+            'lb_per_periode': lb_per_periode,
+            # Bijzondere + overwerk + 17a componenten
+            'lb_bijz': lb_bijz,
+            'lb_17a': lb_17a,
+            'lb_overwerk': lb_overwerk,
+            'aov_bijz': aov_bijz,
+            'aov_17a': aov_17a,
+            'aov_overwerk': aov_overwerk,
             # AOV
             'franchise_periode': r['franchise_periode'],
             'aov_grondslag': r['aov_grondslag'],
             'aov_tarief_pct': r['aov_tarief'] * 100,
-            'aov_per_periode': r['aov_per_periode'],
+            'aov_per_periode': aov_per_periode,
             # Samenvatting
+            'aftrek_bv': aftrek_bv,
             'pensioen': pensioen,
+            'input_aftrek': input_aftrek,
+            'totaal_lb': totaal_lb,
+            'totaal_aov': totaal_aov,
             'totaal_inhoudingen': totaal_inhoudingen,
             'netto': netto,
         }
