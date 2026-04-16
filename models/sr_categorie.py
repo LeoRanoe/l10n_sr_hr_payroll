@@ -18,7 +18,7 @@ SR_CATEGORIE_BASE = [
 
 SR_CATEGORIE_EXTENDED = SR_CATEGORIE_BASE + [
     ('overwerk', 'Overwerk  (Art. 17c — eigen belastingschijven)'),
-    ('vakantie', 'Vakantietoelage  (Art. 10i — vrijstelling max SRD 10.016)'),
-    ('gratificatie', 'Gratificatie / Bonus  (Art. 10j — vrijstelling max SRD 10.016)'),
+    ('vakantie', 'Vakantietoelage  (Art. 10i — belastingvrije vrijstelling)'),
+    ('gratificatie', 'Gratificatie / Bonus  (Art. 10j — belastingvrije vrijstelling)'),
     ('bijz_beloning', 'Bijzondere Beloning  (Art. 17 — marginaal tarief methode)'),
 ]

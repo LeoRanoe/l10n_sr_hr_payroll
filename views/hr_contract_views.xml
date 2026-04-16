@@ -24,14 +24,12 @@
                 <page string="Suriname Loon" name="sr_payroll_tab">
 
                     <!-- ── Artikel 14 badge ──────────────────────────────── -->
-                    <div class="alert alert-info d-flex align-items-center mb-3" role="alert"
-                         style="border-left: 4px solid #0891b2; background: #f0f9ff; border-radius: 6px; padding: 10px 14px;">
+                    <div class="alert alert-info d-flex align-items-center mb-3" role="alert">
                         <div>
-                            <strong style="color: #0e7490;">&#9679; Artikel 14 WLB — Actief</strong>
+                            <strong>&#9679; Artikel 14 WLB — Actief</strong>
                             <span class="text-muted ms-2">
                                 Loonbelasting wordt automatisch berekend via de progressieve
                                 tariefschijven (8% / 18% / 28% / 38%) per verloonperiode.
-                                Geen handmatige activering vereist.
                             </span>
                         </div>
                     </div>
@@ -48,23 +46,18 @@
                                    help="Aantal kinderen voor kinderbijslag vrijstelling. Max SRD 125/kind/mnd, max SRD 500/mnd belastingvrij."/>
                         </group>
                         <group>
-                            <div class="text-muted" style="font-size: 0.9em; padding-top: 4px;">
+                            <div class="text-muted small pt-1">
                                 <strong>Maandloon:</strong> 12 periodes/jaar · AOV franchise SRD 400/mnd<br/>
-                                <strong>Fortnight:</strong> 26 periodes/jaar · Geen AOV franchise
+                                <strong>Fortnight:</strong> 26 periodes/jaar · AOV franchise pro-rata
                             </div>
                         </group>
                     </group>
 
                     <!-- ══════════════════════════════════════════════════
                          VASTE LOON REGELS TABLE
-                         Eindgebruiker beheert zelf toeslagen en inhoudingen.
                          ══════════════════════════════════════════════════ -->
-                    <div style="margin-top: 4px; margin-bottom: 2px;">
-                        <h4 style="color: #374151; border-bottom: 2px solid #e5e7eb; padding-bottom: 4px; margin-bottom: 0;">
-                            Vaste Loon Regels per Periode
-                        </h4>
-                    </div>
-                    <div style="font-size: 0.88em; color: #6b7280; margin-bottom: 8px;">
+                    <separator string="Vaste Loon Regels per Periode"/>
+                    <div class="text-muted small mb-2">
                         Voeg hieronder de vaste toeslagen en inhoudingen toe voor deze werknemer.
                         Kies per regel de categorie: <strong>Belastbaar</strong> (telt mee in Art. 14 grondslag),
                         <strong>Belastingvrij</strong> (Art. 10 WLB), of <strong>Inhouding</strong> (netto aftrek).
@@ -75,11 +68,9 @@
                             <field name="sequence" widget="handle"/>
                             <field name="type_id"
                                    placeholder="Selecteer een type..."
-                                   style="min-width: 180px;"
                                    options="{'no_create': False, 'no_create_edit': False}"/>
                             <field name="name"
-                                   placeholder="Automatisch of handmatig..."
-                                   style="min-width: 160px;"/>
+                                   placeholder="Automatisch of handmatig..."/>
                             <field name="sr_categorie"/>
                             <field name="amount_type" string="Berekening"/>
                             <field name="amount" widget="monetary"
@@ -99,17 +90,17 @@
 
                     <!-- ── Toelichting: Eenmalige/variabele betalingen ─── -->
                     <group string="Eenmalige &amp; Variabele Betalingen (via Loonstrook)" name="sr_payslip_info">
-                        <div colspan="2" style="background: #f0fdf4; border-left: 4px solid #16a34a; border-radius: 4px; padding: 10px 14px; font-size: 0.88em; color: #14532d;">
+                        <div colspan="2" class="alert alert-success small">
                             <strong>&#9432; Hoe eigen loon codes aanmaken?</strong><br/>
                             Bedragen die niet elke periode hetzelfde zijn (overwerk, vakantietoelage,
                             bonus, gratificatie) beheer je via <strong>Loonstrook inputs</strong>:
-                            <ol style="margin: 6px 0 0 16px; padding: 0;">
+                            <ol class="mt-1 mb-0 ps-3">
                                 <li>Ga naar <strong>Configuratie → Salaris → Other Input Types</strong></li>
                                 <li>Maak een nieuwe loon code aan (bijv. "Olie Toeslag Variabel")</li>
                                 <li>Stel de <strong>SR Loon Categorie</strong> in (belastbaar / vrijgesteld / overwerk / vakantie / gratificatie / bijzondere beloning)</li>
                                 <li>Voeg het bedrag toe bij het aanmaken van de loonstrook</li>
                             </ol>
-                            <div style="margin-top: 6px; padding-top: 6px; border-top: 1px solid #bbf7d0;">
+                            <div class="mt-2 pt-2 border-top">
                                 <strong>Vooringestelde codes:</strong>
                                 SR_IN_OVERWERK (Overwerk Art. 17c) ·
                                 SR_IN_VAKANTIE (Vakantietoelage Art. 10i) ·
@@ -123,14 +114,14 @@
 
                     <!-- ── Referentietarieven (dynamisch uit parameters) ── -->
                     <group string="Referentie — Artikel 14 Tariefschijven" name="sr_tarieven">
-                        <div colspan="2" style="padding: 4px 0;">
+                        <div colspan="2" class="py-1">
                             <field name="sr_tax_bracket_html" nolabel="1" readonly="1"/>
                         </div>
                     </group>
 
                     <!-- ── Live Rekenvoorbeeld ───────────────────────────── -->
                     <group string="Rekenvoorbeeld — Geschatte Loonstrook per Periode" name="sr_rekenvoorbeeld">
-                        <div colspan="2" style="background: #fffbeb; border-left: 4px solid #f59e0b; border-radius: 4px; padding: 8px 14px; font-size: 0.88em; color: #78350f; margin-bottom: 8px;">
+                        <div colspan="2" class="alert alert-warning small mb-2">
                             &#9432;&#160;<em>Schatting op basis van vaste contractwaarden. Eenmalige payslip-invoer (overwerk, vakantie, bonus) is niet inbegrepen. Definitieve bedragen staan op de loonstrook.</em>
                         </div>
                         <group string="Bruto &amp; Belastbaar">
@@ -147,7 +138,7 @@
 
                     <!-- ── Berekeningsdetail (Debug Panel) ──────────────── -->
                     <group string="Berekeningsdetail — Stap-voor-Stap (Art. 14)" name="sr_debug_panel">
-                        <div colspan="2" style="font-size: 0.85em; color: #6b7280; margin-bottom: 6px;">
+                        <div colspan="2" class="text-muted small mb-2">
                             Alle tussenliggende berekenstappen voor controle en verificatie.
                             Gebruik dit om de loonstrookbedragen te begrijpen en te vergelijken.
                         </div>

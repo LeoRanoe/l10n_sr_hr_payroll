@@ -167,7 +167,7 @@
                 <li><strong>Heffingskorting Art. 14 lid 5</strong>: vaste maandelijkse korting op de bruto belasting.</li>
                 <li><strong>AOV</strong>: tarief (%) en de franchise/drempel (SRD/maand) onder het Algemeen Pensioenfonds.</li>
                 <li><strong>Overwerk Art. 17c</strong>: eigen schijfgrenzen (per tijdvak) en tarieven voor overwerkvergoedingen.</li>
-                <li><strong>Bijz. Beloningen Art. 10i/j</strong>: maximale vrijstelling voor vakantietoelage en gratificatie (SRD/jaar).</li>
+                <li><strong>Bijz. Beloningen Art. 10i/j</strong> — <strong>SR_BIJZ_VRIJSTELLING_MAX</strong>: maximale vrijstelling voor vakantietoelage en gratificatie (SRD/jaar). <em>Pas dit aan bij wetswijziging.</em></li>
                 <li><strong>Kinderbijslag Art. 10h</strong>: vrijstellingsgrenzen per kind en totaal per maand.</li>
             </ul>
             <h4>&#9888; Eenheid van tariefvelden</h4>
@@ -214,10 +214,18 @@
                 <li><strong>Belastbaar</strong> — Telt mee in GROSS + Art. 14 LB + AOV grondslag.</li>
                 <li><strong>Belastingvrij</strong> — Geen LB/AOV (Art. 10 WLB vergoedingen).</li>
                 <li><strong>Overwerk</strong> — Art. 17c: eigen schijven 5%/15%/25%.</li>
-                <li><strong>Vakantietoelage</strong> — Art. 10i: vrijstelling = min(maandloon, SRD 10.016/jaar).</li>
-                <li><strong>Gratificatie/Bonus</strong> — Art. 10j: zelfde vrijstelling als vakantie, pro-rata bij onvolledig dienstjaar.</li>
+                <li><strong>Vakantietoelage</strong> — Art. 10i: vrijstelling = min(maandloon, <em>SR_BIJZ_VRIJSTELLING_MAX</em>/jaar). Bedrag aanpassen via <strong>SR Rule Parameters</strong>.</li>
+                <li><strong>Gratificatie/Bonus</strong> — Art. 10j: zelfde vrijstelling als vakantie, pro-rata bij onvolledig dienstjaar. Zie <strong>SR_BIJZ_VRIJSTELLING_MAX</strong>.</li>
                 <li><strong>Bijzondere Beloning</strong> — Art. 17: geen vaste vrijstelling, marginaal tarief methode.</li>
             </ul>
+            <div class="alert alert-info">
+                <strong>&#9432; Vrijstellingsbedrag aanpassen?</strong><br/>
+                Ga naar <strong>Configuratie → Suriname → SR Belastingparameters</strong>
+                en zoek op <code>SR_BIJZ_VRIJSTELLING_MAX</code>.
+                Klik op de parameter → tabblad <em>Parameterwaarden</em> → <em>+ Toevoegen</em>
+                → vul de <strong>nieuwe ingangsdatum</strong> en <strong>nieuwe waarde in SRD</strong> in.
+                De berekening gebruikt automatisch het nieuwe bedrag vanaf die datum.
+            </div>
             <h4>Verschil met Loon Code Types en Salary &#x2192; Other Input Types?</h4>
             <p>
                 <strong>Loon Code Types</strong> = vaste bedragen elke periode op het contract

@@ -1,0 +1,500 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Suriname Payroll Help — QWeb Template
+    ========================================
+    Volledige gebruikersdocumentatie voor de Suriname payroll module.
+    Overzichtelijk, stap-voor-stap, gebruiksvriendelijk.
+-->
+<odoo>
+<template id="sr_help_template" name="Suriname Payroll Help &amp; Documentatie">
+    <t t-call="web.frontend_layout">
+        <t t-set="title">Suriname Payroll — Help &amp; Documentatie</t>
+
+        <div class="container py-5" style="max-width: 960px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+
+            <!-- ═══ HEADER ════════════════════════════════════════════ -->
+            <div class="text-center mb-5">
+                <h1 style="color: #0e7490; font-weight: 700;">
+                    <i class="fa fa-book"/> Suriname Salarisverwerking
+                </h1>
+                <p class="lead text-muted">Help &amp; Documentatie — Wet Loonbelasting</p>
+                <hr style="border-color: #0891b2; width: 80px; border-width: 3px;" class="mx-auto"/>
+            </div>
+
+            <!-- ═══ SNELLE NAVIGATIE ════════════════════════════════ -->
+            <div class="card mb-4 border-0 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="fa fa-compass text-info"/> Snelle Navigatie</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <ul class="list-unstyled">
+                                <li><a href="#sect-loonstrook"><i class="fa fa-angle-right text-info"/> Loonstrook aanmaken</a></li>
+                                <li><a href="#sect-contract"><i class="fa fa-angle-right text-info"/> Contract instellen</a></li>
+                                <li><a href="#sect-vaste-regels"><i class="fa fa-angle-right text-info"/> Vaste Loon Regels</a></li>
+                                <li><a href="#sect-categorieen"><i class="fa fa-angle-right text-info"/> Looncategorieën</a></li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <ul class="list-unstyled">
+                                <li><a href="#sect-parameters"><i class="fa fa-angle-right text-info"/> Belastingparameters</a></li>
+                                <li><a href="#sect-berekening"><i class="fa fa-angle-right text-info"/> Hoe de berekening werkt</a></li>
+                                <li><a href="#sect-bijzonder"><i class="fa fa-angle-right text-info"/> Bijzondere beloningen</a></li>
+                                <li><a href="#sect-faq"><i class="fa fa-angle-right text-info"/> Veelgestelde vragen (FAQ)</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ═══ 1. LOONSTROOK AANMAKEN ════════════════════════ -->
+            <div class="card mb-4 border-0 shadow-sm" id="sect-loonstrook">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="fa fa-file-text"/> 1. Loonstrook Aanmaken — Stap voor Stap</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-light border-start border-4 border-info">
+                        <strong>Tip:</strong> Zorg dat de werknemer een <em>actief contract</em> heeft voordat u een loonstrook maakt.
+                    </div>
+
+                    <table class="table table-bordered">
+                        <thead class="table-light">
+                            <tr><th style="width:50px">Stap</th><th>Wat te doen</th><th>Waar te vinden</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="text-center"><span class="badge bg-info">1</span></td>
+                                <td>Ga naar het <strong>Loonstroken</strong> overzicht</td>
+                                <td><em>Payroll → Suriname → Loonstroken SR</em></td>
+                            </tr>
+                            <tr>
+                                <td class="text-center"><span class="badge bg-info">2</span></td>
+                                <td>Klik op <strong>Nieuw</strong> (knop linksboven)</td>
+                                <td>Of via <em>Payroll → Werk Entries → Loonstroken Genereren</em></td>
+                            </tr>
+                            <tr>
+                                <td class="text-center"><span class="badge bg-info">3</span></td>
+                                <td>Selecteer de <strong>werknemer</strong></td>
+                                <td>Het contract wordt automatisch geladen</td>
+                            </tr>
+                            <tr>
+                                <td class="text-center"><span class="badge bg-info">4</span></td>
+                                <td>Controleer de <strong>periode</strong> (datum van/tot)</td>
+                                <td>Standaard: huidige maand</td>
+                            </tr>
+                            <tr>
+                                <td class="text-center"><span class="badge bg-info">5</span></td>
+                                <td>Klik <strong>Bereken Loonstrook</strong></td>
+                                <td>Knop bovenaan het formulier</td>
+                            </tr>
+                            <tr>
+                                <td class="text-center"><span class="badge bg-info">6</span></td>
+                                <td>Controleer de <strong>salarisregels</strong> (LB, AOV, Netto)</td>
+                                <td>Tab "Salary Computation" onderaan</td>
+                            </tr>
+                            <tr>
+                                <td class="text-center"><span class="badge bg-info">7</span></td>
+                                <td>Klik <strong>Bevestigen</strong> als alles klopt</td>
+                                <td>Status verandert naar "Afgerond"</td>
+                            </tr>
+                            <tr>
+                                <td class="text-center"><span class="badge bg-info">8</span></td>
+                                <td><strong>Print</strong> de loonstrook (PDF)</td>
+                                <td>Knop "Print SR Loonstrook" of "Preview"</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ═══ 2. CONTRACT INSTELLEN ══════════════════════════ -->
+            <div class="card mb-4 border-0 shadow-sm" id="sect-contract">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="fa fa-briefcase"/> 2. Contract Instellen voor Suriname</h5>
+                </div>
+                <div class="card-body">
+                    <p>Elk Surinaams contract heeft een <strong>Suriname Loon</strong> tab met de volgende instellingen:</p>
+
+                    <table class="table table-bordered">
+                        <thead class="table-light">
+                            <tr><th>Veld</th><th>Uitleg</th><th>Voorbeeld</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Verloningstype</strong></td>
+                                <td>Hoe vaak de werknemer betaald wordt</td>
+                                <td>Maandelijks, 14-daags, of Wekelijks</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Aantal Kinderen</strong></td>
+                                <td>Voor kinderbijslagberekening (Art. 10d WLB)</td>
+                                <td>0, 1, 2, 3, ...</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Bruto Maandloon (Wage)</strong></td>
+                                <td>Het basisloon per maand in SRD</td>
+                                <td>SRD 20.255,60</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div class="alert alert-warning mt-3">
+                        <strong><i class="fa fa-exclamation-triangle"/> Let op:</strong>
+                        <ul class="mb-0">
+                            <li>Het <em>Salary Structure Type</em> moet ingesteld zijn op <strong>"Suriname Salaris Structuur"</strong></li>
+                            <li>De status van het contract moet <strong>Actief (Running)</strong> zijn</li>
+                            <li>Gebruik de <strong>Live Rekenvoorbeeld</strong> onderaan de Suriname tab om direct te controleren</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ═══ 3. VASTE LOON REGELS ══════════════════════════ -->
+            <div class="card mb-4 border-0 shadow-sm" id="sect-vaste-regels">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="fa fa-list-ol"/> 3. Vaste Loon Regels</h5>
+                </div>
+                <div class="card-body">
+                    <p>Vaste Loon Regels zijn <strong>extra looncomponenten</strong> die elke maand automatisch meekomen op de loonstrook.
+                       Denk aan toelagen, vergoedingen, of inhoudingen.</p>
+
+                    <h6 class="mt-3">Hoe toe te voegen:</h6>
+                    <ol>
+                        <li>Open het <strong>contract</strong> van de werknemer</li>
+                        <li>Ga naar de tab <strong>Suriname Loon</strong></li>
+                        <li>Klik <strong>"Voeg een regel toe"</strong> bij Vaste Loon Regels</li>
+                        <li>Vul in: <strong>Naam</strong>, <strong>Categorie</strong>, <strong>Bedrag of Percentage</strong></li>
+                    </ol>
+
+                    <h6 class="mt-3">Type bedrag:</h6>
+                    <table class="table table-sm table-bordered">
+                        <thead class="table-light">
+                            <tr><th>Type</th><th>Uitleg</th><th>Voorbeeld</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Vast bedrag</strong></td>
+                                <td>Een exact SRD bedrag per periode</td>
+                                <td>SRD 500 transporttoelage</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Percentage</strong></td>
+                                <td>Een % van het bruto loon (wage)</td>
+                                <td>5% = 5% van het bruto maandloon</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ═══ 4. CATEGORIEËN ════════════════════════════════ -->
+            <div class="card mb-4 border-0 shadow-sm" id="sect-categorieen">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="fa fa-tags"/> 4. Looncategorieën — Wat is het verschil?</h5>
+                </div>
+                <div class="card-body">
+                    <p>Elke loonregel heeft een <strong>categorie</strong> die bepaalt hoe het bedrag fiscaal behandeld wordt.</p>
+
+                    <table class="table table-bordered">
+                        <thead class="table-light">
+                            <tr><th>Categorie</th><th>Wat doet het?</th><th>Effect op belasting</th><th>Voorbeeld</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><span class="badge bg-danger">Belastbaar</span></td>
+                                <td>Verhoogt het bruto loon</td>
+                                <td><strong>Meer LB + AOV</strong> betalen</td>
+                                <td>Toelagen, representatievergoeding</td>
+                            </tr>
+                            <tr>
+                                <td><span class="badge bg-success">Vrijgesteld</span></td>
+                                <td>Wordt netto bijgeteld, NIET belast</td>
+                                <td>Geen extra belasting</td>
+                                <td>Kinderbijslag, onkostenvergoeding</td>
+                            </tr>
+                            <tr>
+                                <td><span class="badge bg-secondary">Inhouding</span></td>
+                                <td>Wordt van het netto loon afgetrokken</td>
+                                <td>Geen effect op belasting</td>
+                                <td>Pensioenpremie, leningaflossing</td>
+                            </tr>
+                            <tr>
+                                <td><span class="badge bg-warning text-dark">Overwerk</span></td>
+                                <td>Belast tegen apart tarief (Art. 17c)</td>
+                                <td>Gescheiden overwerkbelasting</td>
+                                <td>Overuren, extra diensten</td>
+                            </tr>
+                            <tr>
+                                <td><span class="badge bg-primary">Vakantietoelage</span></td>
+                                <td>Vrijstelling volgens Art. 10i</td>
+                                <td>Deels vrijgesteld, rest belast</td>
+                                <td>Vakantiebijslag</td>
+                            </tr>
+                            <tr>
+                                <td><span class="badge bg-primary">Gratificatie</span></td>
+                                <td>Vrijstelling volgens Art. 10j</td>
+                                <td>Deels vrijgesteld, rest belast</td>
+                                <td>Eindejaarsuitkering, bonus</td>
+                            </tr>
+                            <tr>
+                                <td><span class="badge bg-dark">Bijzondere beloning</span></td>
+                                <td>Belast via marginaal tarief (Art. 17)</td>
+                                <td>Speciaal belastingtarief</td>
+                                <td>Eenmalige bonus, dertiende maand</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div class="alert alert-info mt-3">
+                        <strong><i class="fa fa-lightbulb-o"/> Tip:</strong>
+                        Weet u niet welke categorie? Kies <strong>Belastbaar</strong> — dat is de veiligste optie.
+                        Belastingvrij stellen kan altijd later nog na overleg met de boekhouder.
+                    </div>
+                </div>
+            </div>
+
+            <!-- ═══ 5. BELASTINGPARAMETERS ════════════════════════ -->
+            <div class="card mb-4 border-0 shadow-sm" id="sect-parameters">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="fa fa-cogs"/> 5. Belastingparameters — Actuele Waarden</h5>
+                </div>
+                <div class="card-body">
+                    <p>Alle belastingpercentages en bedragen zijn <strong>centraal configureerbaar</strong>.
+                       Als de overheid deze wijzigt, hoeft u alleen de parameter aan te passen.</p>
+
+                    <div class="alert alert-light border">
+                        <strong>Waar te vinden:</strong> <em>Payroll → Configuratie → Suriname → SR Belastingparameters</em>
+                    </div>
+
+                    <h6>Huidige waarden:</h6>
+                    <table class="table table-sm table-bordered">
+                        <thead class="table-light">
+                            <tr><th>Parameter</th><th>Waarde</th></tr>
+                        </thead>
+                        <tbody>
+                            <t t-foreach="params.items()" t-as="item">
+                                <tr>
+                                    <td><t t-out="item[1]['label']"/></td>
+                                    <td>
+                                        <strong><t t-out="item[1]['value']"/></strong>
+                                        <small class="text-muted ms-2">(<t t-out="item[0]"/>)</small>
+                                    </td>
+                                </tr>
+                            </t>
+                        </tbody>
+                    </table>
+
+                    <div class="alert alert-warning mt-3">
+                        <strong><i class="fa fa-exclamation-triangle"/> Belangrijk:</strong>
+                        Wijzig deze waarden alleen als de overheid de belastingtarieven aanpast.
+                        Verkeerde waarden leiden tot onjuiste loonberekeningen!
+                    </div>
+                </div>
+            </div>
+
+            <!-- ═══ 6. HOE DE BEREKENING WERKT ════════════════════ -->
+            <div class="card mb-4 border-0 shadow-sm" id="sect-berekening">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="fa fa-calculator"/> 6. Hoe de Berekening Werkt</h5>
+                </div>
+                <div class="card-body">
+                    <p>De loonberekening volgt de <strong>Wet Loonbelasting (WLB)</strong> van Suriname.
+                       Hieronder de stappen die het systeem automatisch uitvoert:</p>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card border-start border-4 border-info mb-3">
+                                <div class="card-body py-2">
+                                    <h6><span class="badge bg-info">1</span> Bruto Loon</h6>
+                                    <small>Basisloon + belastbare toelagen</small>
+                                </div>
+                            </div>
+                            <div class="card border-start border-4 border-info mb-3">
+                                <div class="card-body py-2">
+                                    <h6><span class="badge bg-info">2</span> Forfaitaire Aftrek (Art. 13a)</h6>
+                                    <small>4% van bruto, max SRD 4.800/jaar</small>
+                                </div>
+                            </div>
+                            <div class="card border-start border-4 border-info mb-3">
+                                <div class="card-body py-2">
+                                    <h6><span class="badge bg-info">3</span> Belastingvrije Voet (Art. 13)</h6>
+                                    <small>SRD 108.000/jaar (SRD 9.000/maand)</small>
+                                </div>
+                            </div>
+                            <div class="card border-start border-4 border-info mb-3">
+                                <div class="card-body py-2">
+                                    <h6><span class="badge bg-info">4</span> Belastbaar Inkomen</h6>
+                                    <small>Bruto − forfaitair − belastingvrije voet</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card border-start border-4 border-warning mb-3">
+                                <div class="card-body py-2">
+                                    <h6><span class="badge bg-warning text-dark">5</span> Loonbelasting (Art. 14)</h6>
+                                    <small>Progressief: 8% / 18% / 28% / 38%</small>
+                                </div>
+                            </div>
+                            <div class="card border-start border-4 border-warning mb-3">
+                                <div class="card-body py-2">
+                                    <h6><span class="badge bg-warning text-dark">6</span> Heffingskorting</h6>
+                                    <small>SRD 750/maand aftrek op de LB</small>
+                                </div>
+                            </div>
+                            <div class="card border-start border-4 border-success mb-3">
+                                <div class="card-body py-2">
+                                    <h6><span class="badge bg-success">7</span> AOV Bijdrage</h6>
+                                    <small>4% over (bruto − franchise SRD 400)</small>
+                                </div>
+                            </div>
+                            <div class="card border-start border-4 border-success mb-3">
+                                <div class="card-body py-2">
+                                    <h6><span class="badge bg-success">8</span> Netto Loon</h6>
+                                    <small>Bruto − LB − AOV − inhoudingen + vrijstellingen</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h6 class="mt-3">Tariefschijven Loonbelasting (Art. 14):</h6>
+                    <table class="table table-sm table-bordered">
+                        <thead class="table-light">
+                            <tr><th>Schijf</th><th>Van</th><th>Tot</th><th>Tarief</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>1</td><td>SRD 0</td><td>SRD 42.000</td><td class="text-success fw-bold">8%</td></tr>
+                            <tr><td>2</td><td>SRD 42.000</td><td>SRD 84.000</td><td class="text-info fw-bold">18%</td></tr>
+                            <tr><td>3</td><td>SRD 84.000</td><td>SRD 126.000</td><td class="text-warning fw-bold">28%</td></tr>
+                            <tr><td>4</td><td>SRD 126.000</td><td>∞</td><td class="text-danger fw-bold">38%</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ═══ 7. BIJZONDERE BELONINGEN ══════════════════════ -->
+            <div class="card mb-4 border-0 shadow-sm" id="sect-bijzonder">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="fa fa-gift"/> 7. Bijzondere Beloningen &amp; Overwerk</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6><i class="fa fa-clock-o text-warning"/> Overwerk (Art. 17c)</h6>
+                            <p>Overwerk wordt <strong>apart belast</strong> met een afzonderlijk tarief:</p>
+                            <ul>
+                                <li>5% over het eerste deel</li>
+                                <li>15% over het tweede deel</li>
+                                <li>25% over het resterende deel</li>
+                            </ul>
+                            <p class="text-muted"><small>Geen heffingskorting op overwerk.</small></p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6><i class="fa fa-star text-primary"/> Bijzondere Beloning (Art. 17)</h6>
+                            <p>Wordt belast via het <strong>marginaal tarief</strong>:</p>
+                            <ul>
+                                <li>Systeem berekent LB over jaarloon + bonus</li>
+                                <li>Trekt de reguliere LB af</li>
+                                <li>Het verschil = belasting over de bonus</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <h6 class="mt-3"><i class="fa fa-umbrella text-success"/> Vrijstellingen (Art. 10)</h6>
+                    <table class="table table-sm table-bordered">
+                        <thead class="table-light">
+                            <tr><th>Type</th><th>Artikel</th><th>Werking</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Vakantietoelage</td>
+                                <td>Art. 10i</td>
+                                <td>Belastingvrij tot het maximumbedrag per jaar (instelbaar via parameters)</td>
+                            </tr>
+                            <tr>
+                                <td>Gratificatie / Bonus</td>
+                                <td>Art. 10j</td>
+                                <td>Belastingvrij tot het maximumbedrag per jaar (instelbaar via parameters)</td>
+                            </tr>
+                            <tr>
+                                <td>Kinderbijslag</td>
+                                <td>Art. 10d</td>
+                                <td>Max SRD 125 per kind, max SRD 500 totaal per maand</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ═══ 8. FAQ ════════════════════════════════════════ -->
+            <div class="card mb-4 border-0 shadow-sm" id="sect-faq">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="fa fa-question-circle"/> 8. Veelgestelde Vragen (FAQ)</h5>
+                </div>
+                <div class="card-body">
+
+                    <div class="border-bottom pb-3 mb-3">
+                        <h6 class="fw-bold"><i class="fa fa-question text-info"/> De loonstrook toont geen Suriname regels?</h6>
+                        <p>Controleer of het contract het <strong>Salary Structure Type</strong> = "Suriname Salaris Structuur" heeft.
+                           Alleen contracten met dit structuurtype krijgen de SR-berekeningen.</p>
+                    </div>
+
+                    <div class="border-bottom pb-3 mb-3">
+                        <h6 class="fw-bold"><i class="fa fa-question text-info"/> De Loonbelasting lijkt te hoog?</h6>
+                        <p>Check of:
+                        </p><ul>
+                            <li>De <strong>belastingvrije voet</strong> correct is ingesteld (SR_BELASTINGVRIJ_JAAR)</li>
+                            <li>De <strong>heffingskorting</strong> wordt toegepast (SR_HEFFINGSKORTING_MAAND)</li>
+                            <li>Alle toelagen op de juiste <strong>categorie</strong> staan (belastbaar vs vrijgesteld)</li>
+                        </ul>
+                    </div>
+
+                    <div class="border-bottom pb-3 mb-3">
+                        <h6 class="fw-bold"><i class="fa fa-question text-info"/> Hoe pas ik de belastingtarieven aan?</h6>
+                        <p>Ga naar <em>Payroll → Configuratie → Suriname → SR Belastingparameters</em>.
+                           Zoek de parameter (bijv. SR_TARIEF_1) en pas de waarde aan. <strong>Maak een nieuwe versieregel</strong>
+                           met de ingangsdatum zodat oude loonstroken hun originele tarief behouden.</p>
+                    </div>
+
+                    <div class="border-bottom pb-3 mb-3">
+                        <h6 class="fw-bold"><i class="fa fa-question text-info"/> Kan ik een loonstrook opnieuw berekenen?</h6>
+                        <p>Ja, zolang de loonstrook in status <strong>Concept (Draft)</strong> staat.
+                           Klik op "Bereken Loonstrook" om opnieuw te berekenen.</p>
+                    </div>
+
+                    <div class="border-bottom pb-3 mb-3">
+                        <h6 class="fw-bold"><i class="fa fa-question text-info"/> Wat als een werknemer 14-daags betaald wordt?</h6>
+                        <p>Stel het <strong>Verloningstype</strong> in op "14-daags" in de Suriname Loon tab.
+                           Alle berekeningen (belastingvrije voet, forfaitaire aftrek, etc.) worden automatisch
+                           omgerekend naar het juiste tijdvak.</p>
+                    </div>
+
+                    <div class="border-bottom pb-3 mb-3">
+                        <h6 class="fw-bold"><i class="fa fa-question text-info"/> Waar kan ik de berekening in detail bekijken?</h6>
+                        <p>Op het <strong>contract</strong> onder de Suriname Loon tab vindt u het <em>Berekeningsdetail</em>
+                           met een stapsgewijze uitsplitsing. Op de <strong>loonstrook</strong> kunt u "Preview Berekening"
+                           klikken voor een gedetailleerd overzicht.</p>
+                    </div>
+
+                    <div class="pb-3 mb-3">
+                        <h6 class="fw-bold"><i class="fa fa-question text-info"/> Hoe voeg ik eenmalige inputregels toe?</h6>
+                        <p>Op de loonstrook zelf vindt u de tab <strong>"Other Inputs"</strong>. Daar kunt u eenmalige bedragen
+                           toevoegen zoals een bonus, extra overwerk, of bijzondere beloning. Kies het juiste
+                           <em>Input Type</em> (bijv. "Bijzondere Beloning (Art. 17)").</p>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- ═══ FOOTER ═══════════════════════════════════════ -->
+            <div class="text-center text-muted mt-5 mb-3">
+                <hr/>
+                <p><small>
+                    <i class="fa fa-info-circle"/> Module: <strong>l10n_sr_hr_payroll</strong> — Suriname Salarisverwerking<br/>
+                    Gebaseerd op de Wet Loonbelasting van Suriname<br/>
+                    Voor vragen: neem contact op met de systeembeheerder
+                </small></p>
+            </div>
+
+        </div>
+    </t>
+</template>
+</odoo>
