@@ -111,13 +111,25 @@
         <!-- ═══════════════════════════════════════════════════════════════
              DEBET — Bijzondere Beloning (Art. 17 WLB)
              Geen vaste vrijstelling. Belast via marginaal tarief Art. 17.
-             Gebruik dit voor jubileum-uitkeringen, afkoopsommen, etc.
              ═══════════════════════════════════════════════════════════════ -->
 
         <record id="sr_input_bijz_beloning" model="hr.payslip.input.type">
             <field name="name">Bijzondere Beloning (Art. 17)</field>
             <field name="code">SR_IN_BIJZ</field>
             <field name="sr_categorie">bijz_beloning</field>
+            <field name="country_id" ref="base.sr"/>
+        </record>
+
+        <!-- ═══════════════════════════════════════════════════════════════
+             DEBET — Uitkering Ineens / Jubileum (Art. 17a WLB)
+             Eigen tariefschijven 5%/15%/25%/35%/45%. Geen belastingvrije som.
+             AOV = 4% van het lump-sum bedrag.
+             ═══════════════════════════════════════════════════════════════ -->
+
+        <record id="sr_input_uitkering_ineens" model="hr.payslip.input.type">
+            <field name="name">Uitkering Ineens / Jubileum (Art. 17a)</field>
+            <field name="code">SR_IN_UITK_INEENS</field>
+            <field name="sr_categorie">uitkering_ineens</field>
             <field name="country_id" ref="base.sr"/>
         </record>
 

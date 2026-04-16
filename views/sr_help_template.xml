@@ -353,21 +353,15 @@
                                     <small>Progressief: 8% / 18% / 28% / 38%</small>
                                 </div>
                             </div>
-                            <div class="card border-start border-4 border-warning mb-3">
-                                <div class="card-body py-2">
-                                    <h6><span class="badge bg-warning text-dark">6</span> Heffingskorting</h6>
-                                    <small>SRD 750/maand aftrek op de LB</small>
-                                </div>
-                            </div>
                             <div class="card border-start border-4 border-success mb-3">
                                 <div class="card-body py-2">
-                                    <h6><span class="badge bg-success">7</span> AOV Bijdrage</h6>
+                                    <h6><span class="badge bg-success">6</span> AOV Bijdrage</h6>
                                     <small>4% over (bruto − franchise SRD 400)</small>
                                 </div>
                             </div>
                             <div class="card border-start border-4 border-success mb-3">
                                 <div class="card-body py-2">
-                                    <h6><span class="badge bg-success">8</span> Netto Loon</h6>
+                                    <h6><span class="badge bg-success">7</span> Netto Loon</h6>
                                     <small>Bruto − LB − AOV − inhoudingen + vrijstellingen</small>
                                 </div>
                             </div>
@@ -404,7 +398,7 @@
                                 <li>15% over het tweede deel</li>
                                 <li>25% over het resterende deel</li>
                             </ul>
-                            <p class="text-muted"><small>Geen heffingskorting op overwerk.</small></p>
+                            <p class="text-muted"><small>Overwerk wordt apart belast, niet via Art. 14.</small></p>
                         </div>
                         <div class="col-md-6">
                             <h6><i class="fa fa-star text-primary"/> Bijzondere Beloning (Art. 17)</h6>
@@ -461,7 +455,7 @@
                         <p>Check of:
                         </p><ul>
                             <li>De <strong>belastingvrije voet</strong> correct is ingesteld (SR_BELASTINGVRIJ_JAAR)</li>
-                            <li>De <strong>heffingskorting</strong> wordt toegepast (SR_HEFFINGSKORTING_MAAND)</li>
+                            <li>De <strong>forfaitaire aftrek</strong> correct is ingesteld (SR_FORFAITAIRE_PCT / SR_FORFAITAIRE_MAX_JAAR)</li>
                             <li>Alle toelagen op de juiste <strong>categorie</strong> staan (belastbaar vs vrijgesteld)</li>
                         </ul>
                     </div>

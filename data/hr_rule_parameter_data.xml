@@ -274,5 +274,110 @@
             <field name="parameter_value">500.0</field>
         </record>
 
+        <!-- ═══════════════════════════════════════════════════════════
+             ART. 17a — UITKERING INEENS / JUBILEUM
+             Eigen tariefschijven: 5% / 15% / 25% / 35% / 45%
+             Grenzen: 42.000 / 84.000 / 126.000 / 168.000
+             Geen belastingvrije som. AOV = 4% van het bedrag.
+             ═══════════════════════════════════════════════════════════ -->
+        <record id="sr_param_17a_schijf_1_grens" model="hr.rule.parameter">
+            <field name="name">SR — Art. 17a schijf 1 bovengrens (SRD)</field>
+            <field name="code">SR_17A_SCHIJF_1_GRENS</field>
+            <field name="country_id" ref="base.sr"/>
+        </record>
+        <record id="sr_param_17a_schijf_1_grens_2026" model="hr.rule.parameter.value">
+            <field name="rule_parameter_id" ref="sr_param_17a_schijf_1_grens"/>
+            <field name="date_from" eval="datetime(2026, 1, 1).date()"/>
+            <field name="parameter_value">42000.0</field>
+        </record>
+
+        <record id="sr_param_17a_schijf_2_grens" model="hr.rule.parameter">
+            <field name="name">SR — Art. 17a schijf 2 bovengrens (SRD)</field>
+            <field name="code">SR_17A_SCHIJF_2_GRENS</field>
+            <field name="country_id" ref="base.sr"/>
+        </record>
+        <record id="sr_param_17a_schijf_2_grens_2026" model="hr.rule.parameter.value">
+            <field name="rule_parameter_id" ref="sr_param_17a_schijf_2_grens"/>
+            <field name="date_from" eval="datetime(2026, 1, 1).date()"/>
+            <field name="parameter_value">84000.0</field>
+        </record>
+
+        <record id="sr_param_17a_schijf_3_grens" model="hr.rule.parameter">
+            <field name="name">SR — Art. 17a schijf 3 bovengrens (SRD)</field>
+            <field name="code">SR_17A_SCHIJF_3_GRENS</field>
+            <field name="country_id" ref="base.sr"/>
+        </record>
+        <record id="sr_param_17a_schijf_3_grens_2026" model="hr.rule.parameter.value">
+            <field name="rule_parameter_id" ref="sr_param_17a_schijf_3_grens"/>
+            <field name="date_from" eval="datetime(2026, 1, 1).date()"/>
+            <field name="parameter_value">126000.0</field>
+        </record>
+
+        <record id="sr_param_17a_schijf_4_grens" model="hr.rule.parameter">
+            <field name="name">SR — Art. 17a schijf 4 bovengrens (SRD)</field>
+            <field name="code">SR_17A_SCHIJF_4_GRENS</field>
+            <field name="country_id" ref="base.sr"/>
+        </record>
+        <record id="sr_param_17a_schijf_4_grens_2026" model="hr.rule.parameter.value">
+            <field name="rule_parameter_id" ref="sr_param_17a_schijf_4_grens"/>
+            <field name="date_from" eval="datetime(2026, 1, 1).date()"/>
+            <field name="parameter_value">168000.0</field>
+        </record>
+
+        <record id="sr_param_17a_tarief_1" model="hr.rule.parameter">
+            <field name="name">SR — Art. 17a tarief 1 (decimaal: 0.05 = 5%)</field>
+            <field name="code">SR_17A_TARIEF_1</field>
+            <field name="country_id" ref="base.sr"/>
+        </record>
+        <record id="sr_param_17a_tarief_1_2026" model="hr.rule.parameter.value">
+            <field name="rule_parameter_id" ref="sr_param_17a_tarief_1"/>
+            <field name="date_from" eval="datetime(2026, 1, 1).date()"/>
+            <field name="parameter_value">0.05</field>
+        </record>
+
+        <record id="sr_param_17a_tarief_2" model="hr.rule.parameter">
+            <field name="name">SR — Art. 17a tarief 2 (decimaal: 0.15 = 15%)</field>
+            <field name="code">SR_17A_TARIEF_2</field>
+            <field name="country_id" ref="base.sr"/>
+        </record>
+        <record id="sr_param_17a_tarief_2_2026" model="hr.rule.parameter.value">
+            <field name="rule_parameter_id" ref="sr_param_17a_tarief_2"/>
+            <field name="date_from" eval="datetime(2026, 1, 1).date()"/>
+            <field name="parameter_value">0.15</field>
+        </record>
+
+        <record id="sr_param_17a_tarief_3" model="hr.rule.parameter">
+            <field name="name">SR — Art. 17a tarief 3 (decimaal: 0.25 = 25%)</field>
+            <field name="code">SR_17A_TARIEF_3</field>
+            <field name="country_id" ref="base.sr"/>
+        </record>
+        <record id="sr_param_17a_tarief_3_2026" model="hr.rule.parameter.value">
+            <field name="rule_parameter_id" ref="sr_param_17a_tarief_3"/>
+            <field name="date_from" eval="datetime(2026, 1, 1).date()"/>
+            <field name="parameter_value">0.25</field>
+        </record>
+
+        <record id="sr_param_17a_tarief_4" model="hr.rule.parameter">
+            <field name="name">SR — Art. 17a tarief 4 (decimaal: 0.35 = 35%)</field>
+            <field name="code">SR_17A_TARIEF_4</field>
+            <field name="country_id" ref="base.sr"/>
+        </record>
+        <record id="sr_param_17a_tarief_4_2026" model="hr.rule.parameter.value">
+            <field name="rule_parameter_id" ref="sr_param_17a_tarief_4"/>
+            <field name="date_from" eval="datetime(2026, 1, 1).date()"/>
+            <field name="parameter_value">0.35</field>
+        </record>
+
+        <record id="sr_param_17a_tarief_5" model="hr.rule.parameter">
+            <field name="name">SR — Art. 17a tarief 5 (decimaal: 0.45 = 45%)</field>
+            <field name="code">SR_17A_TARIEF_5</field>
+            <field name="country_id" ref="base.sr"/>
+        </record>
+        <record id="sr_param_17a_tarief_5_2026" model="hr.rule.parameter.value">
+            <field name="rule_parameter_id" ref="sr_param_17a_tarief_5"/>
+            <field name="date_from" eval="datetime(2026, 1, 1).date()"/>
+            <field name="parameter_value">0.45</field>
+        </record>
+
     </data>
 </odoo>

@@ -28,7 +28,6 @@ class SrPayrollHelpController(http.Controller):
             ('SR_TARIEF_2', 'Tarief 2'),
             ('SR_TARIEF_3', 'Tarief 3'),
             ('SR_TARIEF_4', 'Tarief 4'),
-            ('SR_HEFFINGSKORTING_MAAND', 'Heffingskorting per maand'),
             ('SR_AOV_TARIEF', 'AOV tarief'),
             ('SR_AOV_FRANCHISE_MAAND', 'AOV franchise per maand'),
             ('SR_OWK_SCHIJF_1_GRENS', 'Overwerk schijf 1'),

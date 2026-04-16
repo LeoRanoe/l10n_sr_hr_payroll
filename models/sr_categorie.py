@@ -21,4 +21,5 @@ SR_CATEGORIE_EXTENDED = SR_CATEGORIE_BASE + [
     ('vakantie', 'Vakantietoelage  (Art. 10i — belastingvrije vrijstelling)'),
     ('gratificatie', 'Gratificatie / Bonus  (Art. 10j — belastingvrije vrijstelling)'),
     ('bijz_beloning', 'Bijzondere Beloning  (Art. 17 — marginaal tarief methode)'),
+    ('uitkering_ineens', 'Uitkering Ineens / Jubileum  (Art. 17a — eigen tariefschijven)'),
 ]

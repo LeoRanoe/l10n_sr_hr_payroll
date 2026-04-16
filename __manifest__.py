@@ -23,7 +23,6 @@ Berekeningen:
 - Belastingvrije voet (SRD 108.000/jaar)
 - Belastbaar jaarloon (na aftrekken)
 - Loonbelasting Artikel 14 (schijven: 8%% / 18%% / 28%% / 38%%)
-- Heffingskorting (SRD 750/maand)
 - AOV bijdrage (4%% over belastbaar minus franchise SRD 400/maand)
 - Pensioenpremie bijdrage
 - Kinderbijslag (belastingvrij)

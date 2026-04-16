@@ -77,12 +77,6 @@ class HrContract(models.Model):
         compute='_compute_sr_preview',
         store=False,
     )
-    sr_preview_hk_periode = fields.Monetary(
-        string='Heffingskorting per Periode',
-        currency_field='currency_id',
-        compute='_compute_sr_preview',
-        store=False,
-    )
     sr_preview_breakdown_html = fields.Html(
         string='Berekeningsdetail',
         compute='_compute_sr_preview',
@@ -126,8 +120,14 @@ class HrContract(models.Model):
             inhoudingen = contract._sr_resolve_regels('inhouding')
             aftrek_bv = contract._sr_resolve_regels('aftrek_belastingvrij')
 
-            # Kinderbijslag splitsing (Art. 10h)
-            kb_split = contract._sr_kinderbijslag_split(125.0, 500.0)
+            # Kinderbijslag splitsing (Art. 10h) — gebruik configureerbare parameters
+            kb_max_kind = self.env['hr.rule.parameter']._get_parameter_from_code(
+                'SR_KINDBIJ_MAX_KIND_MAAND', raise_if_not_found=False,
+            ) or 125.0
+            kb_max_maand = self.env['hr.rule.parameter']._get_parameter_from_code(
+                'SR_KINDBIJ_MAX_MAAND', raise_if_not_found=False,
+            ) or 500.0
+            kb_split = contract._sr_kinderbijslag_split(kb_max_kind, kb_max_maand)
             kb_belastbaar = kb_split['belastbaar']
             kb_vrijgesteld = kb_split['vrijgesteld']
 
@@ -141,13 +141,11 @@ class HrContract(models.Model):
             bruto_totaal = (contract.wage or 0.0) + belastbaar_toelagen + kb_belastbaar + kb_vrijgesteld + vrijgesteld_toelagen
             contract.sr_preview_bruto = bruto_totaal
             contract.sr_preview_belastbaar_jaar = result['belastbaar_jaar']
-            contract.sr_preview_lb_periode = result['lb_gross_per_periode']
+            contract.sr_preview_lb_periode = result['lb_per_periode']
             contract.sr_preview_aov_periode = result['aov_per_periode']
-            contract.sr_preview_hk_periode = result['heffingskorting_per_periode']
             contract.sr_preview_netto = (
                 bruto_totaal
-                + result['heffingskorting_per_periode']
-                - result['lb_gross_per_periode']
+                - result['lb_per_periode']
                 - result['aov_per_periode']
                 - inhoudingen
                 - aftrek_bv
@@ -160,6 +158,7 @@ class HrContract(models.Model):
                 kb_split=kb_split,
                 vrijgesteld=vrijgesteld_toelagen,
                 inhoudingen=inhoudingen,
+                belastbaar_toelagen=belastbaar_toelagen,
             )
 
     @api.depends()
@@ -219,8 +218,12 @@ class HrContract(models.Model):
         ]
         total_kb = sum(self._sr_resolve_line_amount(r) for r in kb_lines) if kb_lines else 0.0
 
-        if total_kb <= 0 or not self.sr_aantal_kinderen:
-            return {'belastbaar': 0.0, 'vrijgesteld': total_kb}
+        if total_kb <= 0:
+            return {'belastbaar': 0.0, 'vrijgesteld': 0.0}
+
+        if not self.sr_aantal_kinderen or self.sr_aantal_kinderen <= 0:
+            # Geen kinderen geregistreerd: volledige KB is belastbaar
+            return {'belastbaar': total_kb, 'vrijgesteld': 0.0}
 
         periodes = 26 if self.sr_salary_type == 'fn' else 12
         exempt_maand = min(self.sr_aantal_kinderen * max_kind_maand, max_maand)

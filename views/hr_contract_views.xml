@@ -130,7 +130,6 @@
                         </group>
                         <group string="Geschatte Inhoudingen &amp; Netto">
                             <field name="sr_preview_lb_periode" readonly="1" widget="monetary" string="Loonbelasting per Periode (Art. 14)"/>
-                            <field name="sr_preview_hk_periode" readonly="1" widget="monetary" string="Heffingskorting per Periode"/>
                             <field name="sr_preview_aov_periode" readonly="1" widget="monetary" string="AOV per Periode (4%)"/>
                             <field name="sr_preview_netto" readonly="1" widget="monetary" string="Geschat Nettoloon"/>
                         </group>
