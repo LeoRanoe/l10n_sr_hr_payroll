@@ -1,12 +1,44 @@
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
+from datetime import date as dt_date
+
 from odoo import api, fields, models
+from odoo.exceptions import UserError
 
 from . import sr_artikel14_calculator as calc
 
 # Module-level cache for Art. 14 calculations per compute cycle.
 # Keyed on (payslip_id, gross, aftrek_bv). Cleared before each compute_sheet.
 _sr_calc_cache = {}
+
+SR_FN_2026_PERIODS = (
+    {'indicator': '202601', 'label': '2026FN1', 'date_from': dt_date(2026, 1, 1), 'date_to': dt_date(2026, 1, 14)},
+    {'indicator': '202602', 'label': '2026FN2', 'date_from': dt_date(2026, 1, 15), 'date_to': dt_date(2026, 1, 28)},
+    {'indicator': '202603', 'label': '2026FN3', 'date_from': dt_date(2026, 1, 29), 'date_to': dt_date(2026, 2, 11)},
+    {'indicator': '202604', 'label': '2026FN4', 'date_from': dt_date(2026, 2, 12), 'date_to': dt_date(2026, 2, 25)},
+    {'indicator': '202605', 'label': '2026FN5', 'date_from': dt_date(2026, 2, 26), 'date_to': dt_date(2026, 3, 11)},
+    {'indicator': '202506', 'label': '2026FN6', 'date_from': dt_date(2026, 3, 12), 'date_to': dt_date(2026, 3, 25)},
+    {'indicator': '202507', 'label': '2026FN7', 'date_from': dt_date(2026, 3, 26), 'date_to': dt_date(2026, 4, 8)},
+    {'indicator': '202508', 'label': '2026FN8', 'date_from': dt_date(2026, 4, 9), 'date_to': dt_date(2026, 4, 22)},
+    {'indicator': '202509', 'label': '2026FN9', 'date_from': dt_date(2026, 4, 23), 'date_to': dt_date(2026, 5, 6)},
+    {'indicator': '202510', 'label': '2026FN10', 'date_from': dt_date(2026, 5, 7), 'date_to': dt_date(2026, 5, 20)},
+    {'indicator': '202511', 'label': '2026FN11', 'date_from': dt_date(2026, 5, 21), 'date_to': dt_date(2026, 6, 3)},
+    {'indicator': '202512', 'label': '2026FN12', 'date_from': dt_date(2026, 6, 4), 'date_to': dt_date(2026, 6, 17)},
+    {'indicator': '202513', 'label': '2026FN13', 'date_from': dt_date(2026, 6, 18), 'date_to': dt_date(2026, 7, 1)},
+    {'indicator': '202514', 'label': '2026FN14', 'date_from': dt_date(2026, 7, 2), 'date_to': dt_date(2026, 7, 15)},
+    {'indicator': '202515', 'label': '2026FN15', 'date_from': dt_date(2026, 7, 16), 'date_to': dt_date(2026, 7, 29)},
+    {'indicator': '202516', 'label': '2026FN16', 'date_from': dt_date(2026, 7, 30), 'date_to': dt_date(2026, 8, 12)},
+    {'indicator': '202517', 'label': '2026FN17', 'date_from': dt_date(2026, 8, 13), 'date_to': dt_date(2026, 8, 26)},
+    {'indicator': '202518', 'label': '2026FN18', 'date_from': dt_date(2026, 8, 27), 'date_to': dt_date(2026, 9, 9)},
+    {'indicator': '202519', 'label': '2026FN19', 'date_from': dt_date(2026, 9, 10), 'date_to': dt_date(2026, 9, 23)},
+    {'indicator': '202520', 'label': '2026FN20', 'date_from': dt_date(2026, 9, 24), 'date_to': dt_date(2026, 10, 7)},
+    {'indicator': '202521', 'label': '2026FN21', 'date_from': dt_date(2026, 10, 8), 'date_to': dt_date(2026, 10, 21)},
+    {'indicator': '202522', 'label': '2026FN22', 'date_from': dt_date(2026, 10, 22), 'date_to': dt_date(2026, 11, 4)},
+    {'indicator': '202523', 'label': '2026FN23', 'date_from': dt_date(2026, 11, 5), 'date_to': dt_date(2026, 11, 18)},
+    {'indicator': '202524', 'label': '2026FN24', 'date_from': dt_date(2026, 11, 19), 'date_to': dt_date(2026, 12, 2)},
+    {'indicator': '202525', 'label': '2026FN25', 'date_from': dt_date(2026, 12, 3), 'date_to': dt_date(2026, 12, 16)},
+    {'indicator': '202526', 'label': '2026FN26', 'date_from': dt_date(2026, 12, 17), 'date_to': dt_date(2026, 12, 30)},
+)
 
 
 class HrPayslip(models.Model):
@@ -29,6 +61,8 @@ class HrPayslip(models.Model):
         """Clear Art. 14 calculation cache before computing salary rules."""
         global _sr_calc_cache
         _sr_calc_cache.clear()
+        for slip in self:
+            slip._sr_validate_fn_period_2026()
         res = super().compute_sheet()
         _sr_calc_cache.clear()
         return res
@@ -38,6 +72,33 @@ class HrPayslip(models.Model):
         self.ensure_one()
         contract = self.contract_id
         return 26 if getattr(contract, 'sr_salary_type', 'monthly') == 'fn' else 12
+
+    def _sr_get_fn_period_2026(self):
+        """Geeft het 2026 fortnight-tijdvak terug volgens de modulecontext."""
+        self.ensure_one()
+        if not self.date_from or not self.date_to:
+            return False
+        for period in SR_FN_2026_PERIODS:
+            if self.date_from == period['date_from'] and self.date_to == period['date_to']:
+                return period
+        return False
+
+    def _sr_validate_fn_period_2026(self):
+        """Forceer voor 2026 exact de 26 gedocumenteerde fortnight-periodes."""
+        self.ensure_one()
+        contract = self.contract_id
+        if getattr(contract, 'sr_salary_type', 'monthly') != 'fn':
+            return
+        if not self.date_from or not self.date_to:
+            return
+        if self.date_from.year != 2026 and self.date_to.year != 2026:
+            return
+        if self._sr_get_fn_period_2026():
+            return
+        raise UserError(
+            'Fortnight-loonstroken in 2026 moeten exact overeenkomen met de '
+            'gedocumenteerde 26 tijdvakken uit de Suriname context.'
+        )
 
     def _sr_get_cached_result(self, gross_per_periode, aftrek_bv=0.0):
         """
@@ -85,6 +146,81 @@ class HrPayslip(models.Model):
         :returns: positief bedrag AOV per periode
         """
         return self._sr_get_cached_result(gross_per_periode, aftrek_bv)['aov_per_periode']
+
+    def _sr_bijz_belastbaar_totaal(self):
+        """
+        Bereken het totale belastbare bedrag van bijzondere beloningen (Art. 17).
+
+        Handelt YTD-cap-lookup en vrijstellingsberekening af zodat
+        de logica in salarisregels SR_LB_BIJZ en SR_AOV_BIJZ niet
+        gedupliceerd hoeft te worden.
+
+        :returns: float belastbaar_bijz_totaal (>= 0)
+        """
+        self.ensure_one()
+        contract = self.contract_id
+        periodes = self._sr_get_periodes()
+        fn_period = self._sr_get_fn_period_2026() if periodes == 26 else False
+        vrijstelling_max = self._rule_parameter('SR_BIJZ_VRIJSTELLING_MAX')
+        wage_maand = (contract.wage or 0.0) * periodes / 12
+
+        # ── Year-to-date cap lookup ─────────────────────────────────────
+        year_start = self.date_from.replace(month=1, day=1) if self.date_from else False
+        ytd_used = 0.0
+        if year_start:
+            prev_slips = self.env['hr.payslip'].search([
+                ('employee_id', '=', self.employee_id.id),
+                ('date_from', '>=', year_start),
+                ('date_from', '<', self.date_from),
+                ('state', 'in', ['done', 'paid']),
+                ('id', '!=', self.id),
+            ])
+            for ps in prev_slips:
+                for inp in ps.input_line_ids:
+                    cat = inp.input_type_id.sr_categorie
+                    if cat in ('vakantie', 'gratificatie') and inp.amount > 0:
+                        if cat == 'vakantie':
+                            cap = min(2 * wage_maand, vrijstelling_max)
+                        else:
+                            cap = min(wage_maand, vrijstelling_max)
+                            if ps.date_to and contract.date_start:
+                                ys = ps.date_to.replace(month=1, day=1)
+                                ss = max(contract.date_start, ys)
+                                mo = (ps.date_to.year - ss.year) * 12 + ps.date_to.month - ss.month + 1
+                                mo = min(12, max(1, mo))
+                                cap = cap * mo / 12
+                        ytd_used += min(inp.amount, cap)
+        remaining_cap = max(0.0, vrijstelling_max - ytd_used)
+
+        # ── Combineer alle bijzondere beloningen ────────────────────────
+        belastbaar_bijz_totaal = 0.0
+        for inp in self.input_line_ids:
+            cat = inp.input_type_id.sr_categorie
+            if cat not in ('vakantie', 'gratificatie', 'bijz_beloning'):
+                continue
+            bruto = inp.amount
+            if bruto <= 0:
+                continue
+
+            if cat == 'vakantie':
+                vrijstelling = min(2 * wage_maand, remaining_cap)
+            elif cat == 'gratificatie':
+                vrijstelling = min(wage_maand, remaining_cap)
+                if self.date_to and contract.date_start:
+                    ys = self.date_to.replace(month=1, day=1)
+                    ss = max(contract.date_start, ys)
+                    mo = (self.date_to.year - ss.year) * 12 + self.date_to.month - ss.month + 1
+                    mo = min(12, max(1, mo))
+                    vrijstelling = vrijstelling * mo / 12
+            else:
+                vrijstelling = 0.0
+
+            actual_vrijstelling = min(vrijstelling, bruto)
+            remaining_cap -= actual_vrijstelling
+            remaining_cap = max(0.0, remaining_cap)
+            belastbaar_bijz_totaal += max(0.0, bruto - actual_vrijstelling)
+
+        return belastbaar_bijz_totaal
 
     def _get_sr_artikel14_breakdown(self):
         """
@@ -157,13 +293,32 @@ class HrPayslip(models.Model):
         )
         netto = bruto_totaal - totaal_inhoudingen - aftrek_bv
 
+        contract_inhoudingen = []
+        for line in contract.sr_vaste_regels.filtered(lambda record: record.sr_categorie == 'inhouding'):
+            amount = contract._sr_resolve_line_amount(line)
+            if amount > 0:
+                contract_inhoudingen.append({'name': line.name, 'amount': amount})
+
+        input_inhoudingen = []
+        for input_line in self.input_line_ids.filtered(
+            lambda record: record.input_type_id.sr_categorie == 'inhouding' and record.amount > 0
+        ):
+            input_inhoudingen.append({
+                'name': input_line.input_type_id.name or input_line.name or 'Payslip input',
+                'amount': input_line.amount,
+            })
+
         return {
             # Basis
             'periodes': periodes,
             'is_fn': periodes == 26,
+            'fn_period_indicator': fn_period['indicator'] if fn_period else False,
+            'fn_period_label': fn_period['label'] if fn_period else False,
             'basic': basic,
             'toelagen': toelagen,
             'kinderbijslag': kinderbijslag,
+            'kb_belastbaar': kb_belastbaar,
+            'kb_vrijgesteld': kb_vrijgesteld,
             'vrijgesteld_contract': vrijgesteld_contract,
             'overwerk': overwerk,
             'vakantie': vakantie,
@@ -177,7 +332,9 @@ class HrPayslip(models.Model):
             'belastingvrij_jaar': r['belastingvrij_jaar'],
             'forfaitaire_pct': r['forfaitaire_pct'] * 100,
             'forfaitaire_jaar': r['forfaitaire_jaar'],
+            'forfaitaire_max_jaar': params.get('forfaitaire_max', 4800),
             'belastbaar_jaarloon': r['belastbaar_jaar'],
+            'tax_brackets': r.get('tax_brackets', []),
             # Schijfgrenzen
             's1_grens': r['s1'],
             's2_grens': r['s2'],
@@ -214,6 +371,8 @@ class HrPayslip(models.Model):
             'aftrek_bv': aftrek_bv,
             'pensioen': pensioen,
             'input_aftrek': input_aftrek,
+            'contract_inhoudingen': contract_inhoudingen,
+            'input_inhoudingen': input_inhoudingen,
             'totaal_lb': totaal_lb,
             'totaal_aov': totaal_aov,
             'totaal_inhoudingen': totaal_inhoudingen,

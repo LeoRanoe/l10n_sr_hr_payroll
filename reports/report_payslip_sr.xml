@@ -98,6 +98,14 @@
                                 <td class="text-muted" style="font-size:8pt;">Loonstructuur</td>
                                 <td><t t-esc="doc.struct_id.name or '-'"/></td>
                             </tr>
+                            <t t-if="bd.get('fn_period_label')">
+                                <tr>
+                                    <td class="text-muted" style="font-size:8pt;">FN Tijdvak</td>
+                                    <td><t t-esc="bd.get('fn_period_label')"/></td>
+                                    <td class="text-muted" style="font-size:8pt;">Indicator</td>
+                                    <td><t t-esc="bd.get('fn_period_indicator')"/></td>
+                                </tr>
+                            </t>
                         </tbody>
                     </table>
 
@@ -119,13 +127,22 @@
                                     <td class="text-end"><t t-esc="'SRD {:,.2f}'.format(bd.get('toelagen', 0))"/></td>
                                 </tr>
                             </t>
-                            <t t-if="bd.get('kinderbijslag', 0) != 0">
+                            <t t-if="bd.get('kb_vrijgesteld', 0) != 0">
                                 <tr>
                                     <td>
-                                        Kinderbijslag
-                                        <span class="text-success" style="font-size:7.5pt;">&#9658; belastingvrij (Art. 10)</span>
+                                        Kinderbijslag (vrijgesteld)
+                                        <span class="text-success" style="font-size:7.5pt;">&#9658; belastingvrij (Art. 10h)</span>
                                     </td>
-                                    <td class="text-end text-success"><t t-esc="'SRD {:,.2f}'.format(bd.get('kinderbijslag', 0))"/></td>
+                                    <td class="text-end text-success"><t t-esc="'SRD {:,.2f}'.format(bd.get('kb_vrijgesteld', 0))"/></td>
+                                </tr>
+                            </t>
+                            <t t-if="bd.get('kb_belastbaar', 0) != 0">
+                                <tr>
+                                    <td>
+                                        Kinderbijslag (belastbaar)
+                                        <span class="text-danger" style="font-size:7.5pt;">&#9658; belast</span>
+                                    </td>
+                                    <td class="text-end"><t t-esc="'SRD {:,.2f}'.format(bd.get('kb_belastbaar', 0))"/></td>
                                 </tr>
                             </t>
                             <t t-if="bd.get('vrijgesteld_contract', 0) != 0">
@@ -200,7 +217,7 @@
                                 <td>
                                     &#8722; Forfaitaire beroepskosten (Art. 12) &#8212;
                                     <t t-esc="'{:.0f}'.format(bd.get('forfaitaire_pct', 4))"/>%,
-                                    max SRD 4.800/jaar
+                                    max SRD <t t-esc="'{:,.0f}'.format(bd.get('forfaitaire_max_jaar', 4800))"/>/jaar
                                 </td>
                                 <td class="text-end"><t t-esc="'SRD {:,.2f}'.format(bd.get('forfaitaire_jaar', 0))"/></td>
                             </tr>
@@ -213,59 +230,29 @@
                                     Tariefschijven Artikel 14 &#8212; Progressief belastingtarief
                                 </td>
                             </tr>
-                            <t t-if="bd.get('s1_basis', 0) > 0">
-                                <tr>
-                                    <td style="padding-left:20px;">
-                                        Schijf 1 &#8212; 0 t/m
-                                        <t t-esc="'SRD {:,.0f}'.format(bd.get('s1_grens', 42000))"/> &#215;
-                                        <t t-esc="'{:.0f}'.format(bd.get('r1_pct', 8))"/>%
-                                        <span class="text-muted" style="font-size:7.5pt;">
-                                            (<t t-esc="'SRD {:,.2f}'.format(bd.get('s1_basis', 0))"/> belastbaar)
-                                        </span>
-                                    </td>
-                                    <td class="text-end"><t t-esc="'SRD {:,.2f}'.format(bd.get('lb_s1', 0))"/></td>
-                                </tr>
-                            </t>
-                            <t t-if="bd.get('s2_basis', 0) > 0">
-                                <tr>
-                                    <td style="padding-left:20px;">
-                                        Schijf 2 &#8212;
-                                        <t t-esc="'SRD {:,.0f}'.format(bd.get('s1_grens', 42000))"/> t/m
-                                        <t t-esc="'SRD {:,.0f}'.format(bd.get('s2_grens', 84000))"/> &#215;
-                                        <t t-esc="'{:.0f}'.format(bd.get('r2_pct', 18))"/>%
-                                        <span class="text-muted" style="font-size:7.5pt;">
-                                            (<t t-esc="'SRD {:,.2f}'.format(bd.get('s2_basis', 0))"/> belastbaar)
-                                        </span>
-                                    </td>
-                                    <td class="text-end"><t t-esc="'SRD {:,.2f}'.format(bd.get('lb_s2', 0))"/></td>
-                                </tr>
-                            </t>
-                            <t t-if="bd.get('s3_basis', 0) > 0">
-                                <tr>
-                                    <td style="padding-left:20px;">
-                                        Schijf 3 &#8212;
-                                        <t t-esc="'SRD {:,.0f}'.format(bd.get('s2_grens', 84000))"/> t/m
-                                        <t t-esc="'SRD {:,.0f}'.format(bd.get('s3_grens', 126000))"/> &#215;
-                                        <t t-esc="'{:.0f}'.format(bd.get('r3_pct', 28))"/>%
-                                        <span class="text-muted" style="font-size:7.5pt;">
-                                            (<t t-esc="'SRD {:,.2f}'.format(bd.get('s3_basis', 0))"/> belastbaar)
-                                        </span>
-                                    </td>
-                                    <td class="text-end"><t t-esc="'SRD {:,.2f}'.format(bd.get('lb_s3', 0))"/></td>
-                                </tr>
-                            </t>
-                            <t t-if="bd.get('s4_basis', 0) > 0">
-                                <tr>
-                                    <td style="padding-left:20px;">
-                                        Schijf 4 &#8212; boven
-                                        <t t-esc="'SRD {:,.0f}'.format(bd.get('s3_grens', 126000))"/> &#215;
-                                        <t t-esc="'{:.0f}'.format(bd.get('r4_pct', 38))"/>%
-                                        <span class="text-muted" style="font-size:7.5pt;">
-                                            (<t t-esc="'SRD {:,.2f}'.format(bd.get('s4_basis', 0))"/> belastbaar)
-                                        </span>
-                                    </td>
-                                    <td class="text-end"><t t-esc="'SRD {:,.2f}'.format(bd.get('lb_s4', 0))"/></td>
-                                </tr>
+                            <t t-foreach="bd.get('tax_brackets', [])" t-as="bracket">
+                                <t t-if="bracket.get('basis', 0) > 0">
+                                    <tr>
+                                        <td style="padding-left:20px;">
+                                            Schijf <t t-esc="bracket.get('index')"/> &#8212;
+                                            <t t-if="bracket.get('upper') is None">
+                                                boven <t t-esc="'SRD {:,.0f}'.format(bracket.get('lower', 0))"/>
+                                            </t>
+                                            <t t-elif="bracket.get('lower', 0) &lt;= 0">
+                                                0 t/m <t t-esc="'SRD {:,.0f}'.format(bracket.get('upper', 0))"/>
+                                            </t>
+                                            <t t-else="">
+                                                <t t-esc="'SRD {:,.0f}'.format(bracket.get('lower', 0))"/> t/m
+                                                <t t-esc="'SRD {:,.0f}'.format(bracket.get('upper', 0))"/>
+                                            </t>
+                                            &#215; <t t-esc="'{:.0f}'.format(bracket.get('rate', 0) * 100)"/>%
+                                            <span class="text-muted" style="font-size:7.5pt;">
+                                                (<t t-esc="'SRD {:,.2f}'.format(bracket.get('basis', 0))"/> belastbaar)
+                                            </span>
+                                        </td>
+                                        <td class="text-end"><t t-esc="'SRD {:,.2f}'.format(bracket.get('tax', 0))"/></td>
+                                    </tr>
+                                </t>
                             </t>
                             <tr>
                                 <td>Loonbelasting per jaar</td>
@@ -369,16 +356,16 @@
                                     <td class="text-end"><t t-esc="'SRD {:,.2f}'.format(bd.get('aov_overwerk', 0))"/></td>
                                 </tr>
                             </t>
-                            <t t-if="bd.get('pensioen', 0) > 0">
+                            <t t-foreach="bd.get('contract_inhoudingen', [])" t-as="inhouding">
                                 <tr class="text-danger">
-                                    <td>&#8722; Pensioenpremie</td>
-                                    <td class="text-end"><t t-esc="'SRD {:,.2f}'.format(bd.get('pensioen', 0))"/></td>
+                                    <td>&#8722; <t t-esc="inhouding.get('name')"/></td>
+                                    <td class="text-end"><t t-esc="'SRD {:,.2f}'.format(inhouding.get('amount', 0))"/></td>
                                 </tr>
                             </t>
-                            <t t-if="bd.get('input_aftrek', 0) > 0">
+                            <t t-foreach="bd.get('input_inhoudingen', [])" t-as="inhouding_input">
                                 <tr class="text-danger">
-                                    <td>&#8722; Overige Inhoudingen (Payslip)</td>
-                                    <td class="text-end"><t t-esc="'SRD {:,.2f}'.format(bd.get('input_aftrek', 0))"/></td>
+                                    <td>&#8722; <t t-esc="inhouding_input.get('name')"/> (Payslip)</td>
+                                    <td class="text-end"><t t-esc="'SRD {:,.2f}'.format(inhouding_input.get('amount', 0))"/></td>
                                 </tr>
                             </t>
                             <t t-if="bd.get('aftrek_bv', 0) > 0">

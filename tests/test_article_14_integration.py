@@ -16,7 +16,12 @@ en end-to-end loonverwerkingsflows.
 
 from datetime import date
 
+from odoo.exceptions import UserError
 from odoo.tests import common, tagged
+
+
+def _fn_period_2026_9():
+    return date(2026, 4, 23), date(2026, 5, 6)
 
 
 @tagged('post_install', 'post_install_l10n', '-at_install')
@@ -74,8 +79,12 @@ class TestIntegratieVolledigeCyclus(common.TransactionCase):
         })
 
     def _maak_loonstrook(self, contract, date_from=None, date_to=None):
-        date_from = date_from or date(2026, 5, 1)
-        date_to = date_to or date(2026, 5, 31)
+        if not date_from or not date_to:
+            if contract.sr_salary_type == 'fn':
+                date_from, date_to = _fn_period_2026_9()
+            else:
+                date_from = date_from or date(2026, 5, 1)
+                date_to = date_to or date(2026, 5, 31)
         payslip = self.env['hr.payslip'].create({
             'name': f'Integratie Loonstrook {date_from}',
             'employee_id': contract.employee_id.id,
@@ -230,8 +239,8 @@ class TestIntegratieVolledigeCyclus(common.TransactionCase):
         contract = self._maak_contract(wage=fn_loon, salary_type='fn')
         payslip = self._maak_loonstrook(
             contract,
-            date_from=date(2026, 5, 1),
-            date_to=date(2026, 5, 14),
+            date_from=_fn_period_2026_9()[0],
+            date_to=_fn_period_2026_9()[1],
         )
 
         aov = self._haal_totaal(payslip, 'SR_AOV')
@@ -239,6 +248,20 @@ class TestIntegratieVolledigeCyclus(common.TransactionCase):
         expected_aov = -(fn_loon * 0.04)
         self.assertAlmostEqual(aov, expected_aov, places=2,
                                msg='AOV fortnight (geen franchise) klopt niet')
+        self.assertEqual(
+            payslip._get_sr_artikel14_breakdown()['fn_period_label'], '2026FN9'
+        )
+
+    def test_fortnight_loonstrook_weigert_ongeldig_2026_tijdvak(self):
+        """2026 FN-loonstroken buiten de contextkalender moeten worden geweigerd."""
+        contract = self._maak_contract(wage=8000.0, salary_type='fn')
+
+        with self.assertRaises(UserError):
+            self._maak_loonstrook(
+                contract,
+                date_from=date(2026, 5, 1),
+                date_to=date(2026, 5, 14),
+            )
 
     # ──────────────────────────────────────────────────────────────────
     # Test 8: Breakdown dict consistent met SR_LB salarisregel (integratiecheck)

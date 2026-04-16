@@ -329,14 +329,14 @@
                             </div>
                             <div class="card border-start border-4 border-info mb-3">
                                 <div class="card-body py-2">
-                                    <h6><span class="badge bg-info">2</span> Forfaitaire Aftrek (Art. 13a)</h6>
-                                    <small>4% van bruto, max SRD 4.800/jaar</small>
+                                    <h6><span class="badge bg-info">2</span> Forfaitaire Aftrek (Art. 12)</h6>
+                                    <small><t t-esc="'{:.0f}'.format(v.get('SR_FORFAITAIRE_PCT', 0.04) * 100)"/>% van bruto, max SRD <t t-esc="'{:,.0f}'.format(v.get('SR_FORFAITAIRE_MAX_JAAR', 4800))"/>/jaar</small>
                                 </div>
                             </div>
                             <div class="card border-start border-4 border-info mb-3">
                                 <div class="card-body py-2">
                                     <h6><span class="badge bg-info">3</span> Belastingvrije Voet (Art. 13)</h6>
-                                    <small>SRD 108.000/jaar (SRD 9.000/maand)</small>
+                                    <small>SRD <t t-esc="'{:,.0f}'.format(v.get('SR_BELASTINGVRIJ_JAAR', 108000))"/>/jaar (SRD <t t-esc="'{:,.0f}'.format(v.get('SR_BELASTINGVRIJ_JAAR', 108000) / 12)"/>/maand)</small>
                                 </div>
                             </div>
                             <div class="card border-start border-4 border-info mb-3">
@@ -350,13 +350,13 @@
                             <div class="card border-start border-4 border-warning mb-3">
                                 <div class="card-body py-2">
                                     <h6><span class="badge bg-warning text-dark">5</span> Loonbelasting (Art. 14)</h6>
-                                    <small>Progressief: 8% / 18% / 28% / 38%</small>
+                                    <small>Progressief: <t t-esc="lb_rate_summary or '-'"/></small>
                                 </div>
                             </div>
                             <div class="card border-start border-4 border-success mb-3">
                                 <div class="card-body py-2">
                                     <h6><span class="badge bg-success">6</span> AOV Bijdrage</h6>
-                                    <small>4% over (bruto − franchise SRD 400)</small>
+                                    <small><t t-esc="'{:.0f}'.format(v.get('SR_AOV_TARIEF', 0.04) * 100)"/>% over (bruto − franchise SRD <t t-esc="'{:,.0f}'.format(v.get('SR_AOV_FRANCHISE_MAAND', 400))"/>)</small>
                                 </div>
                             </div>
                             <div class="card border-start border-4 border-success mb-3">
@@ -374,10 +374,20 @@
                             <tr><th>Schijf</th><th>Van</th><th>Tot</th><th>Tarief</th></tr>
                         </thead>
                         <tbody>
-                            <tr><td>1</td><td>SRD 0</td><td>SRD 42.000</td><td class="text-success fw-bold">8%</td></tr>
-                            <tr><td>2</td><td>SRD 42.000</td><td>SRD 84.000</td><td class="text-info fw-bold">18%</td></tr>
-                            <tr><td>3</td><td>SRD 84.000</td><td>SRD 126.000</td><td class="text-warning fw-bold">28%</td></tr>
-                            <tr><td>4</td><td>SRD 126.000</td><td>∞</td><td class="text-danger fw-bold">38%</td></tr>
+                            <t t-foreach="lb_brackets" t-as="bracket">
+                                <tr>
+                                    <td><t t-esc="bracket.get('index')"/></td>
+                                    <td>
+                                        <t t-if="bracket.get('lower', 0) &lt;= 0">SRD 0</t>
+                                        <t t-else="">SRD <t t-esc="'{:,.0f}'.format(bracket.get('lower', 0))"/></t>
+                                    </td>
+                                    <td>
+                                        <t t-if="bracket.get('upper') is None">∞</t>
+                                        <t t-else="">SRD <t t-esc="'{:,.0f}'.format(bracket.get('upper', 0))"/></t>
+                                    </td>
+                                    <td class="fw-bold text-primary"><t t-esc="'{:.0f}'.format(bracket.get('rate', 0) * 100)"/>%</td>
+                                </tr>
+                            </t>
                         </tbody>
                     </table>
                 </div>
@@ -429,8 +439,8 @@
                             </tr>
                             <tr>
                                 <td>Kinderbijslag</td>
-                                <td>Art. 10d</td>
-                                <td>Max SRD 125 per kind, max SRD 500 totaal per maand</td>
+                                <td>Art. 10h</td>
+                                <td>Max SRD <t t-esc="'{:,.0f}'.format(v.get('SR_KINDBIJ_MAX_KIND_MAAND', 125))"/> per kind, max SRD <t t-esc="'{:,.0f}'.format(v.get('SR_KINDBIJ_MAX_MAAND', 500))"/> totaal per maand</td>
                             </tr>
                         </tbody>
                     </table>

@@ -120,14 +120,8 @@ class HrContract(models.Model):
             inhoudingen = contract._sr_resolve_regels('inhouding')
             aftrek_bv = contract._sr_resolve_regels('aftrek_belastingvrij')
 
-            # Kinderbijslag splitsing (Art. 10h) — gebruik configureerbare parameters
-            kb_max_kind = self.env['hr.rule.parameter']._get_parameter_from_code(
-                'SR_KINDBIJ_MAX_KIND_MAAND', raise_if_not_found=False,
-            ) or 125.0
-            kb_max_maand = self.env['hr.rule.parameter']._get_parameter_from_code(
-                'SR_KINDBIJ_MAX_MAAND', raise_if_not_found=False,
-            ) or 500.0
-            kb_split = contract._sr_kinderbijslag_split(kb_max_kind, kb_max_maand)
+            # Kinderbijslag splitsing (Art. 10h)
+            kb_split = contract._sr_kinderbijslag_split()
             kb_belastbaar = kb_split['belastbaar']
             kb_vrijgesteld = kb_split['vrijgesteld']
 
@@ -203,14 +197,25 @@ class HrContract(models.Model):
             if r.sr_categorie == categorie
         )
 
-    def _sr_kinderbijslag_split(self, max_kind_maand=125.0, max_maand=500.0):
+    def _sr_kinderbijslag_split(self, max_kind_maand=None, max_maand=None):
         """
         Splitst kinderbijslag in belastbaar en vrijgesteld deel (Art. 10h).
 
-        :param max_kind_maand: Maximum vrijstelling per kind per maand (SRD 125)
-        :param max_maand: Maximum vrijstelling per maand (SRD 500)
+        Wanneer max_kind_maand of max_maand None is, wordt de waarde
+        automatisch opgehaald uit hr.rule.parameter.
+
+        :param max_kind_maand: Maximum vrijstelling per kind per maand (SRD)
+        :param max_maand: Maximum vrijstelling per maand (SRD)
         :returns: dict met 'belastbaar' en 'vrijgesteld'
         """
+        if max_kind_maand is None:
+            max_kind_maand = self.env['hr.rule.parameter']._get_parameter_from_code(
+                'SR_KINDBIJ_MAX_KIND_MAAND', Date.today(), raise_if_not_found=False,
+            ) or 125.0
+        if max_maand is None:
+            max_maand = self.env['hr.rule.parameter']._get_parameter_from_code(
+                'SR_KINDBIJ_MAX_MAAND', Date.today(), raise_if_not_found=False,
+            ) or 500.0
         # Kinderbijslag regels (herkenbaar aan type code KINDBIJ)
         kb_lines = [
             r for r in self.sr_vaste_regels
