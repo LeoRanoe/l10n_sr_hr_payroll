@@ -130,6 +130,21 @@
             <field name="parameter_value">0.38</field>
         </record>
 
+        <!-- Reserve/toekomstige Art. 14 schijf.
+             Deze records zijn bewust zonder actuele waarde zodat zij
+             alvast beheerbaar zijn zonder de 2026-berekening te activeren. -->
+        <record id="sr_param_schijf_4_grens" model="hr.rule.parameter">
+            <field name="name">SR — Schijf 4 bovengrens — Art. 14 reserve/toekomstig (belastbaar jaarloon, SRD)</field>
+            <field name="code">SR_SCHIJF_4_GRENS</field>
+            <field name="country_id" ref="base.sr"/>
+        </record>
+
+        <record id="sr_param_tarief_5" model="hr.rule.parameter">
+            <field name="name">SR — Tarief schijf 5 — Art. 14 reserve/toekomstig (decimaal: 0.48 = 48%%)</field>
+            <field name="code">SR_TARIEF_5</field>
+            <field name="country_id" ref="base.sr"/>
+        </record>
+
         <!-- ═══════════════════════════════════════════════════════════
              AOV (Algemene Ouderdomsvoorziening)
              4% over belastbaar loon minus franchise SRD 400/maand
