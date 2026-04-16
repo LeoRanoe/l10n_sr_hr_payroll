@@ -11,16 +11,24 @@ Parameters worden door de aanroeper verstrekt zodat deze module
 geen afhankelijkheid heeft op hr.rule.parameter of andere Odoo modellen.
 """
 
+import re
+
+from odoo.exceptions import UserError
+
 # Benodigde parametersleutels voor de calculator
 PARAM_KEYS = [
     'belastingvrij_jaar',
     'forfaitaire_pct',
     'forfaitaire_max',
+    'brackets',
     's1', 's2', 's3',
     'r1', 'r2', 'r3', 'r4',
     'aov_tarief',
     'aov_franchise_maand',
 ]
+
+BRACKET_LIMIT_CODE_RE = re.compile(r'^SR_SCHIJF_(\d+)_GRENS$')
+BRACKET_RATE_CODE_RE = re.compile(r'^SR_TARIEF_(\d+)$')
 
 # Mapping van hr.rule.parameter codes naar calculator-sleutels
 PARAM_CODE_MAP = {
@@ -39,6 +47,103 @@ PARAM_CODE_MAP = {
 }
 
 
+def _collect_dynamic_brackets(code_names, get_value):
+    """
+    Bouwt de reguliere Art. 14 schijven dynamisch op uit SR_SCHIJF_* en
+    SR_TARIEF_* parameters zodat extra schijven via nieuwe records mogelijk zijn.
+    """
+    threshold_entries = []
+    rate_entries = []
+
+    for code in code_names:
+        threshold_match = BRACKET_LIMIT_CODE_RE.match(code)
+        if threshold_match:
+            threshold_entries.append((int(threshold_match.group(1)), get_value(code)))
+            continue
+
+        rate_match = BRACKET_RATE_CODE_RE.match(code)
+        if rate_match:
+            rate_entries.append((int(rate_match.group(1)), get_value(code)))
+
+    threshold_entries.sort(key=lambda item: item[0])
+    rate_entries.sort(key=lambda item: item[0])
+
+    if not threshold_entries or not rate_entries:
+        raise UserError('SR Art. 14 parameters ontbreken: schijfgrenzen of tarieven niet gevonden.')
+
+    expected_threshold_indexes = list(range(1, len(threshold_entries) + 1))
+    actual_threshold_indexes = [index for index, _value in threshold_entries]
+    if actual_threshold_indexes != expected_threshold_indexes:
+        raise UserError(
+            'SR Art. 14 schijfgrenzen moeten opeenvolgend genummerd zijn '
+            '(SR_SCHIJF_1_GRENS, SR_SCHIJF_2_GRENS, ...).'
+        )
+
+    expected_rate_indexes = list(range(1, len(rate_entries) + 1))
+    actual_rate_indexes = [index for index, _value in rate_entries]
+    if actual_rate_indexes != expected_rate_indexes:
+        raise UserError(
+            'SR Art. 14 tarieven moeten opeenvolgend genummerd zijn '
+            '(SR_TARIEF_1, SR_TARIEF_2, ...).'
+        )
+
+    thresholds = [value for _index, value in threshold_entries]
+    rates = [value for _index, value in rate_entries]
+
+    if len(rates) != len(thresholds) + 1:
+        raise UserError(
+            'SR Art. 14 configuratie ongeldig: aantal tarieven moet exact één hoger '
+            'zijn dan het aantal schijfgrenzen.'
+        )
+
+    previous_threshold = None
+    for threshold in thresholds:
+        if previous_threshold is not None and threshold <= previous_threshold:
+            raise UserError('SR Art. 14 schijfgrenzen moeten strikt oplopend zijn.')
+        previous_threshold = threshold
+
+    brackets = []
+    for index, rate in enumerate(rates, start=1):
+        upper = thresholds[index - 1] if index <= len(thresholds) else None
+        brackets.append({
+            'index': index,
+            'upper': upper,
+            'rate': rate,
+        })
+
+    return brackets
+
+
+def _pad_legacy_bracket_fields(params):
+    """Behoudt de bestaande s1/s2/s3 en r1/r2/r3/r4 sleutels voor compatibiliteit."""
+    brackets = params['brackets']
+    threshold_values = [row['upper'] for row in brackets if row['upper'] is not None]
+
+    for index in range(1, 4):
+        params[f's{index}'] = threshold_values[index - 1] if len(threshold_values) >= index else 0.0
+
+    for index in range(1, 5):
+        params[f'r{index}'] = brackets[index - 1]['rate'] if len(brackets) >= index else 0.0
+
+    return params
+
+
+def _legacy_bracket_fields(result, bracket_rows):
+    """Vult de bestaande breakdown-sleutels voor de eerste vier schijven op."""
+    threshold_values = [row['upper'] for row in bracket_rows if row['upper'] is not None]
+
+    for index in range(1, 4):
+        result[f's{index}'] = threshold_values[index - 1] if len(threshold_values) >= index else 0.0
+
+    for index in range(1, 5):
+        row = bracket_rows[index - 1] if len(bracket_rows) >= index else None
+        result[f'r{index}'] = row['rate'] if row else 0.0
+        result[f's{index}_basis'] = row['basis'] if row else 0.0
+        result[f'lb_s{index}'] = row['tax'] if row else 0.0
+
+    return result
+
+
 def fetch_params_from_rule_parameter(env, ref_date):
     """
     Haalt alle benodigde Art. 14 parameters op via hr.rule.parameter.
@@ -54,7 +159,12 @@ def fetch_params_from_rule_parameter(env, ref_date):
         params[key] = RuleParam._get_parameter_from_code(
             code, ref_date, raise_if_not_found=True,
         )
-    return params
+    code_names = RuleParam.search([('code', 'like', 'SR_')]).mapped('code')
+    params['brackets'] = _collect_dynamic_brackets(
+        code_names,
+        lambda code: RuleParam._get_parameter_from_code(code, ref_date, raise_if_not_found=True),
+    )
+    return _pad_legacy_bracket_fields(params)
 
 
 def fetch_params_from_payslip(payslip):
@@ -67,7 +177,12 @@ def fetch_params_from_payslip(payslip):
     params = {}
     for code, key in PARAM_CODE_MAP.items():
         params[key] = payslip._rule_parameter(code)
-    return params
+    code_names = payslip.env['hr.rule.parameter'].search([('code', 'like', 'SR_')]).mapped('code')
+    params['brackets'] = _collect_dynamic_brackets(
+        code_names,
+        payslip._rule_parameter,
+    )
+    return _pad_legacy_bracket_fields(params)
 
 
 def calculate_lb(bruto_per_periode, periodes, params, aftrek_bv_per_periode=0.0):
@@ -98,25 +213,32 @@ def calculate_lb(bruto_per_periode, periodes, params, aftrek_bv_per_periode=0.0)
         adjusted_bruto_jaar - params['belastingvrij_jaar'] - forfaitaire_jaar,
     )
 
-    # Tariefschijven (Art. 14)
-    s1 = params['s1']
-    s2 = params['s2']
-    s3 = params['s3']
-    r1 = params['r1']
-    r2 = params['r2']
-    r3 = params['r3']
-    r4 = params['r4']
+    # Tariefschijven (Art. 14) — dynamisch uit parameterrecords opgebouwd.
+    previous_upper = 0.0
+    bracket_rows = []
+    for bracket in params['brackets']:
+        upper = bracket['upper']
+        rate = bracket['rate']
 
-    s1_basis = min(belastbaar_jaar, s1)
-    s2_basis = max(0.0, min(belastbaar_jaar - s1, s2 - s1))
-    s3_basis = max(0.0, min(belastbaar_jaar - s2, s3 - s2))
-    s4_basis = max(0.0, belastbaar_jaar - s3)
+        if upper is None:
+            basis = max(0.0, belastbaar_jaar - previous_upper)
+        else:
+            basis = max(0.0, min(belastbaar_jaar, upper) - previous_upper)
 
-    lb_s1 = s1_basis * r1
-    lb_s2 = s2_basis * r2
-    lb_s3 = s3_basis * r3
-    lb_s4 = s4_basis * r4
-    lb_jaar = lb_s1 + lb_s2 + lb_s3 + lb_s4
+        tax = basis * rate
+        bracket_rows.append({
+            'index': bracket['index'],
+            'lower': previous_upper,
+            'upper': upper,
+            'rate': rate,
+            'basis': basis,
+            'tax': tax,
+        })
+
+        if upper is not None:
+            previous_upper = upper
+
+    lb_jaar = sum(row['tax'] for row in bracket_rows)
 
     # LB per periode — conform context formules (geen heffingskorting)
     lb_per_periode = lb_jaar / periodes
@@ -127,7 +249,7 @@ def calculate_lb(bruto_per_periode, periodes, params, aftrek_bv_per_periode=0.0)
     aov_grondslag = max(0.0, effective_bruto_per_periode - franchise_periode)
     aov_per_periode = aov_grondslag * params['aov_tarief']
 
-    return {
+    result = {
         'bruto_per_periode': bruto_per_periode,
         'periodes': periodes,
         'bruto_jaar': bruto_jaar,
@@ -138,20 +260,7 @@ def calculate_lb(bruto_per_periode, periodes, params, aftrek_bv_per_periode=0.0)
         'forfaitaire_jaar': forfaitaire_jaar,
         'belastingvrij_jaar': params['belastingvrij_jaar'],
         'belastbaar_jaar': belastbaar_jaar,
-        # Schijfgrenzen
-        's1': s1, 's2': s2, 's3': s3,
-        # Tarieven
-        'r1': r1, 'r2': r2, 'r3': r3, 'r4': r4,
-        # Schijfbedragen
-        's1_basis': s1_basis,
-        's2_basis': s2_basis,
-        's3_basis': s3_basis,
-        's4_basis': s4_basis,
-        # Belasting per schijf
-        'lb_s1': lb_s1,
-        'lb_s2': lb_s2,
-        'lb_s3': lb_s3,
-        'lb_s4': lb_s4,
+        'tax_brackets': bracket_rows,
         'lb_jaar': lb_jaar,
         'lb_per_periode': lb_per_periode,
         # AOV
@@ -160,6 +269,8 @@ def calculate_lb(bruto_per_periode, periodes, params, aftrek_bv_per_periode=0.0)
         'aov_tarief': params['aov_tarief'],
         'aov_per_periode': aov_per_periode,
     }
+
+    return _legacy_bracket_fields(result, bracket_rows)
 
 
 def generate_breakdown_html(result, wage, periodes, salary_type, kb_split=None,
@@ -279,22 +390,24 @@ def generate_breakdown_html(result, wage, periodes, salary_type, kb_split=None,
 
     # ─── Sectie 3: LB Schijven ─────────────────────
     rows.append(sep('③ LOONBELASTING SCHIJVEN (Art. 14)'))
-    if r['s1_basis'] > 0:
-        rows.append(row(f"Schijf 1 ({r['r1']*100:.0f}%)",
-                        f"SRD {r['s1_basis']:,.0f} × {r['r1']*100:.0f}%".replace(",", "."),
-                        m(r['lb_s1'])))
-    if r['s2_basis'] > 0:
-        rows.append(row(f"Schijf 2 ({r['r2']*100:.0f}%)",
-                        f"SRD {r['s2_basis']:,.0f} × {r['r2']*100:.0f}%".replace(",", "."),
-                        m(r['lb_s2'])))
-    if r['s3_basis'] > 0:
-        rows.append(row(f"Schijf 3 ({r['r3']*100:.0f}%)",
-                        f"SRD {r['s3_basis']:,.0f} × {r['r3']*100:.0f}%".replace(",", "."),
-                        m(r['lb_s3'])))
-    if r['s4_basis'] > 0:
-        rows.append(row(f"Schijf 4 ({r['r4']*100:.0f}%)",
-                        f"SRD {r['s4_basis']:,.0f} × {r['r4']*100:.0f}%".replace(",", "."),
-                        m(r['lb_s4'])))
+    for bracket in r.get('tax_brackets', []):
+        if bracket['basis'] <= 0:
+            continue
+        if bracket['upper'] is None:
+            formula = (
+                f"Boven SRD {bracket['lower']:,.0f} × {bracket['rate']*100:.0f}%"
+                .replace(",", ".")
+            )
+        else:
+            formula = (
+                f"SRD {bracket['basis']:,.0f} × {bracket['rate']*100:.0f}%"
+                .replace(",", ".")
+            )
+        rows.append(row(
+            f"Schijf {bracket['index']} ({bracket['rate']*100:.0f}%)",
+            formula,
+            m(bracket['tax']),
+        ))
     rows.append(row('<strong>LB jaar</strong>', 'som schijven',
                     m(r['lb_jaar']), '#f0f9ff'))
     rows.append(row('<strong>LB per periode</strong>',
@@ -354,8 +467,7 @@ def generate_tax_bracket_html(params):
     """
     Genereert een HTML-tabel van de tariefschijven op basis van parameters.
 
-    :param params: dict met s1, s2, s3, r1, r2, r3, r4, belastingvrij_jaar,
-                   forfaitaire_pct, forfaitaire_max
+    :param params: dict met brackets, belastingvrij_jaar, forfaitaire_pct, forfaitaire_max
     :returns: HTML string
     """
     def fmt(n):
@@ -365,21 +477,23 @@ def generate_tax_bracket_html(params):
     def pct(n):
         return f"{n * 100:.0f}%"
 
-    colors = ['#16a34a', '#d97706', '#dc2626', '#7c3aed']
-    rows_data = [
-        ('1', f"t/m {fmt(params['s1'])}", pct(params['r1']), colors[0]),
-        ('2', f"{fmt(params['s1'] + 1)} – {fmt(params['s2'])}", pct(params['r2']), colors[1]),
-        ('3', f"{fmt(params['s2'] + 1)} – {fmt(params['s3'])}", pct(params['r3']), colors[2]),
-        ('4', f"Boven {fmt(params['s3'])}", pct(params['r4']), colors[3]),
-    ]
-
     rows_html = ""
-    for i, (schijf, bereik, tarief, color) in enumerate(rows_data):
+    colors = ['#16a34a', '#d97706', '#dc2626', '#7c3aed', '#0f766e', '#b45309']
+    for index, bracket in enumerate(params.get('brackets', []), start=1):
+        lower = bracket['lower'] if 'lower' in bracket else 0.0
+        upper = bracket['upper']
+        color = colors[(index - 1) % len(colors)]
+        if upper is None:
+            bereik = f"Boven {fmt(lower)}"
+        elif lower <= 0:
+            bereik = f"t/m {fmt(upper)}"
+        else:
+            bereik = f"{fmt(lower + 1)} – {fmt(upper)}"
         rows_html += (
             f'<tr>'
-            f'<td>{schijf}</td>'
+            f'<td>{index}</td>'
             f'<td>{bereik}</td>'
-            f'<td class="text-center fw-bold" style="color:{color};">{tarief}</td>'
+            f'<td class="text-center fw-bold" style="color:{color};">{pct(bracket["rate"])}</td>'
             f'</tr>'
         )
 

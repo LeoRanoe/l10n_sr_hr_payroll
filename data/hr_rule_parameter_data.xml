@@ -131,21 +131,6 @@
         </record>
 
         <!-- ═══════════════════════════════════════════════════════════
-             HEFFINGSKORTING
-             SRD 750 per maand = SRD 9.000 per jaar
-             ═══════════════════════════════════════════════════════════ -->
-        <record id="sr_param_heffingskorting_maand" model="hr.rule.parameter">
-            <field name="name">SR — Heffingskorting — Art. 14 lid 5 (SRD / maand)</field>
-            <field name="code">SR_HEFFINGSKORTING_MAAND</field>
-            <field name="country_id" ref="base.sr"/>
-        </record>
-        <record id="sr_param_heffingskorting_maand_2026" model="hr.rule.parameter.value">
-            <field name="rule_parameter_id" ref="sr_param_heffingskorting_maand"/>
-            <field name="date_from" eval="datetime(2026, 1, 1).date()"/>
-            <field name="parameter_value">750.0</field>
-        </record>
-
-        <!-- ═══════════════════════════════════════════════════════════
              AOV (Algemene Ouderdomsvoorziening)
              4% over belastbaar loon minus franchise SRD 400/maand
              ═══════════════════════════════════════════════════════════ -->

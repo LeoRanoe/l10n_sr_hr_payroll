@@ -18,6 +18,14 @@ from odoo.tests import common, tagged
 from odoo.tools import float_compare
 
 
+def _fn_period_2026_7():
+    return date(2026, 3, 26), date(2026, 4, 8)
+
+
+def _fn_period_2026_10():
+    return date(2026, 5, 7), date(2026, 5, 20)
+
+
 @tagged('post_install', 'post_install_l10n', '-at_install')
 class TestArtikel14Berekening(common.TransactionCase):
     """Tests voor Article 14 loonbelasting berekeningen."""
@@ -257,9 +265,7 @@ class TestArtikel14Berekening(common.TransactionCase):
         lb_maand_per_periode = self._get_line_total(payslip_maand, 'SR_LB')
 
         # Fortnight: eerste 2 weken april (1 FN-periode)
-        payslip_fn = self._compute_payslip(
-            contract_fn, date(2026, 4, 1), date(2026, 4, 14)
-        )
+        payslip_fn = self._compute_payslip(contract_fn, *_fn_period_2026_7())
         lb_fn_per_periode = self._get_line_total(payslip_fn, 'SR_LB')
 
         # Jaarbelasting maandloon ≈ jaarbelasting fortnight
@@ -474,13 +480,17 @@ class TestArtikel14AOV(common.TransactionCase):
             'date_start': date(2026, 1, 1),
             'state': 'open',
         })
+        date_from = date(2026, 5, 1)
+        date_to = date(2026, 5, 31)
+        if salary_type == 'fn':
+            date_from, date_to = _fn_period_2026_10()
         payslip = self.env['hr.payslip'].create({
             'name': 'AOV Testloonstrook',
             'employee_id': self.employee.id,
             'contract_id': contract.id,
             'struct_id': self.structure.id,
-            'date_from': date(2026, 5, 1),
-            'date_to': date(2026, 5, 31),
+            'date_from': date_from,
+            'date_to': date_to,
             'company_id': self.company.id,
         })
         payslip.compute_sheet()
@@ -567,13 +577,17 @@ class TestArtikel14Breakdown(common.TransactionCase):
             'date_start': date(2026, 1, 1),
             'state': 'open',
         })
+        date_from = date(2026, 5, 1)
+        date_to = date(2026, 5, 31)
+        if salary_type == 'fn':
+            date_from, date_to = _fn_period_2026_10()
         payslip = self.env['hr.payslip'].create({
             'name': 'Breakdown Testloonstrook',
             'employee_id': self.employee.id,
             'contract_id': contract.id,
             'struct_id': self.structure.id,
-            'date_from': date(2026, 5, 1),
-            'date_to': date(2026, 5, 31),
+            'date_from': date_from,
+            'date_to': date_to,
             'company_id': self.company.id,
         })
         payslip.compute_sheet()
@@ -585,16 +599,19 @@ class TestArtikel14Breakdown(common.TransactionCase):
         bd = payslip._get_sr_artikel14_breakdown()
 
         verwachte_sleutels = [
-            'periodes', 'is_fn', 'basic', 'toelagen', 'kinderbijslag',
+            'periodes', 'is_fn', 'fn_period_label', 'fn_period_indicator',
+            'basic', 'toelagen', 'kinderbijslag',
             'bruto_per_periode', 'bruto_totaal', 'bruto_jaarloon',
             'belastingvrij_jaar', 'forfaitaire_pct', 'forfaitaire_jaar',
             'belastbaar_jaarloon', 's1_grens', 's2_grens', 's3_grens',
             'lb_s1', 'lb_s2', 'lb_s3', 'lb_s4',
+            'tax_brackets',
             'lb_jaar', 'lb_per_periode',
             'lb_bijz', 'lb_17a', 'lb_overwerk',
             'aov_bijz', 'aov_17a', 'aov_overwerk',
             'franchise_periode', 'aov_grondslag', 'aov_tarief_pct', 'aov_per_periode',
-            'aftrek_bv', 'pensioen', 'totaal_lb', 'totaal_aov',
+            'aftrek_bv', 'pensioen', 'contract_inhoudingen', 'input_inhoudingen',
+            'totaal_lb', 'totaal_aov',
             'totaal_inhoudingen', 'netto',
         ]
         for sleutel in verwachte_sleutels:
@@ -625,8 +642,8 @@ class TestArtikel14Breakdown(common.TransactionCase):
             'employee_id': self.employee.id,
             'contract_id': contract.id,
             'struct_id': self.structure.id,
-            'date_from': date(2026, 5, 1),
-            'date_to': date(2026, 5, 14),
+            'date_from': _fn_period_2026_10()[0],
+            'date_to': _fn_period_2026_10()[1],
             'company_id': self.company.id,
         })
         payslip.compute_sheet()
@@ -635,6 +652,8 @@ class TestArtikel14Breakdown(common.TransactionCase):
         self.assertTrue(bd['is_fn'])
         self.assertEqual(bd['franchise_periode'], 0.0,
                          'Fortnight heeft geen AOV franchise')
+        self.assertEqual(bd['fn_period_label'], '2026FN10')
+        self.assertEqual(bd['fn_period_indicator'], '202510')
 
     def test_breakdown_lb_stemt_overeen_met_salarisregel(self):
         """
