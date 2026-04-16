@@ -121,6 +121,28 @@ class TestIntegratieVolledigeCyclus(common.TransactionCase):
                 f'Salarisregel met code "{code}" ontbreekt op de loonstrook',
             )
 
+    def test_toekomstige_placeholder_schijven_blokkeren_huidige_berekening_niet(self):
+        """Extra Art. 14 parametercodes zonder actieve waarde mogen 2026 payroll niet breken."""
+        country = self.env.ref('base.sr')
+        self.env['hr.rule.parameter'].create({
+            'name': 'Test reserve schijfgrens zonder waarde',
+            'code': 'SR_SCHIJF_99_GRENS',
+            'country_id': country.id,
+        })
+        self.env['hr.rule.parameter'].create({
+            'name': 'Test reserve tarief zonder waarde',
+            'code': 'SR_TARIEF_100',
+            'country_id': country.id,
+        })
+
+        contract = self._maak_contract(wage=20000.0)
+        payslip = self._maak_loonstrook(contract)
+
+        self.assertTrue(
+            bool(self._haal_regel(payslip, 'SR_LB')),
+            'Reserve Art. 14 parametercodes zonder actieve waarde mogen de payroll niet blokkeren',
+        )
+
     # ──────────────────────────────────────────────────────────────────
     # Test 2: Netto = Bruto + alle inhoudingen (balanscontrole)
     # ──────────────────────────────────────────────────────────────────
@@ -542,7 +564,9 @@ class TestIntegratieLoonstructuur(common.TransactionCase):
         verwachte_codes = [
             'SR_BELASTINGVRIJ_JAAR',
             'SR_SCHIJF_1_GRENS',
+            'SR_SCHIJF_4_GRENS',
             'SR_TARIEF_1',
+            'SR_TARIEF_5',
             'SR_AOV_TARIEF',
         ]
         for code in verwachte_codes:

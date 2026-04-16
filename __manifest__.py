@@ -22,8 +22,8 @@ Berekeningen:
 - Forfaitaire beroepskosten aftrek (4%% van bruto, max SRD 4.800/jaar)
 - Belastingvrije voet (SRD 108.000/jaar)
 - Belastbaar jaarloon (na aftrekken)
-- Loonbelasting Artikel 14 (schijven: 8%% / 18%% / 28%% / 38%%)
-- AOV bijdrage (4%% over belastbaar minus franchise SRD 400/maand)
+- Loonbelasting Artikel 14 (progressieve schijven via SR-parameters)
+- AOV bijdrage (actief tarief en franchise via SR-parameters)
 - Pensioenpremie bijdrage
 - Kinderbijslag (belastingvrij)
 - Netto loon

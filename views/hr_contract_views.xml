@@ -29,7 +29,7 @@
                             <strong>&#9679; Artikel 14 WLB — Actief</strong>
                             <span class="text-muted ms-2">
                                 Loonbelasting wordt automatisch berekend via de progressieve
-                                tariefschijven (8% / 18% / 28% / 38%) per verloonperiode.
+                                tariefschijven uit de actuele SR-parameters per verloonperiode.
                             </span>
                         </div>
                     </div>
@@ -47,7 +47,7 @@
                         </group>
                         <group>
                             <div class="text-muted small pt-1">
-                                <strong>Maandloon:</strong> 12 periodes/jaar · AOV franchise SRD 400/mnd<br/>
+                                <strong>Maandloon:</strong> 12 periodes/jaar · AOV franchise volgens actuele SR-parameter<br/>
                                 <strong>Fortnight:</strong> 26 periodes/jaar · Geen AOV franchise
                             </div>
                         </group>

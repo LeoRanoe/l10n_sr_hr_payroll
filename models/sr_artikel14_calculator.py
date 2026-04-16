@@ -58,12 +58,26 @@ def _collect_dynamic_brackets(code_names, get_value):
     for code in code_names:
         threshold_match = BRACKET_LIMIT_CODE_RE.match(code)
         if threshold_match:
-            threshold_entries.append((int(threshold_match.group(1)), get_value(code)))
+            try:
+                value = get_value(code)
+            except UserError:
+                # Reserve/toekomstige schijfcodes zonder actuele waarde
+                # mogen de huidige payrollberekening niet blokkeren.
+                continue
+            if value is None or value is False or value == '':
+                continue
+            threshold_entries.append((int(threshold_match.group(1)), value))
             continue
 
         rate_match = BRACKET_RATE_CODE_RE.match(code)
         if rate_match:
-            rate_entries.append((int(rate_match.group(1)), get_value(code)))
+            try:
+                value = get_value(code)
+            except UserError:
+                continue
+            if value is None or value is False or value == '':
+                continue
+            rate_entries.append((int(rate_match.group(1)), value))
 
     threshold_entries.sort(key=lambda item: item[0])
     rate_entries.sort(key=lambda item: item[0])
