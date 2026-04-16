@@ -57,7 +57,7 @@ class TestIntegratieVolledigeCyclus(common.TransactionCase):
 
     def _maak_contract(self, wage, salary_type='monthly',
                        toelagen=0.0, kinderbijslag=0.0, pensioenpremie=0.0,
-                       employee=None):
+                       employee=None, date_start=None):
         emp = employee or self.employee
         vaste_regels = []
         if toelagen:
@@ -74,18 +74,26 @@ class TestIntegratieVolledigeCyclus(common.TransactionCase):
             'wage': wage,
             'sr_salary_type': salary_type,
             'sr_vaste_regels': vaste_regels,
-            'date_start': date(2026, 1, 1),
+            'date_start': date_start or date(2026, 1, 1),
             'state': 'open',
         })
 
-    def _maak_loonstrook(self, contract, date_from=None, date_to=None):
+    def _maak_input(self, xmlid, amount):
+        input_type = self.env.ref(xmlid)
+        return {
+            'name': input_type.name,
+            'input_type_id': input_type.id,
+            'amount': amount,
+        }
+
+    def _maak_loonstrook(self, contract, date_from=None, date_to=None, inputs=None):
         if not date_from or not date_to:
             if contract.sr_salary_type == 'fn':
                 date_from, date_to = _fn_period_2026_9()
             else:
                 date_from = date_from or date(2026, 5, 1)
                 date_to = date_to or date(2026, 5, 31)
-        payslip = self.env['hr.payslip'].create({
+        payslip_vals = {
             'name': f'Integratie Loonstrook {date_from}',
             'employee_id': contract.employee_id.id,
             'contract_id': contract.id,
@@ -93,7 +101,10 @@ class TestIntegratieVolledigeCyclus(common.TransactionCase):
             'date_from': date_from,
             'date_to': date_to,
             'company_id': self.company.id,
-        })
+        }
+        if inputs:
+            payslip_vals['input_line_ids'] = [(0, 0, input_vals) for input_vals in inputs]
+        payslip = self.env['hr.payslip'].create(payslip_vals)
         payslip.compute_sheet()
         return payslip
 
@@ -247,6 +258,81 @@ class TestIntegratieVolledigeCyclus(common.TransactionCase):
         self.assertAlmostEqual(
             net_met, net_zonder - premie, places=2,
             msg='Nettoloon na pensioenpremie klopt niet',
+        )
+
+    def test_bijzondere_beloningen_gecombineerd_in_een_marginale_berekening(self):
+        """Vakantie + Art. 17 beloning moeten via één belastbaar totaal doorwerken."""
+        contract = self._maak_contract(wage=20000.0)
+        payslip = self._maak_loonstrook(
+            contract,
+            inputs=[
+                self._maak_input('l10n_sr_hr_payroll.sr_input_vakantietoelage', 24000.0),
+                self._maak_input('l10n_sr_hr_payroll.sr_input_bijz_beloning', 1200.0),
+            ],
+        )
+
+        belastbaar_bijz = payslip._sr_bijz_belastbaar_totaal()
+        aov_bijz = self._haal_totaal(payslip, 'SR_AOV_BIJZ')
+        lb_bijz = self._haal_totaal(payslip, 'SR_LB_BIJZ')
+
+        self.assertAlmostEqual(
+            belastbaar_bijz, 15184.0, places=2,
+            msg='Gecombineerde Art. 17 grondslag klopt niet',
+        )
+        self.assertAlmostEqual(
+            aov_bijz, -50.61, places=2,
+            msg='AOV op gecombineerde bijzondere beloningen klopt niet',
+        )
+        self.assertLess(lb_bijz, 0.0, 'LB bijzondere beloningen moet een inhouding zijn')
+
+    def test_bijzondere_beloningen_ytd_cap_volgt_historische_contractstaat(self):
+        """YTD vrijstellingsgebruik moet vorige slips met hun eigen loon/contract lezen."""
+        vorig_contract = self._maak_contract(
+            wage=2000.0,
+            employee=self.employee,
+            date_start=date(2026, 1, 1),
+        )
+        vorige_slip = self._maak_loonstrook(
+            vorig_contract,
+            date_from=date(2026, 3, 1),
+            date_to=date(2026, 3, 31),
+            inputs=[self._maak_input('l10n_sr_hr_payroll.sr_input_vakantietoelage', 9000.0)],
+        )
+        vorige_slip.write({'state': 'done'})
+        vorig_contract.write({'state': 'close'})
+
+        nieuw_contract = self._maak_contract(
+            wage=6000.0,
+            employee=self.employee,
+            date_start=date(2026, 7, 1),
+        )
+        huidige_slip = self._maak_loonstrook(
+            nieuw_contract,
+            date_from=date(2026, 8, 1),
+            date_to=date(2026, 8, 31),
+            inputs=[self._maak_input('l10n_sr_hr_payroll.sr_input_vakantietoelage', 7000.0)],
+        )
+
+        self.assertAlmostEqual(
+            huidige_slip._sr_bijz_belastbaar_totaal(), 984.0, places=2,
+            msg='YTD-cap moet de historische vrijstelling uit vorige slips correct meenemen',
+        )
+
+    def test_uitkering_ineens_artikel_17a_regels(self):
+        """Art. 17a moet eigen LB-schijven en volledige AOV gebruiken."""
+        contract = self._maak_contract(wage=20000.0)
+        payslip = self._maak_loonstrook(
+            contract,
+            inputs=[self._maak_input('l10n_sr_hr_payroll.sr_input_uitkering_ineens', 100000.0)],
+        )
+
+        self.assertAlmostEqual(
+            self._haal_totaal(payslip, 'SR_LB_17A'), -12400.0, places=2,
+            msg='LB op uitkering ineens (Art. 17a) klopt niet',
+        )
+        self.assertAlmostEqual(
+            self._haal_totaal(payslip, 'SR_AOV_17A'), -4000.0, places=2,
+            msg='AOV op uitkering ineens (Art. 17a) klopt niet',
         )
 
     # ──────────────────────────────────────────────────────────────────

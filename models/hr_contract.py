@@ -153,6 +153,8 @@ class HrContract(models.Model):
                 vrijgesteld=vrijgesteld_toelagen,
                 inhoudingen=inhoudingen,
                 belastbaar_toelagen=belastbaar_toelagen,
+                bruto_totaal=bruto_totaal,
+                netto_totaal=contract.sr_preview_netto,
             )
 
     @api.depends()

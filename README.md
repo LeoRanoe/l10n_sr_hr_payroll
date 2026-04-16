@@ -1,56 +1,81 @@
 # l10n_sr_hr_payroll
 
-Korte beschrijving
-------------------
-Een Odoo-add-on voor HR / salarisfunctionaliteit (module: `l10n_sr_hr_payroll`). Dit project bevat modeldefinities, salarisregels, rapporten en tests voor gebruik binnen een Odoo-installatie.
+Suriname payroll add-on voor Odoo 18, afgestemd op de payrollcontext in `Salarisverwerking Module/Loonbelasting context.md`.
 
-Belangrijkste bestanden
-----------------------
-- `__manifest__.py` - module manifest
-- `models/hr_contract.py` - contractmodel en bedrijfslogica
-- `reports/report_payslip_sr.xml` - payslip-rapport
-- `views/hr_contract_views.xml` - view-definities
-- `tests/test_article_14.py` - automatische tests
+## Wat de module doet
 
-Branches
---------
-Deze repository gebruikt de volgende branches:
-- `main` — stabiele, productieklare code
-- `staging` — pre-productie integratie
-- `dev` — actieve ontwikkeling, feature-branches
+De module ondersteunt:
 
-Installatie (kort)
-------------------
-1. Plaats de map `l10n_sr_hr_payroll` in je Odoo `addons`-pad (bijv. `C:\Program Files\Odoo\addons` of je custom addons map).
+- Artikel 14 loonbelasting via bewerkbare `hr.rule.parameter` records
+- maandloon en fortnight-verloning (`12` of `26` periodes)
+- FN 2026 tijdvakvalidatie en indicatoren
+- AOV-berekening met parametergestuurd tarief en franchise
+- overwerk (Art. 17c)
+- bijzondere beloningen (Art. 17)
+- uitkering ineens / jubileum (Art. 17a)
+- contractpreview, loonstrookrapport en configuratie/help-pagina's
+
+## Belangrijke functionele keuze
+
+De Art. 14 engine volgt de formulelijn uit `Loonbelasting context.md`.
+Dat betekent dat de module momenteel **geen actieve heffingskorting** toepast in de wettelijke LB-berekening.
+
+## Parameterbeheer
+
+Alle belangrijke fiscale waarden zijn bewerkbaar via:
+
+`Payroll -> Configuratie -> Suriname -> SR Belastingparameters`
+
+De reguliere Art. 14 schijven zijn uitbreidbaar via codes zoals:
+
+- `SR_SCHIJF_1_GRENS`, `SR_SCHIJF_2_GRENS`, ...
+- `SR_TARIEF_1`, `SR_TARIEF_2`, ...
+
+Reserve-parameters voor toekomstige uitbreiding zijn al aanwezig, onder andere:
+
+- `SR_SCHIJF_4_GRENS`
+- `SR_TARIEF_5`
+
+Zonder actieve parameterwaarde beïnvloeden die placeholders de huidige berekening niet.
+
+## Installatie
+
+1. Plaats `l10n_sr_hr_payroll` in het Odoo addons-pad.
 2. Herstart de Odoo-server.
-3. Update de apps-lijst en installeer de module `l10n_sr_hr_payroll` via de Odoo UI of CLI.
+3. Update de apps-lijst.
+4. Installeer of update de module.
 
-Voorbeeld (CLI):
+Voorbeeld:
+
 ```powershell
-# Pas paden aan naar jouw omgeving
-python odoo-bin --addons-path="/pad/naar/addons;./" -d test_db --test-enable --stop-after-init -i l10n_sr_hr_payroll
+Set-Location "C:\Program Files\Odoo 18.0e.20260407\server"
+.\odoo-bin -u l10n_sr_hr_payroll -d "Salarisverwerking-Module" --stop-after-init
 ```
 
-Ontwikkelen en testen
-----------------------
-- Gebruik een eigen ontwikkelbranch van `dev` voor features en maak pull requests naar `staging`.
-- Tests in `tests/` zijn bedoeld om met de Odoo test-runner uitgevoerd te worden (zie voorbeeld hierboven).
+## Validatie
 
-Contributie
------------
-1. Fork de repository.
-2. Maak een feature-branch van `dev`.
-3. Open een pull request naar `staging` met een duidelijke beschrijving.
+De release-validatie voor deze module is uitgevoerd met:
 
-Licentie
---------
-Er is momenteel geen expliciet `LICENSE`-bestand in deze repository. Voeg een licentie toe of controleer met de repository-eigenaar welke licence van toepassing is.
+```powershell
+Set-Location "C:\Program Files\Odoo 18.0e.20260407\server"
+.\odoo-bin -u l10n_sr_hr_payroll --test-enable -d "Salarisverwerking-Module" --stop-after-init --log-level=test --workers=0
+```
 
-Contact
--------
-Open een issue in de repository of contacteer de maintainer voor vragen.
+## Belangrijkste bestanden
 
----
-Engelse samenvatting
---------------------
-Short README with install and development notes for the `l10n_sr_hr_payroll` Odoo addon.
+- `__manifest__.py`
+- `models/hr_contract.py`
+- `models/hr_payslip.py`
+- `models/sr_artikel14_calculator.py`
+- `data/hr_rule_parameter_data.xml`
+- `data/hr_salary_rule_data.xml`
+- `reports/report_payslip_sr.xml`
+- `views/hr_contract_views.xml`
+- `views/hr_payroll_config_sr_views.xml`
+- `views/sr_help_template.xml`
+- `tests/test_article_14.py`
+- `tests/test_article_14_integration.py`
+
+## Licentie
+
+De module declareert `LGPL-3` in het manifest.

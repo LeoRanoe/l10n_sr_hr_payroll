@@ -147,6 +147,57 @@ class HrPayslip(models.Model):
         """
         return self._sr_get_cached_result(gross_per_periode, aftrek_bv)['aov_per_periode']
 
+    def _sr_bijz_gratificatie_cap(self, vrijstelling_max):
+        """Berekent de slip-specifieke gratificatievrijstelling met pro-rata dienstjaar."""
+        self.ensure_one()
+        contract = self.contract_id
+        wage_maand = (contract.wage or 0.0) * self._sr_get_periodes() / 12
+        cap = min(wage_maand, vrijstelling_max)
+        if self.date_to and contract.date_start:
+            year_start = self.date_to.replace(month=1, day=1)
+            service_start = max(contract.date_start, year_start)
+            months = (self.date_to.year - service_start.year) * 12 + self.date_to.month - service_start.month + 1
+            months = min(12, max(1, months))
+            cap = cap * months / 12
+        return cap
+
+    def _sr_bijz_usage_summary(self, remaining_cap=None, vrijstelling_max=None):
+        """Geeft vrijgesteld, belastbaar en resterende jaarcap terug voor Art. 17 inputs."""
+        self.ensure_one()
+        contract = self.contract_id
+        if vrijstelling_max is None:
+            vrijstelling_max = self._rule_parameter('SR_BIJZ_VRIJSTELLING_MAX')
+        if remaining_cap is None:
+            remaining_cap = vrijstelling_max
+
+        wage_maand = (contract.wage or 0.0) * self._sr_get_periodes() / 12
+        vrijgesteld_used = 0.0
+        belastbaar_totaal = 0.0
+
+        for inp in self.input_line_ids.sorted(lambda line: line.id or 0):
+            cat = inp.input_type_id.sr_categorie
+            bruto = inp.amount
+            if cat not in ('vakantie', 'gratificatie', 'bijz_beloning') or bruto <= 0:
+                continue
+
+            if cat == 'vakantie':
+                vrijstelling = min(2 * wage_maand, remaining_cap)
+            elif cat == 'gratificatie':
+                vrijstelling = min(self._sr_bijz_gratificatie_cap(vrijstelling_max), remaining_cap)
+            else:
+                vrijstelling = 0.0
+
+            actual_vrijstelling = min(vrijstelling, bruto)
+            remaining_cap = max(0.0, remaining_cap - actual_vrijstelling)
+            vrijgesteld_used += actual_vrijstelling
+            belastbaar_totaal += max(0.0, bruto - actual_vrijstelling)
+
+        return {
+            'vrijgesteld': vrijgesteld_used,
+            'belastbaar': belastbaar_totaal,
+            'remaining_cap': remaining_cap,
+        }
+
     def _sr_bijz_belastbaar_totaal(self):
         """
         Bereken het totale belastbare bedrag van bijzondere beloningen (Art. 17).
@@ -158,15 +209,11 @@ class HrPayslip(models.Model):
         :returns: float belastbaar_bijz_totaal (>= 0)
         """
         self.ensure_one()
-        contract = self.contract_id
-        periodes = self._sr_get_periodes()
-        fn_period = self._sr_get_fn_period_2026() if periodes == 26 else False
         vrijstelling_max = self._rule_parameter('SR_BIJZ_VRIJSTELLING_MAX')
-        wage_maand = (contract.wage or 0.0) * periodes / 12
 
         # ── Year-to-date cap lookup ─────────────────────────────────────
         year_start = self.date_from.replace(month=1, day=1) if self.date_from else False
-        ytd_used = 0.0
+        remaining_cap = vrijstelling_max
         if year_start:
             prev_slips = self.env['hr.payslip'].search([
                 ('employee_id', '=', self.employee_id.id),
@@ -174,53 +221,19 @@ class HrPayslip(models.Model):
                 ('date_from', '<', self.date_from),
                 ('state', 'in', ['done', 'paid']),
                 ('id', '!=', self.id),
-            ])
+            ], order='date_from, id')
             for ps in prev_slips:
-                for inp in ps.input_line_ids:
-                    cat = inp.input_type_id.sr_categorie
-                    if cat in ('vakantie', 'gratificatie') and inp.amount > 0:
-                        if cat == 'vakantie':
-                            cap = min(2 * wage_maand, vrijstelling_max)
-                        else:
-                            cap = min(wage_maand, vrijstelling_max)
-                            if ps.date_to and contract.date_start:
-                                ys = ps.date_to.replace(month=1, day=1)
-                                ss = max(contract.date_start, ys)
-                                mo = (ps.date_to.year - ss.year) * 12 + ps.date_to.month - ss.month + 1
-                                mo = min(12, max(1, mo))
-                                cap = cap * mo / 12
-                        ytd_used += min(inp.amount, cap)
-        remaining_cap = max(0.0, vrijstelling_max - ytd_used)
+                usage = ps._sr_bijz_usage_summary(
+                    remaining_cap=remaining_cap,
+                    vrijstelling_max=vrijstelling_max,
+                )
+                remaining_cap = usage['remaining_cap']
 
-        # ── Combineer alle bijzondere beloningen ────────────────────────
-        belastbaar_bijz_totaal = 0.0
-        for inp in self.input_line_ids:
-            cat = inp.input_type_id.sr_categorie
-            if cat not in ('vakantie', 'gratificatie', 'bijz_beloning'):
-                continue
-            bruto = inp.amount
-            if bruto <= 0:
-                continue
-
-            if cat == 'vakantie':
-                vrijstelling = min(2 * wage_maand, remaining_cap)
-            elif cat == 'gratificatie':
-                vrijstelling = min(wage_maand, remaining_cap)
-                if self.date_to and contract.date_start:
-                    ys = self.date_to.replace(month=1, day=1)
-                    ss = max(contract.date_start, ys)
-                    mo = (self.date_to.year - ss.year) * 12 + self.date_to.month - ss.month + 1
-                    mo = min(12, max(1, mo))
-                    vrijstelling = vrijstelling * mo / 12
-            else:
-                vrijstelling = 0.0
-
-            actual_vrijstelling = min(vrijstelling, bruto)
-            remaining_cap -= actual_vrijstelling
-            remaining_cap = max(0.0, remaining_cap)
-            belastbaar_bijz_totaal += max(0.0, bruto - actual_vrijstelling)
-
-        return belastbaar_bijz_totaal
+        current_usage = self._sr_bijz_usage_summary(
+            remaining_cap=remaining_cap,
+            vrijstelling_max=vrijstelling_max,
+        )
+        return current_usage['belastbaar']
 
     def _get_sr_artikel14_breakdown(self):
         """
