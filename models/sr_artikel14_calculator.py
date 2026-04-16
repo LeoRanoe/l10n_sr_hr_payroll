@@ -289,7 +289,8 @@ def calculate_lb(bruto_per_periode, periodes, params, aftrek_bv_per_periode=0.0)
 
 def generate_breakdown_html(result, wage, periodes, salary_type, kb_split=None,
                             vrijgesteld=0.0, inhoudingen=0.0,
-                            belastbaar_toelagen=0.0):
+                            belastbaar_toelagen=0.0,
+                            bruto_totaal=None, netto_totaal=None):
     """
     Genereert een stap-voor-stap berekeningsoverzicht (debug panel) als HTML.
 
@@ -301,6 +302,8 @@ def generate_breakdown_html(result, wage, periodes, salary_type, kb_split=None,
     :param vrijgesteld:   Vrijgestelde toelagen per periode (transport etc.)
     :param inhoudingen:   Inhoudingen per periode (ziektekostenpremie etc.)
     :param belastbaar_toelagen: Belastbare toelagen per periode (contract regels)
+    :param bruto_totaal:  Reeds berekend contract-bruto per periode
+    :param netto_totaal:  Reeds berekend contract-netto per periode
     :returns: HTML string
     """
     def m(n, sign=''):
@@ -355,11 +358,14 @@ def generate_breakdown_html(result, wage, periodes, salary_type, kb_split=None,
     kb_v = kb.get('vrijgesteld', 0.0)
     gross_per_periode = wage + r.get('aftrek_bv_per_periode', 0.0) + 0.0  # original gross before aftrek
 
-    # Netto berekening — moet overeenkomen met sr_preview_netto in hr_contract.py
-    netto = (
+    bruto_display = bruto_totaal if bruto_totaal is not None else (
         wage
         + belastbaar_toelagen
         + kb_b + kb_v + vrijgesteld
+    )
+
+    netto = netto_totaal if netto_totaal is not None else (
+        bruto_display
         - r['lb_per_periode']
         - r['aov_per_periode']
         - inhoudingen
@@ -451,6 +457,7 @@ def generate_breakdown_html(result, wage, periodes, salary_type, kb_split=None,
         rows.append(row('+ KB vrijgesteld deel', '', m(kb_v, '+')))
     if vrijgesteld > 0:
         rows.append(row('+ Vrijgestelde toelagen', '', m(vrijgesteld, '+')))
+    rows.append(row('<strong>= Bruto per periode</strong>', '', m(bruto_display), '#f0f9ff'))
     rows.append(row('− LB (Art. 14)', '', m(r['lb_per_periode'], '-')))
     rows.append(row('− AOV (4%)', '', m(r['aov_per_periode'], '-')))
     if inhoudingen > 0:
