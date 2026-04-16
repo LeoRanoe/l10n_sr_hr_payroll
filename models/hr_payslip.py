@@ -15,6 +15,8 @@ class HrPayslip(models.Model):
     sr_is_sr_struct = fields.Boolean(
         compute='_compute_sr_is_sr_struct',
         string='SR Structuur',
+        store=True,
+        compute_sudo=True,
     )
 
     @api.depends('struct_id')

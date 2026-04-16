@@ -136,7 +136,7 @@ def calculate_lb(bruto_per_periode, periodes, params, aftrek_bv_per_periode=0.0)
 
     # AOV — ook over gecorrigeerd bruto (Art. 10f aftrek)
     effective_bruto_per_periode = max(0.0, bruto_per_periode - aftrek_bv_per_periode)
-    franchise_periode = params['aov_franchise_maand'] * 12 / periodes
+    franchise_periode = params['aov_franchise_maand'] if periodes == 12 else 0.0
     aov_grondslag = max(0.0, effective_bruto_per_periode - franchise_periode)
     aov_per_periode = aov_grondslag * params['aov_tarief']
 
@@ -331,7 +331,7 @@ def generate_breakdown_html(result, wage, periodes, salary_type, kb_split=None,
     # ─── Sectie 4: AOV ─────────────────────────────
     rows.append(sep('④ AOV BIJDRAGE (4%)'))
     franchise_label = f"AOV franchise − SRD {r['franchise_periode']:,.0f}/periode".replace(",", ".") \
-        if r['franchise_periode'] > 0 else 'Geen AOV franchise'
+        if r['franchise_periode'] > 0 else 'Geen AOV franchise (Fortnight)'
     rows.append(row('Bruto per periode', '', m(r['bruto_per_periode'] - r.get('aftrek_bv_per_periode', 0.0))))
     if r['franchise_periode'] > 0:
         rows.append(row('Franchise (Art. 4 AOV)', franchise_label, m(r['franchise_periode'], '-')))

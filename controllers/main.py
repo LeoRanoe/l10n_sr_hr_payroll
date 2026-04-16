@@ -9,7 +9,7 @@ from odoo.http import request
 class SrPayrollHelpController(http.Controller):
     """Controller voor de Suriname Payroll Help & Documentatie pagina."""
 
-    @http.route('/sr_payroll/help', type='http', auth='user', website=False)
+    @http.route('/sr_payroll/help', type='http', auth='user', csrf=False)
     def sr_help_page(self, **kwargs):
         """Render de help & documentatie pagina."""
         # Haal actuele parameterwaarden op voor weergave
