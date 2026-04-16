@@ -267,7 +267,7 @@
                             </t>
                             <t t-else="">
                                 <tr>
-                                    <td class="text-muted fst-italic">Geen franchise (fortnight loon)</td>
+                                    <td class="text-muted fst-italic">Geen franchise</td>
                                     <td class="text-end text-muted">&#8212;</td>
                                 </tr>
                             </t>

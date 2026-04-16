@@ -34,17 +34,104 @@
         </field>
     </record>
 
+    <!-- ── Search view met filters en groepering ──────────────────────── -->
+    <record id="view_hr_payslip_sr_search" model="ir.ui.view">
+        <field name="name">hr.payslip.sr.search</field>
+        <field name="model">hr.payslip</field>
+        <field name="arch" type="xml">
+            <search string="Zoek Loonstroken SR">
+                <field name="employee_id" string="Werknemer"/>
+                <field name="number" string="Referentie"/>
+                <field name="payslip_run_id" string="Batch"/>
+                <separator/>
+                <filter name="filter_current_period" string="Huidige Periode"
+                    domain="[('date_from', '&lt;=', context_today().strftime('%%Y-%%m-%%d')),
+                             ('date_to', '&gt;=', context_today().strftime('%%Y-%%m-%%d'))]"/>
+                <filter name="filter_draft" string="Concept"
+                    domain="[('state', '=', 'draft')]"/>
+                <filter name="filter_verify" string="Te Controleren"
+                    domain="[('state', '=', 'verify')]"/>
+                <filter name="filter_done" string="Bevestigd"
+                    domain="[('state', '=', 'done')]"/>
+                <filter name="filter_paid" string="Betaald"
+                    domain="[('state', '=', 'paid')]"/>
+                <separator/>
+                <group string="Groeperen" expand="0">
+                    <filter name="group_employee" string="Werknemer"
+                        context="{'group_by': 'employee_id'}"/>
+                    <filter name="group_state" string="Status"
+                        context="{'group_by': 'state'}"/>
+                    <filter name="group_date_from" string="Periode"
+                        context="{'group_by': 'date_from:month'}"/>
+                    <filter name="group_batch" string="Batch"
+                        context="{'group_by': 'payslip_run_id'}"/>
+                    <filter name="group_department" string="Afdeling"
+                        context="{'group_by': 'department_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- ── Kanban view voor snel overzicht ──────────────────────────── -->
+    <record id="view_hr_payslip_sr_kanban" model="ir.ui.view">
+        <field name="name">hr.payslip.sr.kanban</field>
+        <field name="model">hr.payslip</field>
+        <field name="arch" type="xml">
+            <kanban sample="1" default_group_by="state">
+                <field name="employee_id"/>
+                <field name="number"/>
+                <field name="date_from"/>
+                <field name="date_to"/>
+                <field name="basic_wage"/>
+                <field name="net_wage"/>
+                <field name="state"/>
+                <field name="currency_id"/>
+                <templates>
+                    <t t-name="card">
+                        <div class="d-flex align-items-center mb-1">
+                            <field name="employee_id" widget="many2one_avatar_user"/>
+                        </div>
+                        <field name="number" class="fw-bold"/>
+                        <div class="text-muted small">
+                            <field name="date_from"/> – <field name="date_to"/>
+                        </div>
+                        <div class="d-flex justify-content-between mt-2">
+                            <span class="text-muted">Netto:</span>
+                            <field name="net_wage" widget="monetary"/>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <!-- ── Pivot view voor analyse ──────────────────────────────────── -->
+    <record id="view_hr_payslip_sr_pivot" model="ir.ui.view">
+        <field name="name">hr.payslip.sr.pivot</field>
+        <field name="model">hr.payslip</field>
+        <field name="arch" type="xml">
+            <pivot string="Loonstroken Analyse" sample="1">
+                <field name="employee_id" type="row"/>
+                <field name="date_from" type="col" interval="month"/>
+                <field name="basic_wage" type="measure"/>
+                <field name="gross_wage" type="measure"/>
+                <field name="net_wage" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
     <!-- Actievenster: gefilterd op SR-loonstructuur -->
     <record id="action_sr_payslip_dashboard" model="ir.actions.act_window">
-        <field name="name">Loonstroken Suriname (Art. 14)</field>
+        <field name="name">Loonstroken Suriname</field>
         <field name="res_model">hr.payslip</field>
-        <field name="view_mode">list,form</field>
+        <field name="view_mode">list,kanban,pivot,form</field>
         <field name="view_id" ref="view_hr_payslip_sr_list"/>
+        <field name="search_view_id" ref="view_hr_payslip_sr_search"/>
         <field name="domain" eval="[('struct_id', '=', ref('l10n_sr_hr_payroll.sr_payroll_structure'))]"/>
-        <field name="context" eval="{'default_struct_id': ref('l10n_sr_hr_payroll.sr_payroll_structure'), 'search_default_filter_by_payslip_period': 1}"/>
+        <field name="context" eval="{'default_struct_id': ref('l10n_sr_hr_payroll.sr_payroll_structure'), 'search_default_filter_current_period': 1}"/>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">Nog geen Surinaamse loonstroken gevonden.</p>
-            <h3>Loonstroken Suriname — Art. 14 WLB</h3>
+            <h3>Loonstroken Suriname — Wet Loonbelasting</h3>
             <p>
                 Dit is een <strong>gefilterd overzicht</strong> van alle loonstroken die verwerkt zijn
                 met de structuur <em>Suriname — Normaal Loon (Artikel 14 WLB)</em>.
@@ -58,7 +145,7 @@
             </ul>
             <p>
                 Nieuwe loonstrook aanmaken? Klik op <strong>+ Nieuw</strong> — de structuur
-                <em>Suriname — Normaal Loon (Artikel 14 WLB)</em> wordt automatisch geselecteerd.
+                <em>Suriname — Normaal Loon (Wet Loonbelasting)</em> wordt automatisch geselecteerd.
             </p>
         </field>
     </record>
@@ -73,7 +160,7 @@
 
     <menuitem
         id="menu_sr_payslip_dashboard"
-        name="Loonstroken SR (Art. 14)"
+        name="Loonstroken SR"
         parent="menu_sr_payroll_root"
         action="action_sr_payslip_dashboard"
         sequence="10"
@@ -91,13 +178,14 @@
         <field name="arch" type="xml">
             <!-- Voeg Print + Preview knoppen toe aan de bestaande button_box -->
             <xpath expr="//div[@name='button_box']" position="inside">
+                <field name="sr_is_sr_struct" invisible="1"/>
                 <button
                     name="action_print_sr_payslip"
                     string="PDF Loonstrook"
                     type="object"
                     class="oe_stat_button"
                     icon="fa-print"
-                    invisible="struct_id.name != 'Suriname — Normaal Loon (Artikel 14 WLB)'"
+                    invisible="not sr_is_sr_struct"
                     help="Druk de Surinaamse loonstrook af als PDF (Artikel 14 WLB)"/>
                 <button
                     name="action_preview_sr_payslip"
@@ -105,7 +193,7 @@
                     type="object"
                     class="oe_stat_button"
                     icon="fa-eye"
-                    invisible="struct_id.name != 'Suriname — Normaal Loon (Artikel 14 WLB)'"
+                    invisible="not sr_is_sr_struct"
                     help="Bekijk de loonstrook als HTML — geen download vereist"/>
             </xpath>
         </field>

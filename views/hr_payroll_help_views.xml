@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Suriname Payroll — Help & Documentatie Pagina
+    ================================================
+    Centrale helppagina voor eindgebruikers.
+    Toegankelijk via: Payroll → Suriname → Help & Documentatie
+-->
+<odoo>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         HELP ACTION — Client actie met QWeb template
+         ═══════════════════════════════════════════════════════════════ -->
+
+    <record id="action_sr_help_page" model="ir.actions.act_url">
+        <field name="name">Suriname Payroll — Help &amp; Documentatie</field>
+        <field name="url">/sr_payroll/help</field>
+        <field name="target">self</field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         MENU — Payroll → Suriname → Help & Documentatie
+         ═══════════════════════════════════════════════════════════════ -->
+
+    <menuitem
+        id="menu_sr_help"
+        name="ℹ Help &amp; Documentatie"
+        parent="menu_sr_payroll_root"
+        action="action_sr_help_page"
+        sequence="99"
+        groups="hr_payroll.group_hr_payroll_user"/>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         MENU — Payroll → Configuratie → Suriname → Help & Documentatie
+         ═══════════════════════════════════════════════════════════════ -->
+
+    <menuitem
+        id="menu_sr_config_help"
+        name="ℹ Help &amp; Documentatie"
+        parent="menu_sr_config_root"
+        action="action_sr_help_page"
+        sequence="99"
+        groups="hr_payroll.group_hr_payroll_manager"/>
+
+</odoo>

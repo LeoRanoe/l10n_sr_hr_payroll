@@ -1,18 +1,62 @@
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
-from odoo import models
+from odoo import api, fields, models
 
 from . import sr_artikel14_calculator as calc
+
+# Module-level cache for Art. 14 calculations per compute cycle.
+# Keyed on (payslip_id, gross, aftrek_bv). Cleared before each compute_sheet.
+_sr_calc_cache = {}
 
 
 class HrPayslip(models.Model):
     _inherit = 'hr.payslip'
+
+    sr_is_sr_struct = fields.Boolean(
+        compute='_compute_sr_is_sr_struct',
+        string='SR Structuur',
+    )
+
+    @api.depends('struct_id')
+    def _compute_sr_is_sr_struct(self):
+        sr_struct = self.env.ref('l10n_sr_hr_payroll.sr_payroll_structure', raise_if_not_found=False)
+        for slip in self:
+            slip.sr_is_sr_struct = sr_struct and slip.struct_id == sr_struct
+
+    def compute_sheet(self):
+        """Clear Art. 14 calculation cache before computing salary rules."""
+        global _sr_calc_cache
+        _sr_calc_cache.clear()
+        res = super().compute_sheet()
+        _sr_calc_cache.clear()
+        return res
 
     def _sr_get_periodes(self):
         """Bepaalt het aantal periodes per jaar: 12 (maandloon) of 26 (fortnight)."""
         self.ensure_one()
         contract = self.contract_id
         return 26 if getattr(contract, 'sr_salary_type', 'monthly') == 'fn' else 12
+
+    def _sr_get_cached_result(self, gross_per_periode, aftrek_bv=0.0):
+        """
+        Berekent Artikel 14 één keer per (payslip, gross, aftrek_bv) combinatie
+        en cached het resultaat in een module-level dict om redundante
+        berekeningen te voorkomen wanneer SR_LB, SR_HK en SR_AOV regels
+        achtereenvolgens dezelfde waarden opvragen.
+        """
+        self.ensure_one()
+        global _sr_calc_cache
+        cache_key = (self.id, round(gross_per_periode, 2), round(aftrek_bv, 2))
+        if cache_key in _sr_calc_cache:
+            return _sr_calc_cache[cache_key]
+        params = calc.fetch_params_from_payslip(self)
+        periodes = self._sr_get_periodes()
+        result = calc.calculate_lb(
+            gross_per_periode, periodes, params,
+            aftrek_bv_per_periode=aftrek_bv,
+        )
+        _sr_calc_cache[cache_key] = result
+        return result
 
     def _sr_artikel14_lb(self, gross_per_periode, aftrek_bv=0.0):
         """
@@ -26,12 +70,7 @@ class HrPayslip(models.Model):
         :param aftrek_bv: Aftrek belastingvrij per periode (Art. 10f, bijv. pensioenpremie)
         :returns: positief bedrag loonbelasting BRUTO per periode
         """
-        self.ensure_one()
-        params = calc.fetch_params_from_payslip(self)
-        periodes = self._sr_get_periodes()
-        result = calc.calculate_lb(gross_per_periode, periodes, params,
-                                   aftrek_bv_per_periode=aftrek_bv)
-        return result['lb_gross_per_periode']
+        return self._sr_get_cached_result(gross_per_periode, aftrek_bv)['lb_gross_per_periode']
 
     def _sr_artikel14_hk(self, gross_per_periode, aftrek_bv=0.0):
         """
@@ -45,12 +84,7 @@ class HrPayslip(models.Model):
         :param aftrek_bv: Aftrek belastingvrij per periode (Art. 10f)
         :returns: positief bedrag heffingskorting per periode
         """
-        self.ensure_one()
-        params = calc.fetch_params_from_payslip(self)
-        periodes = self._sr_get_periodes()
-        result = calc.calculate_lb(gross_per_periode, periodes, params,
-                                   aftrek_bv_per_periode=aftrek_bv)
-        return result['heffingskorting_per_periode']
+        return self._sr_get_cached_result(gross_per_periode, aftrek_bv)['heffingskorting_per_periode']
 
     def _sr_artikel14_aov(self, gross_per_periode, aftrek_bv=0.0):
         """
@@ -62,12 +96,7 @@ class HrPayslip(models.Model):
         :param aftrek_bv: Aftrek belastingvrij per periode (Art. 10f)
         :returns: positief bedrag AOV per periode
         """
-        self.ensure_one()
-        params = calc.fetch_params_from_payslip(self)
-        periodes = self._sr_get_periodes()
-        result = calc.calculate_lb(gross_per_periode, periodes, params,
-                                   aftrek_bv_per_periode=aftrek_bv)
-        return result['aov_per_periode']
+        return self._sr_get_cached_result(gross_per_periode, aftrek_bv)['aov_per_periode']
 
     def _get_sr_artikel14_breakdown(self):
         """

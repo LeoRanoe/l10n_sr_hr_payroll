@@ -136,7 +136,7 @@ def calculate_lb(bruto_per_periode, periodes, params, aftrek_bv_per_periode=0.0)
 
     # AOV — ook over gecorrigeerd bruto (Art. 10f aftrek)
     effective_bruto_per_periode = max(0.0, bruto_per_periode - aftrek_bv_per_periode)
-    franchise_periode = params['aov_franchise_maand'] if periodes == 12 else 0.0
+    franchise_periode = params['aov_franchise_maand'] * 12 / periodes
     aov_grondslag = max(0.0, effective_bruto_per_periode - franchise_periode)
     aov_per_periode = aov_grondslag * params['aov_tarief']
 
@@ -206,29 +206,27 @@ def generate_breakdown_html(result, wage, periodes, salary_type, kb_split=None,
         return f'<span>{s}</span>'
 
     def row(label, formula, value, style=''):
-        bg = f' style="background:{style};"' if style else ''
+        css_cls = ' class="table-info"' if style else ''
         return (
-            f'<tr{bg}>'
-            f'<td style="padding:3px 10px; color:#374151;">{label}</td>'
-            f'<td style="padding:3px 10px; color:#6b7280; font-size:0.88em;">{formula}</td>'
-            f'<td style="padding:3px 10px; text-align:right; font-family:monospace;">{value}</td>'
+            f'<tr{css_cls}>'
+            f'<td>{label}</td>'
+            f'<td class="text-muted small">{formula}</td>'
+            f'<td class="text-end font-monospace">{value}</td>'
             f'</tr>'
         )
 
     def sep(title):
         return (
-            f'<tr style="background:#e2e8f0;">'
-            f'<td colspan="3" style="padding:4px 10px; font-weight:bold; color:#1e3a5f; '
-            f'font-size:0.88em; letter-spacing:0.5px;">{title}</td>'
+            f'<tr class="table-secondary">'
+            f'<td colspan="3" class="fw-bold small">{title}</td>'
             f'</tr>'
         )
 
     def total_row(label, value, color='#1e40af'):
         return (
-            f'<tr style="background:#eff6ff; border-top:2px solid #bfdbfe;">'
-            f'<td colspan="2" style="padding:5px 10px; font-weight:bold; color:{color};">{label}</td>'
-            f'<td style="padding:5px 10px; text-align:right; font-weight:bold; '
-            f'font-family:monospace; color:{color}; font-size:1.05em;">'
+            f'<tr class="table-primary">'
+            f'<td colspan="2" class="fw-bold">{label}</td>'
+            f'<td class="text-end fw-bold font-monospace">'
             f'SRD {abs(result.get(value, 0)):,.2f}'.replace(",", "X").replace(".", ",").replace("X", ".") +
             f'</td></tr>'
         )
@@ -236,10 +234,9 @@ def generate_breakdown_html(result, wage, periodes, salary_type, kb_split=None,
     def total_val(label, val_num, color='#1e40af'):
         s = f"SRD {abs(val_num):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
         return (
-            f'<tr style="background:#eff6ff; border-top:2px solid #bfdbfe;">'
-            f'<td colspan="2" style="padding:5px 10px; font-weight:bold; color:{color};">{label}</td>'
-            f'<td style="padding:5px 10px; text-align:right; font-weight:bold; '
-            f'font-family:monospace; color:{color}; font-size:1.05em;">{s}</td></tr>'
+            f'<tr class="table-primary">'
+            f'<td colspan="2" class="fw-bold">{label}</td>'
+            f'<td class="text-end fw-bold font-monospace">{s}</td></tr>'
         )
 
     r = result
@@ -334,7 +331,7 @@ def generate_breakdown_html(result, wage, periodes, salary_type, kb_split=None,
     # ─── Sectie 4: AOV ─────────────────────────────
     rows.append(sep('④ AOV BIJDRAGE (4%)'))
     franchise_label = f"AOV franchise − SRD {r['franchise_periode']:,.0f}/periode".replace(",", ".") \
-        if r['franchise_periode'] > 0 else 'Geen AOV franchise (Fortnight)'
+        if r['franchise_periode'] > 0 else 'Geen AOV franchise'
     rows.append(row('Bruto per periode', '', m(r['bruto_per_periode'] - r.get('aftrek_bv_per_periode', 0.0))))
     if r['franchise_periode'] > 0:
         rows.append(row('Franchise (Art. 4 AOV)', franchise_label, m(r['franchise_periode'], '-')))
@@ -363,16 +360,15 @@ def generate_breakdown_html(result, wage, periodes, salary_type, kb_split=None,
 
     rows_html = ''.join(rows)
     return (
-        '<div style="background:#0f172a; color:#e2e8f0; border-radius:6px; '
-        'padding:8px 12px; margin-bottom:4px; font-size:0.82em; font-family:monospace;">'
-        '<strong style="color:#7dd3fc;">&#9998; Art. 14 Berekening Debug Panel</strong>'
+        '<div class="alert alert-info py-1 px-2 mb-1 small">'
+        '<strong>&#9998; Art. 14 Berekening — Stap-voor-Stap</strong>'
         '</div>'
-        '<table style="width:100%; border-collapse:collapse; font-size:0.88em;">'
-        '<thead>'
-        '<tr style="background:#1e3a5f;">'
-        '<th style="padding:4px 10px; text-align:left; color:#bfdbfe; width:38%;">Stap</th>'
-        '<th style="padding:4px 10px; text-align:left; color:#bfdbfe; width:38%;">Formule</th>'
-        '<th style="padding:4px 10px; text-align:right; color:#bfdbfe; width:24%;">Bedrag</th>'
+        '<table class="table table-sm table-bordered" style="font-size:0.88em;">'
+        '<thead class="table-light">'
+        '<tr>'
+        '<th style="width:38%;">Stap</th>'
+        '<th style="width:38%;">Formule</th>'
+        '<th style="width:24%; text-align:right;">Bedrag</th>'
         '</tr>'
         '</thead>'
         f'<tbody>{rows_html}</tbody>'
@@ -405,30 +401,28 @@ def generate_tax_bracket_html(params):
 
     rows_html = ""
     for i, (schijf, bereik, tarief, color) in enumerate(rows_data):
-        bg = ' style="background: #f8fafc;"' if i % 2 == 1 else ''
         rows_html += (
-            f'<tr{bg}>'
-            f'<td style="padding: 4px 10px; border: 1px solid #e2e8f0;">{schijf}</td>'
-            f'<td style="padding: 4px 10px; border: 1px solid #e2e8f0;">{bereik}</td>'
-            f'<td style="padding: 4px 10px; text-align: center; border: 1px solid #e2e8f0; '
-            f'font-weight: bold; color: {color};">{tarief}</td>'
+            f'<tr>'
+            f'<td>{schijf}</td>'
+            f'<td>{bereik}</td>'
+            f'<td class="text-center fw-bold" style="color:{color};">{tarief}</td>'
             f'</tr>'
         )
 
     forfaitaire_max = params.get('forfaitaire_max', 0)
 
     return (
-        '<table style="width: 100%; border-collapse: collapse; font-size: 0.9em;">'
-        '<thead>'
-        '<tr style="background: #f1f5f9; font-weight: bold; color: #475569;">'
-        '<th style="padding: 5px 10px; text-align: left; border: 1px solid #e2e8f0;">Schijf</th>'
-        '<th style="padding: 5px 10px; text-align: left; border: 1px solid #e2e8f0;">Belastbaar Jaarloon</th>'
-        '<th style="padding: 5px 10px; text-align: center; border: 1px solid #e2e8f0;">Tarief</th>'
+        '<table class="table table-sm table-bordered" style="font-size:0.9em;">'
+        '<thead class="table-light">'
+        '<tr>'
+        '<th>Schijf</th>'
+        '<th>Belastbaar Jaarloon</th>'
+        '<th class="text-center">Tarief</th>'
         '</tr>'
         '</thead>'
         f'<tbody>{rows_html}</tbody>'
         '</table>'
-        '<p class="text-muted" style="font-size: 0.85em; margin-top: 6px; margin-bottom: 0;">'
+        '<p class="text-muted small mb-0">'
         f'<strong>Art. 12:</strong> Forfaitaire aftrek {pct(params["forfaitaire_pct"])} van jaarloon '
         f'(max {fmt(forfaitaire_max)}) · '
         f'<strong>Art. 13:</strong> Belastingvrije som {fmt(params["belastingvrij_jaar"])}/jaar · '

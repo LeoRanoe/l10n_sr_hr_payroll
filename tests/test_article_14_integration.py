@@ -225,7 +225,7 @@ class TestIntegratieVolledigeCyclus(common.TransactionCase):
     def test_fortnight_loonstrook_aangemaakt(self):
         """
         Fortnight contract genereert een geldige loonstrook met
-        SR_LB en SR_AOV regels. AOV heeft geen franchise (= 0).
+        SR_LB en SR_AOV regels. AOV franchise is pro-rata (400 × 12/26).
         """
         fn_loon = 8000.0  # SRD 8.000 per fortnight
         contract = self._maak_contract(wage=fn_loon, salary_type='fn')
@@ -236,9 +236,11 @@ class TestIntegratieVolledigeCyclus(common.TransactionCase):
         )
 
         aov = self._haal_totaal(payslip, 'SR_AOV')
-        # AOV fortnight: geen franchise → 8.000 × 4% = 320 (negatief)
-        self.assertAlmostEqual(aov, -(fn_loon * 0.04), places=2,
-                               msg='AOV fortnight (zonder franchise) klopt niet')
+        # AOV fortnight: franchise pro-rata = 400 × 12/26 ≈ 184.62
+        franchise_fn = 400.0 * 12 / 26
+        expected_aov = -((fn_loon - franchise_fn) * 0.04)
+        self.assertAlmostEqual(aov, expected_aov, places=2,
+                               msg='AOV fortnight (pro-rata franchise) klopt niet')
 
     # ──────────────────────────────────────────────────────────────────
     # Test 8: Breakdown dict consistent met SR_LB salarisregel (integratiecheck)
@@ -436,16 +438,17 @@ class TestIntegratieContractPreview(common.TransactionCase):
             msg='sr_preview_aov_periode maandloon klopt niet',
         )
 
-    def test_preview_aov_fortnight_geen_franchise(self):
+    def test_preview_aov_fortnight_pro_rata_franchise(self):
         """
-        Fortnight SRD 5.000 → AOV grondslag = 5.000 (geen franchise)
-        sr_preview_aov_periode = 5.000 × 4% = 200.
+        Fortnight SRD 5.000 → AOV franchise pro-rata = 400 × 12/26 ≈ 184.62
+        sr_preview_aov_periode = (5.000 − 184.62) × 4% ≈ 192.62.
         """
         contract = self._maak_contract(wage=5000.0, salary_type='fn')
-        verwacht = 5000.0 * 0.04  # geen franchise
+        franchise_fn = 400.0 * 12 / 26
+        verwacht = (5000.0 - franchise_fn) * 0.04
         self.assertAlmostEqual(
             contract.sr_preview_aov_periode, verwacht, places=2,
-            msg='sr_preview_aov_periode fortnight klopt niet',
+            msg='sr_preview_aov_periode fortnight pro-rata franchise klopt niet',
         )
 
     # ──────────────────────────────────────────────────────────────────

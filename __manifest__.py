@@ -1,15 +1,17 @@
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 {
-    'name': 'Suriname - Payroll (Artikel 14 Wet Loonbelasting)',
-    'version': '18.0.2.0.0',
+    'name': 'Suriname - Payroll (Wet Loonbelasting)',
+    'version': '18.0.2.1.0',
     'author': 'RPBG - Stage Opdracht 2026',
     'countries': ['sr'],
     'category': 'Human Resources/Payroll',
-    'summary': 'Loonverwerking conform Artikel 14 Wet Loonbelasting Suriname',
+    'summary': 'Loonverwerking conform de Wet Loonbelasting Suriname',
     'description': """
-Suriname Payroll Module (Artikel 14 Wet Loonbelasting)
-======================================================
-Loonbelasting berekening conform Artikel 14 van de Wet Loonbelasting Suriname 2026.
+Suriname Payroll Module (Wet Loonbelasting)
+============================================
+Loonbelasting berekening conform de Wet Loonbelasting Suriname 2026
+(Art. 14 progressief tarief, Art. 17 bijzondere beloningen,
+Art. 17c overwerk, Art. 10 vrijstellingen).
 
 Ondersteunde verloningstypes:
 - Maandloon      (12 periodes per jaar)
@@ -46,6 +48,8 @@ Berekeningen:
         'views/hr_payroll_dashboard_views.xml',
         'views/hr_payroll_config_sr_views.xml',
         'views/hr_work_entry_views.xml',
+        'views/hr_payroll_help_views.xml',
+        'views/sr_help_template.xml',
         'reports/report_payslip_sr.xml',
     ],
     'demo': [],

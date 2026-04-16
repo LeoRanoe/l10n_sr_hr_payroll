@@ -1,6 +1,7 @@
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
 from odoo import api, fields, models
+from odoo.exceptions import ValidationError
 
 from .sr_categorie import SR_CATEGORIE_BASE
 
@@ -103,3 +104,11 @@ class HrContractSrLine(models.Model):
         if self.type_id:
             self.name = self.type_id.name
             self.sr_categorie = self.type_id.sr_categorie
+
+    @api.constrains('amount_type', 'percentage')
+    def _check_percentage(self):
+        for line in self:
+            if line.amount_type == 'percentage' and not line.percentage:
+                raise ValidationError(
+                    "Percentage moet groter dan 0 zijn wanneer de berekeningswijze 'Percentage' is."
+                )

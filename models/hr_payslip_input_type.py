@@ -30,8 +30,9 @@ class HrPayslipInputType(models.Model):
             '• Belastingvrij: wordt uitbetaald maar telt niet mee in de belastinggrondslag (Art. 10)\n'
             '• Inhouding: wordt ingehouden op het nettoloon (bijv. ziektekostenpremie extra)\n'
             '• Overwerk: eigen belastingschijven 5%/15%/25% conform Art. 17c\n'
-            '• Vakantietoelage: vrijstelling = min(maandloon, SRD 10.016), rest belast via Art. 17\n'
-            '• Gratificatie/Bonus: vrijstelling = min(maandloon, SRD 10.016), rest belast via Art. 17\n'
+            '• Vakantietoelage: vrijstelling = min(maandloon, SR_BIJZ_VRIJSTELLING_MAX/jaar), rest belast via Art. 17\n'
+            '• Gratificatie/Bonus: vrijstelling = min(maandloon, SR_BIJZ_VRIJSTELLING_MAX/jaar), rest belast via Art. 17\n'
+            '  → Het vrijstellingsbedrag is configureerbaar via Payroll > Configuratie > SR Rule Parameters (SR_BIJZ_VRIJSTELLING_MAX)\n'
             '• Bijzondere Beloning: geen vaste vrijstelling, belast via marginaal tarief Art. 17'
         ),
     )

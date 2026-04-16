@@ -456,7 +456,7 @@ class TestArtikel14AOV(common.TransactionCase):
     """
     Tests specifiek voor de AOV berekening:
     - Franchise SRD 400/maand (maandloon)
-    - Geen franchise voor fortnight loon
+    - Pro-rata franchise voor fortnight loon (400 × 12/26)
     - 4% tarief
     """
 
@@ -514,16 +514,18 @@ class TestArtikel14AOV(common.TransactionCase):
         self.assertAlmostEqual(aov, verwacht_aov, places=2,
                                msg='AOV maandloon met franchise klopt niet')
 
-    def test_aov_fortnight_geen_franchise(self):
+    def test_aov_fortnight_pro_rata_franchise(self):
         """
-        Fortnight loon SRD 5.000 → AOV grondslag = 5.000 (geen franchise)
-        AOV = 5.000 × 4% = 200
+        Fortnight loon SRD 5.000 → AOV franchise pro-rata = 400 × 12/26 ≈ 184.62
+        AOV grondslag = 5.000 − 184.62 = 4.815.38
+        AOV = 4.815.38 × 4% ≈ 192.62
         """
         payslip = self._make_payslip(wage=5000.0, salary_type='fn')
         aov = payslip.line_ids.filtered(lambda l: l.code == 'SR_AOV').total
-        verwacht_aov = -(5000.0 * 0.04)
+        franchise_fn = 400.0 * 12 / 26
+        verwacht_aov = -((5000.0 - franchise_fn) * 0.04)
         self.assertAlmostEqual(aov, verwacht_aov, places=2,
-                               msg='AOV fortnight zonder franchise klopt niet')
+                               msg='AOV fortnight pro-rata franchise klopt niet')
 
     def test_aov_maandloon_lager_dan_franchise(self):
         """
@@ -647,8 +649,8 @@ class TestArtikel14Breakdown(common.TransactionCase):
         bd = payslip._get_sr_artikel14_breakdown()
         self.assertEqual(bd['periodes'], 26)
         self.assertTrue(bd['is_fn'])
-        self.assertEqual(bd['franchise_periode'], 0.0,
-                         'Fortnight heeft geen AOV franchise')
+        self.assertEqual(bd['franchise_periode'], 400.0 * 12 / 26,
+                         'Fortnight AOV franchise moet pro-rata zijn (400 × 12/26)')
 
     def test_breakdown_lb_stemt_overeen_met_salarisregel(self):
         """
