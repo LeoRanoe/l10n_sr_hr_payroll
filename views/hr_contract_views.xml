@@ -90,7 +90,7 @@
 
                     <!-- ── Toelichting: Eenmalige/variabele betalingen ─── -->
                     <group string="Eenmalige &amp; Variabele Betalingen (via Loonstrook)" name="sr_payslip_info">
-                        <div colspan="2" class="alert alert-success small">
+                        <div colspan="2" class="alert alert-success small" role="status">
                             <strong>&#9432; Hoe eigen loon codes aanmaken?</strong><br/>
                             Bedragen die niet elke periode hetzelfde zijn (overwerk, vakantietoelage,
                             bonus, gratificatie) beheer je via <strong>Loonstrook inputs</strong>:
@@ -121,7 +121,7 @@
 
                     <!-- ── Live Rekenvoorbeeld ───────────────────────────── -->
                     <group string="Rekenvoorbeeld — Geschatte Loonstrook per Periode" name="sr_rekenvoorbeeld">
-                        <div colspan="2" class="alert alert-warning small mb-2">
+                        <div colspan="2" class="alert alert-warning small mb-2" role="status">
                             &#9432;&#160;<em>Schatting op basis van vaste contractwaarden. Eenmalige payslip-invoer (overwerk, vakantie, bonus) is niet inbegrepen. Definitieve bedragen staan op de loonstrook.</em>
                         </div>
                         <group string="Bruto &amp; Belastbaar">
