@@ -7,10 +7,29 @@
 -->
 <odoo>
 <template id="sr_help_template" name="Suriname Payroll Help &amp; Documentatie">
-    <t t-call="web.frontend_layout">
-        <t t-set="title">Suriname Payroll — Help &amp; Documentatie</t>
+    <html>
+    <head>
+        <meta charset="utf-8"/>
+        <meta name="viewport" content="width=device-width, initial-scale=1"/>
+        <title>Suriname Payroll — Help &amp; Documentatie</title>
+        <link rel="stylesheet" href="/web/static/lib/bootstrap/css/bootstrap.css"/>
+        <link rel="stylesheet" href="/web/static/lib/fontawesome/css/font-awesome.css"/>
+        <style>
+            body { background: #f8f9fa; }
+            .sr-help-wrap { max-width: 960px; margin: 0 auto; padding: 2rem 1rem; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+            .sr-back-btn { position: fixed; bottom: 24px; right: 24px; z-index: 100; }
+        </style>
+    </head>
+    <body>
+        <!-- Navigatiebalk -->
+        <nav class="navbar navbar-dark" style="background: #0e7490;">
+            <div class="container">
+                <a class="navbar-brand" href="/odoo/payslips"><i class="fa fa-arrow-left"/> Terug naar Payroll</a>
+                <span class="navbar-text text-white-50">Help &amp; Documentatie</span>
+            </div>
+        </nav>
 
-        <div class="container py-5" style="max-width: 960px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+        <div class="sr-help-wrap">
 
             <!-- ═══ HEADER ════════════════════════════════════════════ -->
             <div class="text-center mb-5">
@@ -495,6 +514,12 @@
             </div>
 
         </div>
-    </t>
+
+        <!-- Terug naar boven knop -->
+        <a href="#" class="btn btn-info btn-lg rounded-circle sr-back-btn shadow" title="Terug naar boven">
+            <i class="fa fa-arrow-up"/>
+        </a>
+    </body>
+    </html>
 </template>
 </odoo>

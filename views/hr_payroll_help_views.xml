@@ -14,7 +14,7 @@
     <record id="action_sr_help_page" model="ir.actions.act_url">
         <field name="name">Suriname Payroll — Help &amp; Documentatie</field>
         <field name="url">/sr_payroll/help</field>
-        <field name="target">self</field>
+        <field name="target">new</field>
     </record>
 
     <!-- ═══════════════════════════════════════════════════════════════
