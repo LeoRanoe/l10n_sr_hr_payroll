@@ -20,12 +20,13 @@
                             <page string="Belasting">
                                 <group>
                                     <group string="Artikel 12 t/m 14">
-                                        <field name="belastingvrij_jaar"/>
+                                        <field name="sr_currency_id" invisible="1"/>
+                                        <field name="belastingvrij_jaar" widget="monetary" options="{'currency_field': 'sr_currency_id'}"/>
                                         <field name="forfaitaire_pct"/>
-                                        <field name="forfaitaire_max_jaar"/>
-                                        <field name="schijf_1_grens"/>
-                                        <field name="schijf_2_grens"/>
-                                        <field name="schijf_3_grens"/>
+                                        <field name="forfaitaire_max_jaar" widget="monetary" options="{'currency_field': 'sr_currency_id'}"/>
+                                        <field name="schijf_1_grens" widget="monetary" options="{'currency_field': 'sr_currency_id'}"/>
+                                        <field name="schijf_2_grens" widget="monetary" options="{'currency_field': 'sr_currency_id'}"/>
+                                        <field name="schijf_3_grens" widget="monetary" options="{'currency_field': 'sr_currency_id'}"/>
                                     </group>
                                     <group string="Tarieven &amp; inhoudingen">
                                         <field name="tarief_1"/>
@@ -33,10 +34,14 @@
                                         <field name="tarief_3"/>
                                         <field name="tarief_4"/>
                                         <field name="aov_tarief"/>
-                                        <field name="aov_franchise_maand"/>
-                                        <field name="bijz_beloning_max"/>
+                                        <field name="aov_franchise_maand" widget="monetary" options="{'currency_field': 'sr_currency_id'}"/>
+                                        <field name="bijz_beloning_max" widget="monetary" options="{'currency_field': 'sr_currency_id'}"/>
                                     </group>
                                 </group>
+                                <div class="alert alert-secondary mt-3 mb-0" role="alert">
+                                    <strong>AOV franchise:</strong> deze waarde geldt alleen voor <strong>maandloon</strong>.
+                                    Bij <strong>FN / Fortnight</strong> wordt in de payroll-engine automatisch geen franchise toegepast.
+                                </div>
                                 <div class="alert alert-light border mt-3 mb-0" role="alert">
                                     <strong>Heffingskorting:</strong> wordt momenteel <strong>niet actief toegepast</strong> in de wettelijke Art. 14-berekening.
                                     De historische waarde blijft alleen beschikbaar voor audit en technische inspectie.
@@ -45,8 +50,8 @@
                             <page string="AKB">
                                 <group>
                                     <group string="Algemene Kinderbijslag">
-                                        <field name="akb_per_kind"/>
-                                        <field name="akb_max_bedrag"/>
+                                        <field name="akb_per_kind" widget="monetary" options="{'currency_field': 'sr_currency_id'}"/>
+                                        <field name="akb_max_bedrag" widget="monetary" options="{'currency_field': 'sr_currency_id'}"/>
                                     </group>
                                     <group string="Toelichting">
                                         <div class="text-muted">
@@ -58,8 +63,8 @@
                             <page string="Overwerk">
                                 <group>
                                     <group string="Schijfgrenzen">
-                                        <field name="overwerk_schijf_1_grens"/>
-                                        <field name="overwerk_schijf_2_grens"/>
+                                        <field name="overwerk_schijf_1_grens" widget="monetary" options="{'currency_field': 'sr_currency_id'}"/>
+                                        <field name="overwerk_schijf_2_grens" widget="monetary" options="{'currency_field': 'sr_currency_id'}"/>
                                     </group>
                                     <group string="Tarieven">
                                         <field name="overwerk_tarief_1"/>
@@ -71,7 +76,7 @@
                             <page string="Technisch / Audit" groups="base.group_system">
                                 <group>
                                     <group string="Historische / inactieve waarden">
-                                        <field name="heffingskorting"/>
+                                        <field name="heffingskorting" widget="monetary" options="{'currency_field': 'sr_currency_id'}"/>
                                     </group>
                                     <group string="Toelichting">
                                         <div class="text-muted">

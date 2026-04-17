@@ -155,7 +155,7 @@ class TestArtikel14Berekening(common.TransactionCase):
 
     # ──────────────────────────────────────────────────────────────────────
     # Test 2: Maandloon — voorbeeldberekening uit de context
-    # Bruto SRD 20.255,60 → LB ≈ 2.634,71 → AOV ≈ 858,39
+    # Bruto SRD 20.255,60 → LB ≈ 2.025,13 → AOV ≈ 794,22 → Netto ≈ 17.436,25
     # ──────────────────────────────────────────────────────────────────────
     def test_maandloon_voorbeeld_context(self):
         """
@@ -200,6 +200,13 @@ class TestArtikel14Berekening(common.TransactionCase):
         # Nettoloon = bruto + LB + AOV (geen heffingskorting)
         self.assertAlmostEqual(net, gross + lb + aov, places=2,
                                msg='Nettoloon berekening klopt niet')
+
+        self.assertAlmostEqual(abs(lb), 2025.13, places=2,
+                       msg='LB voor het referentiesalaris wijkt af van het 2026 rekenvoorbeeld')
+        self.assertAlmostEqual(abs(aov), 794.22, places=2,
+                       msg='AOV voor het referentiesalaris wijkt af van het 2026 rekenvoorbeeld')
+        self.assertAlmostEqual(net, 17436.25, places=2,
+                       msg='Nettoloon voor het referentiesalaris moet tot op de cent kloppen')
 
         # Nettoloon moet lager zijn dan brutoloon
         self.assertLess(net, gross, 'Nettoloon moet lager zijn dan brutoloon')

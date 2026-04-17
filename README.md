@@ -24,7 +24,15 @@ Dat betekent dat de module momenteel **geen actieve heffingskorting** toepast in
 
 Alle belangrijke fiscale waarden zijn bewerkbaar via:
 
-`Payroll -> Configuratie -> Suriname -> SR Belastingparameters`
+`Payroll -> Configuratie -> Suriname -> SR Payroll Instellingen`
+
+De contractbron voor 2026 zit in:
+
+`Contract -> Suriname Payroll -> Fiscale Data`
+
+De migratiestappen voor bestaande klanten staan in:
+
+`MIGRATION_GUIDE_2025_TO_2026.md`
 
 De reguliere Art. 14 schijven zijn uitbreidbaar via codes zoals:
 

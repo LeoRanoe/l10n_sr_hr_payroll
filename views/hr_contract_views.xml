@@ -22,133 +22,132 @@
         <field name="inherit_id" ref="hr_contract.hr_contract_view_form"/>
         <field name="arch" type="xml">
             <xpath expr="//notebook" position="inside">
-                <page string="Suriname Loon" name="sr_payroll_tab">
+                <page string="Suriname Payroll" name="sr_payroll_tab">
 
-                    <!-- ── Artikel 14 badge ──────────────────────────────── -->
                     <div class="alert alert-info d-flex align-items-center mb-3" role="alert">
                         <div>
                             <strong>&#9679; Artikel 14 WLB — Actief</strong>
                             <span class="text-muted ms-2">
-                                Loonbelasting wordt automatisch berekend via de progressieve
-                                tariefschijven uit de actuele SR-parameters per verloonperiode.
+                                Contractdata uit deze tab stroomt door naar werkboekingen, loonstroken en het rekenvoorbeeld.
                             </span>
                         </div>
                     </div>
 
-                    <!-- ── Verloning Instellingen ────────────────────────── -->
-                    <group string="Verloning Instellingen" name="sr_verloning">
-                        <group>
-                            <field name="sr_salary_type"
-                                   widget="radio"
-                                   string="Loontype"
-                                   required="1"/>
-                            <field name="sr_aantal_kinderen"
-                                   string="Aantal Kinderen (Art. 10h)"
-                                help="Aantal kinderen voor kinderbijslag vrijstelling. Max SRD 250/kind/mnd, max SRD 1.000/mnd belastingvrij."/>
-                        </group>
-                        <group>
-                            <div class="text-muted small pt-1">
-                                <strong>Maandloon:</strong> 12 periodes/jaar · AOV franchise volgens actuele SR-parameter<br/>
-                                <strong>Fortnight:</strong> 26 periodes/jaar · Geen AOV franchise
+                    <notebook>
+                        <page string="Fiscale Data" name="sr_fiscale_data_tab">
+                            <group string="Loontype &amp; Wettelijke Basis" name="sr_verloning">
+                                <group>
+                                    <field name="sr_salary_type"
+                                           widget="radio"
+                                           string="Belastingtype"
+                                           required="1"/>
+                                    <field name="sr_aantal_kinderen"
+                                           string="Aantal Kinderen (Art. 10h)"
+                                           help="Aantal kinderen voor kinderbijslag vrijstelling. Wettelijk gemaximeerd op 4 kinderen in de 2026 release."/>
+                                </group>
+                                <group>
+                                    <div class="alert alert-light border mb-0" invisible="sr_salary_type != 'monthly'">
+                                        <strong>1 lb sal ovw:</strong> 12 periodes per jaar. De AOV franchise uit SR Payroll Instellingen wordt toegepast.
+                                    </div>
+                                    <div class="alert alert-light border mb-0" invisible="sr_salary_type != 'fn'">
+                                        <strong>FN:</strong> 26 periodes per jaar. De payroll-engine past geen AOV franchise toe en valideert tegen de 2026 FN-kalender.
+                                    </div>
+                                    <div class="text-muted small pt-1">
+                                        AKB is in 2026 beperkt tot <strong>SRD 250 per kind</strong>, maximaal <strong>SRD 1.000</strong> en maximaal <strong>4 kinderen</strong>.
+                                    </div>
+                                </group>
+                            </group>
+
+                            <separator string="Vaste Toelagen &amp; Inhoudingen per Periode"/>
+                            <div class="text-muted small mb-2">
+                                Dit is de fiscale bron voor vaste toelagen en inhoudingen op het contract.
+                                Kies per regel de categorie: <strong>Belastbaar</strong>, <strong>Belastingvrij</strong>,
+                                <strong>Aftrek Belastingvrij</strong> of <strong>Inhouding</strong>.
+                                Bij een gekozen <strong>Type</strong> bepaalt het type altijd de fiscale categorie.
                             </div>
-                        </group>
-                    </group>
 
-                    <!-- ══════════════════════════════════════════════════
-                         VASTE LOON REGELS TABLE
-                         ══════════════════════════════════════════════════ -->
-                    <separator string="Vaste Loon Regels per Periode"/>
-                    <div class="text-muted small mb-2">
-                        Voeg hieronder de vaste toeslagen en inhoudingen toe voor deze werknemer.
-                        Kies per regel de categorie: <strong>Belastbaar</strong> (telt mee in Art. 14 grondslag),
-                        <strong>Belastingvrij</strong> (Art. 10 WLB), <strong>Aftrek Belastingvrij</strong> (Art. 10f),
-                        of <strong>Inhouding</strong> (netto aftrek).
-                        Bij een gekozen <strong>Type</strong> wordt de fiscale categorie automatisch door dat type bepaald.
-                    </div>
+                            <field name="sr_vaste_regels" nolabel="1">
+                                <list editable="bottom">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="type_id"
+                                           placeholder="Selecteer een type..."
+                                           options="{'no_create': False, 'no_create_edit': False}"/>
+                                    <field name="name"
+                                           placeholder="Automatisch of handmatig..."/>
+                                    <field name="sr_categorie" readonly="type_id"/>
+                                    <field name="amount_type" string="Berekening"/>
+                                    <field name="amount" widget="monetary" options="{'currency_field': 'currency_id'}"
+                                           column_invisible="False"
+                                           readonly="amount_type == 'percentage'"/>
+                                    <field name="percentage"
+                                           string="%"
+                                           column_invisible="False"
+                                           readonly="amount_type != 'percentage'"/>
+                                    <field name="percentage_base"
+                                           string="% Basis"
+                                           column_invisible="False"
+                                           readonly="amount_type != 'percentage'"/>
+                                    <field name="currency_id" column_invisible="True"/>
+                                </list>
+                            </field>
+                        </page>
 
-                    <field name="sr_vaste_regels" nolabel="1">
-                        <list editable="bottom">
-                            <field name="sequence" widget="handle"/>
-                            <field name="type_id"
-                                   placeholder="Selecteer een type..."
-                                   options="{'no_create': False, 'no_create_edit': False}"/>
-                            <field name="name"
-                                   placeholder="Automatisch of handmatig..."/>
-                            <field name="sr_categorie" readonly="type_id"/>
-                            <field name="amount_type" string="Berekening"/>
-                            <field name="amount" widget="monetary"
-                                   column_invisible="False"
-                                   readonly="amount_type == 'percentage'"/>
-                            <field name="percentage"
-                                   string="%"
-                                   column_invisible="False"
-                                   readonly="amount_type != 'percentage'"/>
-                            <field name="percentage_base"
-                                   string="% Basis"
-                                   column_invisible="False"
-                                   readonly="amount_type != 'percentage'"/>
-                            <field name="currency_id" column_invisible="True"/>
-                        </list>
-                    </field>
+                        <page string="Controle &amp; Preview" name="sr_controle_preview_tab">
+                            <group string="Eenmalige &amp; Variabele Betalingen (via Loonstrook)" name="sr_payslip_info">
+                                <div colspan="2" class="alert alert-success small" role="status">
+                                    <strong>&#9432; Hoe eigen loon codes aanmaken?</strong><br/>
+                                    Bedragen die niet elke periode hetzelfde zijn (overwerk, vakantietoelage,
+                                    bonus, gratificatie) beheer je via <strong>Loonstrook inputs</strong>:
+                                    <ol class="mt-1 mb-0 ps-3">
+                                        <li>Ga naar <strong>Configuratie → Salaris → Other Input Types</strong></li>
+                                        <li>Maak een nieuwe loon code aan (bijv. "Olie Toeslag Variabel")</li>
+                                        <li>Stel de <strong>SR Loon Categorie</strong> in (belastbaar / vrijgesteld / overwerk / vakantie / gratificatie / bijzondere beloning)</li>
+                                        <li>Voeg het bedrag toe bij het aanmaken van de loonstrook</li>
+                                    </ol>
+                                    <div class="mt-2 pt-2 border-top">
+                                        <strong>Vooringestelde codes:</strong>
+                                        SR_IN_OVERWERK (Overwerk Art. 17c) ·
+                                        SR_IN_VAKANTIE (Vakantietoelage Art. 10i) ·
+                                        SR_IN_GRAT (Gratificatie Art. 10j) ·
+                                        SR_IN_BIJZ (Bijzondere Beloning Art. 17) ·
+                                        SR_IN_VRIJ (Vrije Vergoeding) ·
+                                        SR_IN_AFTREK (Extra Inhouding)
+                                    </div>
+                                </div>
+                            </group>
 
-                    <!-- ── Toelichting: Eenmalige/variabele betalingen ─── -->
-                    <group string="Eenmalige &amp; Variabele Betalingen (via Loonstrook)" name="sr_payslip_info">
-                        <div colspan="2" class="alert alert-success small" role="status">
-                            <strong>&#9432; Hoe eigen loon codes aanmaken?</strong><br/>
-                            Bedragen die niet elke periode hetzelfde zijn (overwerk, vakantietoelage,
-                            bonus, gratificatie) beheer je via <strong>Loonstrook inputs</strong>:
-                            <ol class="mt-1 mb-0 ps-3">
-                                <li>Ga naar <strong>Configuratie → Salaris → Other Input Types</strong></li>
-                                <li>Maak een nieuwe loon code aan (bijv. "Olie Toeslag Variabel")</li>
-                                <li>Stel de <strong>SR Loon Categorie</strong> in (belastbaar / vrijgesteld / overwerk / vakantie / gratificatie / bijzondere beloning)</li>
-                                <li>Voeg het bedrag toe bij het aanmaken van de loonstrook</li>
-                            </ol>
-                            <div class="mt-2 pt-2 border-top">
-                                <strong>Vooringestelde codes:</strong>
-                                SR_IN_OVERWERK (Overwerk Art. 17c) ·
-                                SR_IN_VAKANTIE (Vakantietoelage Art. 10i) ·
-                                SR_IN_GRAT (Gratificatie Art. 10j) ·
-                                SR_IN_BIJZ (Bijzondere Beloning Art. 17) ·
-                                SR_IN_VRIJ (Vrije Vergoeding) ·
-                                SR_IN_AFTREK (Extra Inhouding)
-                            </div>
-                        </div>
-                    </group>
+                            <group string="Referentie — Artikel 14 Tariefschijven" name="sr_tarieven">
+                                <div colspan="2" class="py-1">
+                                    <field name="sr_tax_bracket_html" nolabel="1" readonly="1"/>
+                                </div>
+                            </group>
 
-                    <!-- ── Referentietarieven (dynamisch uit parameters) ── -->
-                    <group string="Referentie — Artikel 14 Tariefschijven" name="sr_tarieven">
-                        <div colspan="2" class="py-1">
-                            <field name="sr_tax_bracket_html" nolabel="1" readonly="1"/>
-                        </div>
-                    </group>
+                            <group string="Rekenvoorbeeld — Geschatte Loonstrook per Periode" name="sr_rekenvoorbeeld">
+                                <div colspan="2" class="alert alert-warning small mb-2" role="status">
+                                    &#9432;&#160;<em>Schatting op basis van vaste contractwaarden. Eenmalige payslip-invoer (overwerk, vakantie, bonus) is niet inbegrepen. Definitieve bedragen staan op de loonstrook.</em>
+                                </div>
+                                <group string="Bruto &amp; Belastbaar">
+                                    <field name="sr_preview_bruto" readonly="1" widget="monetary" string="Bruto Loon (incl. vaste toelagen)"/>
+                                    <field name="sr_preview_belastbaar_jaar" readonly="1" widget="monetary" string="Belastbaar Jaarloon (Art. 14)"/>
+                                </group>
+                                <group string="Geschatte Inhoudingen &amp; Netto">
+                                    <field name="sr_preview_lb_periode" readonly="1" widget="monetary" string="Loonbelasting per Periode (Art. 14)"/>
+                                    <field name="sr_preview_aov_periode" readonly="1" widget="monetary" string="AOV per Periode (4%)"/>
+                                    <field name="sr_preview_netto" readonly="1" widget="monetary" string="Geschat Nettoloon"/>
+                                </group>
+                            </group>
 
-                    <!-- ── Live Rekenvoorbeeld ───────────────────────────── -->
-                    <group string="Rekenvoorbeeld — Geschatte Loonstrook per Periode" name="sr_rekenvoorbeeld">
-                        <div colspan="2" class="alert alert-warning small mb-2" role="status">
-                            &#9432;&#160;<em>Schatting op basis van vaste contractwaarden. Eenmalige payslip-invoer (overwerk, vakantie, bonus) is niet inbegrepen. Definitieve bedragen staan op de loonstrook.</em>
-                        </div>
-                        <group string="Bruto &amp; Belastbaar">
-                            <field name="sr_preview_bruto" readonly="1" widget="monetary" string="Bruto Loon (incl. vaste toelagen)"/>
-                            <field name="sr_preview_belastbaar_jaar" readonly="1" widget="monetary" string="Belastbaar Jaarloon (Art. 14)"/>
-                        </group>
-                        <group string="Geschatte Inhoudingen &amp; Netto">
-                            <field name="sr_preview_lb_periode" readonly="1" widget="monetary" string="Loonbelasting per Periode (Art. 14)"/>
-                            <field name="sr_preview_aov_periode" readonly="1" widget="monetary" string="AOV per Periode (4%)"/>
-                            <field name="sr_preview_netto" readonly="1" widget="monetary" string="Geschat Nettoloon"/>
-                        </group>
-                    </group>
-
-                    <!-- ── Berekeningsdetail (Debug Panel) ──────────────── -->
-                    <group string="Berekeningsdetail — Stap-voor-Stap (Art. 14)" name="sr_debug_panel">
-                        <div colspan="2" class="text-muted small mb-2">
-                            Alle tussenliggende berekenstappen voor controle en verificatie.
-                            Gebruik dit om de loonstrookbedragen te begrijpen en te vergelijken.
-                        </div>
-                        <div colspan="2">
-                            <field name="sr_preview_breakdown_html" nolabel="1" readonly="1"/>
-                        </div>
-                    </group>
-
+                            <group string="Berekeningsdetail — Stap-voor-Stap (Art. 14)" name="sr_debug_panel">
+                                <div colspan="2" class="text-muted small mb-2">
+                                    Alle tussenliggende berekenstappen voor controle en verificatie.
+                                    Gebruik dit om de loonstrookbedragen te begrijpen en te vergelijken.
+                                </div>
+                                <div colspan="2">
+                                    <field name="sr_preview_breakdown_html" nolabel="1" readonly="1"/>
+                                </div>
+                            </group>
+                        </page>
+                    </notebook>
                 </page>
             </xpath>
         </field>

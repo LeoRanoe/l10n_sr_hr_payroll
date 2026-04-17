@@ -3,7 +3,7 @@
 from datetime import date as Date
 
 from odoo import api, fields, models
-from odoo.exceptions import UserError
+from odoo.exceptions import UserError, ValidationError
 
 from . import sr_artikel14_calculator as calc
 
@@ -11,19 +11,23 @@ from . import sr_artikel14_calculator as calc
 class HrContract(models.Model):
     _inherit = 'hr.contract'
 
+    SR_AKB_MAX_CHILDREN = 4
+
     sr_salary_type = fields.Selection(
         selection=[
-            ('monthly', 'Maandloon (12× per jaar)'),
-            ('fn', 'Fortnight Loon (26× per jaar)'),
+            ('monthly', '1 lb sal ovw (Maandloon)'),
+            ('fn', 'FN (Fortnight)'),
         ],
         string='Surinaams Loontype',
         default='monthly',
+        store=True,
         help='Selecteer het betaaltype: maandloon (12 periodes) of fortnight (26 periodes per jaar).',
     )
 
     sr_aantal_kinderen = fields.Integer(
         string='Aantal Kinderen',
         default=0,
+        store=True,
         help=(
             'Aantal kinderen waarvoor kinderbijslag wordt betaald.\n'
             'Gebruikt voor de Art. 10h splitsing: max SRD 250/kind/maand, '
@@ -158,6 +162,54 @@ class HrContract(models.Model):
                 bruto_totaal=bruto_totaal,
                 netto_totaal=contract.sr_preview_netto,
             )
+
+    @api.onchange('sr_aantal_kinderen')
+    def _onchange_sr_aantal_kinderen(self):
+        if self.sr_aantal_kinderen is False:
+            return
+        if self.sr_aantal_kinderen < 0:
+            self.sr_aantal_kinderen = 0
+            return {
+                'warning': {
+                    'title': 'Ongeldige AKB invoer',
+                    'message': 'Aantal kinderen kan niet negatief zijn. De waarde is teruggezet naar 0.',
+                }
+            }
+        if self.sr_aantal_kinderen > self.SR_AKB_MAX_CHILDREN:
+            self.sr_aantal_kinderen = self.SR_AKB_MAX_CHILDREN
+            return {
+                'warning': {
+                    'title': 'AKB limiet bereikt',
+                    'message': 'Voor de 2026 release accepteert de module maximaal 4 kinderen voor AKB.',
+                }
+            }
+
+    @api.onchange('wage')
+    def _onchange_wage_non_negative(self):
+        if self.wage is not False and self.wage < 0:
+            self.wage = 0.0
+            return {
+                'warning': {
+                    'title': 'Ongeldig loonbedrag',
+                    'message': 'Negatieve lonen zijn niet toegestaan. Het basisloon is teruggezet naar SRD 0,00.',
+                }
+            }
+
+    @api.constrains('wage')
+    def _check_non_negative_wage(self):
+        for contract in self:
+            if contract.wage < 0:
+                raise ValidationError('Negatieve lonen zijn niet toegestaan op Surinaamse contracten.')
+
+    @api.constrains('sr_aantal_kinderen')
+    def _check_sr_aantal_kinderen_range(self):
+        for contract in self:
+            if contract.sr_aantal_kinderen < 0:
+                raise ValidationError('Aantal kinderen kan niet negatief zijn.')
+            if contract.sr_aantal_kinderen > self.SR_AKB_MAX_CHILDREN:
+                raise ValidationError(
+                    'Aantal kinderen voor AKB mag voor de 2026 release maximaal 4 zijn.'
+                )
 
     @api.depends()
     def _compute_sr_tax_bracket_html(self):

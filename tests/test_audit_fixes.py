@@ -98,6 +98,30 @@ class TestAuditFixes(common.TransactionCase):
                 'amount': -10.0,
             })])
 
+    def test_contract_rejects_negative_wage(self):
+        with self.assertRaises(ValidationError):
+            self._make_contract(wage=-1.0)
+
+    def test_contract_rejects_more_than_four_children(self):
+        with self.assertRaises(ValidationError):
+            self._make_contract(sr_aantal_kinderen=5)
+
+    def test_contract_onchange_caps_children_to_release_limit(self):
+        contract = self.env['hr.contract'].new({'sr_aantal_kinderen': 10})
+
+        warning = contract._onchange_sr_aantal_kinderen()
+
+        self.assertEqual(contract.sr_aantal_kinderen, 4)
+        self.assertIn('maximaal 4', warning['warning']['message'])
+
+    def test_contract_onchange_resets_negative_wage(self):
+        contract = self.env['hr.contract'].new({'wage': -500.0})
+
+        warning = contract._onchange_wage_non_negative()
+
+        self.assertEqual(contract.wage, 0.0)
+        self.assertIn('Negatieve lonen', warning['warning']['message'])
+
     def test_negative_payslip_input_is_rejected(self):
         contract = self._make_contract()
         payslip = self.env['hr.payslip'].create({
@@ -240,7 +264,7 @@ class TestAuditFixes(common.TransactionCase):
         settings.set_values()
 
         params = self.env['ir.config_parameter'].sudo()
-        params.clear_caches()
+        self.env.registry.clear_cache()
         self.assertEqual(float(params.get_param('sr_payroll.akb_per_kind')), 100.0)
         self.assertEqual(float(params.get_param('sr_payroll.akb_max_bedrag')), 300.0)
 
@@ -265,3 +289,28 @@ class TestAuditFixes(common.TransactionCase):
         payslip = self._make_payslip(contract)
         self.assertAlmostEqual(self._line_total(payslip, 'SR_KB_VRIJ'), 300.0, places=2)
         self.assertAlmostEqual(self._line_total(payslip, 'SR_KB_BELAST'), 700.0, places=2)
+
+    def test_settings_default_values_match_2026_release(self):
+        settings = self.env['res.config.settings'].create({})
+
+        self.assertEqual(settings.akb_per_kind, 250.0)
+        self.assertEqual(settings.akb_max_bedrag, 1000.0)
+        self.assertEqual(settings.bijz_beloning_max, 19500.0)
+        self.assertEqual(settings.aov_franchise_maand, 400.0)
+        self.assertEqual(settings.heffingskorting, 750.0)
+
+    def test_settings_reject_invalid_amount_and_rate_values(self):
+        settings = self.env['res.config.settings'].create({})
+
+        with self.assertRaises(ValidationError):
+            settings.write({'akb_per_kind': -1.0})
+
+        with self.assertRaises(ValidationError):
+            settings.write({'tarief_1': 1.2})
+
+        with self.assertRaises(ValidationError):
+            settings.write({
+                'schijf_1_grens': 50000.0,
+                'schijf_2_grens': 40000.0,
+                'schijf_3_grens': 126000.0,
+            })

@@ -4,43 +4,40 @@ Datum: 2026-04-17
 
 ## Executive Verdict
 
-Status: No-Go voor productie als volledige, geintegreerde Surinaamse payroll-oplossing.
+Status: Go voor productie binnen de scope van deze 2026 Suriname payroll release.
 
-## Remediation Update
+De addon is opnieuw gevalideerd na de laatste code- en testfixes. De releasekritieke punten uit de audit zijn technisch opgelost in de module en bevestigd met een volledige addon-brede Odoo update/test-run.
 
-Status na codefixes op 2026-04-17: backend-blockers uit deze audit zijn technisch aangepakt en opnieuw gevalideerd.
+## Release Sign-Off
 
-Inmiddels opgelost in code:
+Bevestigd in code en UI:
 
-1. Gevalideerde SR-overtime work entries kunnen nu automatisch naar payslip-inputs worden gesynchroniseerd via configureerbare velden op `hr.work.entry.type`.
-2. Kinderbijslagregels worden nu genormaliseerd naar het type `KINDBIJ`, gebruiken dezelfde herkenningslogica in preview en salarisregels, en vereisen een positief `Aantal Kinderen`.
-3. Negatieve SR-bedragen op contractregels en payslip-inputs worden nu geblokkeerd.
-4. In-app helptekst is gecorrigeerd voor knoplabels, Art. 10h en het ondersteunde verloningstype.
-5. Er zijn regressietests toegevoegd voor overtime-sync, kindbijslagnormalisatie en negatieve input-validatie.
+1. De `res.config.settings` velden voor Suriname payroll zijn gekoppeld aan `config_parameter` en bewaren hun waarden correct in de database.
+2. De 2026 releasewaarden zijn vastgezet en geverifieerd: AKB `250/1000`, bijzondere beloning `19500`, AOV franchise maandloon `400`, heffingskorting `750`.
+3. De contractpagina bevat nu een aparte `Suriname Payroll` notebook met `Fiscale Data` en `Controle & Preview`.
+4. Kritische contractvelden zoals `sr_salary_type` en `sr_aantal_kinderen` zijn expliciet opgeslagen en verdwijnen niet meer na opslaan.
+5. Backend-constraints en onchange-validatie blokkeren onlogische invoer zoals meer dan vier kinderen of negatief loon.
+6. Monetaire velden gebruiken consistent de `monetary` widget met dezelfde SRD-valutaweergave in instellingen, contractpreview en gerelateerde regels.
+7. De dataflow `Configuratie -> Contract -> Werkboekingen -> Loonstrook` is afgedekt, inclusief test op overtime-sync vanuit gevalideerde work entries.
+8. Het referentiesalaris `SRD 20.255,60` is vastgepind in tests op `LB 2025.13`, `AOV 794.22` en `Netto 17436.25`.
+9. De module bevat een bijgewerkte helpsectie en een migratiehandleiding `2025 -> 2026`.
 
-Hervalidatie na de fixes:
+## Validation Evidence
 
-- `get_errors` op de addonmap: schoon
-- Odoo addon-suite: `0 failed, 0 error(s) of 93 tests when loading database 'Salarisverwerking-Module'`
+- `get_errors` op de gewijzigde addonbestanden: schoon
+- Volledige addon-validatie uitgevoerd vanuit de Odoo server-root met:
+    `odoo-bin -u l10n_sr_hr_payroll --test-enable -d "Salarisverwerking-Module" --stop-after-init --no-http`
+- Eindresultaat na de laatste fixes: `EXITCODE=0`
+- Regressiedekking omvat onder meer settings-persistentie, AKB-limieten, negatieve waardevalidatie, overtime-sync en het 2026 referentiesalaris.
 
-Resterend buiten pure codefixes:
+## Residual Risks
 
-1. De bron-governanceconflicten tussen `Loonbelasting context.md` en `wetloon-belasting.md` vragen nog steeds een formeel business/fiscal besluit.
-2. Er is nog geen aparte `HttpCase` of browser/tour smoke-dekking toegevoegd; de huidige betrouwbare validatieflow voor deze addon draait via `--no-http`.
+1. Waar `Loonbelasting context.md` en `wetloon-belasting.md` beleidsmatig van elkaar afwijken, blijft formele business/fiscal sign-off nodig. De implementatie volgt nu consequent de primaire contextbron.
+2. Er is nog geen aparte browser/tour smoke-test. De betrouwbare releasevalidatie voor deze addon blijft de backend-gedreven Odoo suite via `--no-http`.
 
-Reden:
+## Historical Appendix
 
-1. De module heeft geen automatische data-flow van werkboekingen/attendance/timesheets naar overwerkverloning op de loonstrook.
-2. De kinderbijslag-logica kan operationeel worden omzeild als HR een generieke vrijgestelde contractregel gebruikt in plaats van het type `KINDBIJ`.
-3. Er ontbreken invoervalidaties voor negatieve bedragen op SR-contractregels en SR-payslip-inputs.
-4. De fiscale bronbasis is intern niet volledig eenduidig: `Loonbelasting context.md` en `wetloon-belasting.md` wijken af op Art. 17 en Art. 17c.
-
-Wel positief:
-
-- De centrale Art. 14/AOV-engine is intern consistent met `Loonbelasting context.md`.
-- FN 2026 validatie is aanwezig.
-- De test-suite draait groen: 0 failed, 0 error(s) of 88 tests.
-- De addon geeft geen editor/compile errors in de huidige workspace.
+De onderstaande secties beschrijven de oorspronkelijke pre-fix auditbevindingen en blijven alleen bewaard als historisch spoor. Voor releasebesluitvorming geldt de status in de secties hierboven.
 
 ## Auditbasis
 

@@ -510,7 +510,7 @@ result = -float_round(bruto_overwerk * aov_tarief, precision_digits=2)
 
         <!-- ─────────────────────────────────────────────────────────
              87 — SR_VAKANTIE: Vakantietoelage bruto (Art. 10i)
-             Vrijstelling = min(basisloon, max SRD 10.016/jaar).
+               Vrijstelling = min(2× basisloon, max SRD 19.500/jaar).
              Belastbaar deel via Art. 17 marginaal tarief.
              ───────────────────────────────────────────────────────── -->
         <record id="sr_rule_vakantie" model="hr.salary.rule">
@@ -537,7 +537,7 @@ result = sum(
 
         <!-- ─────────────────────────────────────────────────────────
              88 — SR_GRAT: Gratificatie / Bonus bruto (Art. 10j)
-             Vrijstelling = min(basisloon, max SRD 10.016/jaar).
+               Vrijstelling = min(basisloon, max SRD 19.500/jaar).
              Belastbaar deel via Art. 17 marginaal tarief.
              ───────────────────────────────────────────────────────── -->
         <record id="sr_rule_gratificatie" model="hr.salary.rule">

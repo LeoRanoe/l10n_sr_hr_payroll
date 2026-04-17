@@ -56,6 +56,7 @@
                         <div class="col-md-6">
                             <ul class="list-unstyled">
                                 <li><a href="#sect-parameters"><i class="fa fa-angle-right text-info"/> Belastingparameters</a></li>
+                                <li><a href="#sect-migratie"><i class="fa fa-angle-right text-info"/> Migratie 2025 → 2026</a></li>
                                 <li><a href="#sect-berekening"><i class="fa fa-angle-right text-info"/> Hoe de berekening werkt</a></li>
                                 <li><a href="#sect-bijzonder"><i class="fa fa-angle-right text-info"/> Bijzondere beloningen</a></li>
                                 <li><a href="#sect-faq"><i class="fa fa-angle-right text-info"/> Veelgestelde vragen (FAQ)</a></li>
@@ -131,7 +132,7 @@
                     <h5 class="mb-0"><i class="fa fa-briefcase"/> 2. Contract Instellen voor Suriname</h5>
                 </div>
                 <div class="card-body">
-                    <p>Elk Surinaams contract heeft een <strong>Suriname Loon</strong> tab met de volgende instellingen:</p>
+                    <p>Elk Surinaams contract heeft een <strong>Suriname Payroll</strong> tab. De eerste subtab <strong>Fiscale Data</strong> is de wettelijke bron voor contractverloning.</p>
 
                     <table class="table table-bordered">
                         <thead class="table-light">
@@ -139,14 +140,14 @@
                         </thead>
                         <tbody>
                             <tr>
-                                <td><strong>Verloningstype</strong></td>
-                                <td>Hoe vaak de werknemer betaald wordt</td>
-                                <td>Maandelijks of Fortnight (26 periodes/jaar)</td>
+                                <td><strong>Belastingtype</strong></td>
+                                <td>Hoe vaak de werknemer betaald wordt en welke periodevalidatie geldt</td>
+                                <td><strong>1 lb sal ovw</strong> of <strong>FN</strong></td>
                             </tr>
                             <tr>
                                 <td><strong>Aantal Kinderen</strong></td>
                                 <td>Voor kinderbijslagberekening (Art. 10h WLB)</td>
-                                <td>0, 1, 2, 3, ...</td>
+                                <td>0 t/m 4</td>
                             </tr>
                             <tr>
                                 <td><strong>Bruto Maandloon (Wage)</strong></td>
@@ -161,7 +162,7 @@
                         <ul class="mb-0">
                             <li>Het <em>Salary Structure Type</em> moet ingesteld zijn op <strong>"Suriname Salaris Structuur"</strong></li>
                             <li>De status van het contract moet <strong>Actief (Running)</strong> zijn</li>
-                            <li>Gebruik de <strong>Live Rekenvoorbeeld</strong> onderaan de Suriname tab om direct te controleren</li>
+                            <li>Gebruik de subtab <strong>Controle &amp; Preview</strong> om de berekening direct te verifiëren</li>
                         </ul>
                     </div>
                 </div>
@@ -179,7 +180,7 @@
                     <h6 class="mt-3">Hoe toe te voegen:</h6>
                     <ol>
                         <li>Open het <strong>contract</strong> van de werknemer</li>
-                        <li>Ga naar de tab <strong>Suriname Loon</strong></li>
+                        <li>Ga naar de tab <strong>Suriname Payroll → Fiscale Data</strong></li>
                         <li>Klik <strong>"Voeg een regel toe"</strong> bij Vaste Loon Regels</li>
                         <li>Vul in: <strong>Naam</strong>, <strong>Categorie</strong>, <strong>Bedrag of Percentage</strong></li>
                     </ol>
@@ -284,6 +285,11 @@
                         <strong>Waar te vinden:</strong> <em>Payroll → Configuratie → Suriname → SR Payroll Instellingen</em>
                     </div>
 
+                    <div class="alert alert-secondary border mt-3">
+                        <strong><i class="fa fa-balance-scale"/> 2026 kernwaarden:</strong>
+                        AKB = SRD 250 per kind, max SRD 1.000 per maand en max 4 kinderen. Bijzondere vrijstellingscap = SRD 19.500. Heffingskorting blijft alleen auditbaar en is niet actief in Art. 14.
+                    </div>
+
                     <div class="alert alert-info border mt-3">
                         <strong><i class="fa fa-sliders"/> Toekomstige schijven voorbereiden:</strong>
                         Een <strong>systeembeheerder</strong> kan extra Art. 14 schijven technisch voorbereiden via
@@ -324,10 +330,27 @@
                 </div>
             </div>
 
+            <div class="card mb-4 border-0 shadow-sm" id="sect-migratie">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="fa fa-refresh"/> 6. Migratie 2025 → 2026</h5>
+                </div>
+                <div class="card-body">
+                    <p>Gebruik deze checklist wanneer u een bestaande payrollomgeving van de 2025-release naar de 2026-release bijwerkt.</p>
+                    <ol>
+                        <li>Maak een back-up van de database en update daarna de module <strong>l10n_sr_hr_payroll</strong>.</li>
+                        <li>Open <strong>SR Payroll Instellingen</strong> en bevestig de 2026-waarden: AKB SRD 250 / 1.000, AOV franchise SRD 400, heffingskorting SRD 750 (audit-only), bijzondere vrijstellingscap SRD 19.500.</li>
+                        <li>Controleer alle actieve contracten in <strong>Suriname Payroll → Fiscale Data</strong>: zet het juiste belastingtype (`1 lb sal ovw` of `FN`) en corrigeer AKB naar maximaal 4 kinderen.</li>
+                        <li>Controleer vaste loonregels en other input types op categorie: overwerk, vakantietoelage, gratificatie en uitkering ineens moeten hun SR-categorie behouden.</li>
+                        <li>Voor FN-contracten: gebruik in 2026 alleen de 26 ondersteunde FN-tijdvakken. Vrije datumbereiken worden geweigerd.</li>
+                        <li>Genereer minimaal één proefloonstrook met het referentiesalaris van SRD 20.255,60 en vergelijk LB/AOV/NET met het rekenvoorbeeld.</li>
+                    </ol>
+                </div>
+            </div>
+
             <!-- ═══ 6. HOE DE BEREKENING WERKT ════════════════════ -->
             <div class="card mb-4 border-0 shadow-sm" id="sect-berekening">
                 <div class="card-header bg-info text-white">
-                    <h5 class="mb-0"><i class="fa fa-calculator"/> 6. Hoe de Berekening Werkt</h5>
+                    <h5 class="mb-0"><i class="fa fa-calculator"/> 7. Hoe de Berekening Werkt</h5>
                 </div>
                 <div class="card-body">
                     <p>De loonberekening volgt de <strong>Wet Loonbelasting (WLB)</strong> van Suriname.
@@ -370,7 +393,7 @@
                             <div class="card border-start border-4 border-success mb-3">
                                 <div class="card-body py-2">
                                     <h6><span class="badge bg-success">6</span> AOV Bijdrage</h6>
-                                    <small><t t-esc="'{:.0f}'.format(v.get('SR_AOV_TARIEF', 0.04) * 100)"/>% over (bruto − franchise SRD <t t-esc="'{:,.0f}'.format(v.get('SR_AOV_FRANCHISE_MAAND', 400))"/>)</small>
+                                    <small><t t-esc="'{:.0f}'.format(v.get('SR_AOV_TARIEF', 0.04) * 100)"/>% over bruto minus franchise SRD <t t-esc="'{:,.0f}'.format(v.get('SR_AOV_FRANCHISE_MAAND', 400))"/> voor maandloon; FN heeft geen franchise</small>
                                 </div>
                             </div>
                             <div class="card border-start border-4 border-success mb-3">
@@ -410,7 +433,7 @@
             <!-- ═══ 7. BIJZONDERE BELONINGEN ══════════════════════ -->
             <div class="card mb-4 border-0 shadow-sm" id="sect-bijzonder">
                 <div class="card-header bg-info text-white">
-                    <h5 class="mb-0"><i class="fa fa-gift"/> 7. Bijzondere Beloningen &amp; Overwerk</h5>
+                    <h5 class="mb-0"><i class="fa fa-gift"/> 8. Bijzondere Beloningen &amp; Overwerk</h5>
                 </div>
                 <div class="card-body">
                     <div class="row">
@@ -444,17 +467,17 @@
                             <tr>
                                 <td>Vakantietoelage</td>
                                 <td>Art. 10i</td>
-                                <td>Belastingvrij tot het maximumbedrag per jaar (instelbaar via parameters)</td>
+                                <td>Belastingvrij tot <strong>min(2× basisloon, SRD 19.500)</strong> per jaar</td>
                             </tr>
                             <tr>
                                 <td>Gratificatie / Bonus</td>
                                 <td>Art. 10j</td>
-                                <td>Belastingvrij tot het maximumbedrag per jaar (instelbaar via parameters)</td>
+                                <td>Belastingvrij tot <strong>min(basisloon, SRD 19.500)</strong> per jaar, pro-rata bij onvolledig dienstjaar</td>
                             </tr>
                             <tr>
                                 <td>Kinderbijslag</td>
                                 <td>Art. 10h</td>
-                                <td>Max SRD <t t-esc="'{:,.0f}'.format(v.get('SR_KINDBIJ_MAX_KIND_MAAND', 250))"/> per kind, max SRD <t t-esc="'{:,.0f}'.format(v.get('SR_KINDBIJ_MAX_MAAND', 1000))"/> totaal per maand</td>
+                                <td>Max SRD <t t-esc="'{:,.0f}'.format(v.get('SR_KINDBIJ_MAX_KIND_MAAND', 250))"/> per kind, max SRD <t t-esc="'{:,.0f}'.format(v.get('SR_KINDBIJ_MAX_MAAND', 1000))"/> totaal per maand en max 4 kinderen</td>
                             </tr>
                         </tbody>
                     </table>
@@ -464,7 +487,7 @@
             <!-- ═══ 8. FAQ ════════════════════════════════════════ -->
             <div class="card mb-4 border-0 shadow-sm" id="sect-faq">
                 <div class="card-header bg-info text-white">
-                    <h5 class="mb-0"><i class="fa fa-question-circle"/> 8. Veelgestelde Vragen (FAQ)</h5>
+                    <h5 class="mb-0"><i class="fa fa-question-circle"/> 9. Veelgestelde Vragen (FAQ)</h5>
                 </div>
                 <div class="card-body">
 
@@ -500,14 +523,14 @@
 
                     <div class="border-bottom pb-3 mb-3">
                         <h6 class="fw-bold"><i class="fa fa-question text-info"/> Wat als een werknemer 14-daags betaald wordt?</h6>
-                                <p>Stel het <strong>Verloningstype</strong> in op "Fortnight" in de Suriname Loon tab.
+                                <p>Stel het <strong>Belastingtype</strong> in op <strong>FN</strong> in <strong>Suriname Payroll → Fiscale Data</strong>.
                            Alle berekeningen (belastingvrije voet, forfaitaire aftrek, etc.) worden automatisch
                            omgerekend naar het juiste tijdvak.</p>
                     </div>
 
                     <div class="border-bottom pb-3 mb-3">
                         <h6 class="fw-bold"><i class="fa fa-question text-info"/> Waar kan ik de berekening in detail bekijken?</h6>
-                        <p>Op het <strong>contract</strong> onder de Suriname Loon tab vindt u het <em>Berekeningsdetail</em>
+                        <p>Op het <strong>contract</strong> onder <strong>Suriname Payroll → Controle &amp; Preview</strong> vindt u het <em>Berekeningsdetail</em>
                                     met een stapsgewijze uitsplitsing. Op de <strong>loonstrook</strong> kunt u "HTML Preview"
                            klikken voor een gedetailleerd overzicht.</p>
                     </div>
