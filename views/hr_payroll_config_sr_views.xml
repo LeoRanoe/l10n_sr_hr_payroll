@@ -3,16 +3,18 @@
     Suriname Payroll — Centrale Configuratie
     =========================================
     Biedt een centraal menu voor alle Suriname-specifieke payroll instellingen:
-      - Loon Code Types (hr.contract.sr.line.type)
-            - SR Payroll Referentieparameters (gefilterde hr.rule.parameter)
-      - SR Payslip Input Types (hr.payslip.input.type met sr_categorie)
+    - Vaste Looncodes (hr.contract.sr.line.type)
+    - Eenmalige Looncodes (hr.payslip.input.type met sr_categorie)
+    - Technische Referentieparameters (admin)
 
     Menu structuur:
       Payroll → Configuratie → Suriname
         ├── Loon Code Types
                 ├── SR Payroll Instellingen
-                ├── SR Payroll Referentieparameters
-        └── SR Payslip Input Types
+                ├── Vaste Looncodes
+                ├── Eenmalige Looncodes
+                └── Technisch (Admin)
+                    └── Referentieparameters
 -->
 <odoo>
 
@@ -24,7 +26,7 @@
         <field name="name">hr.contract.sr.line.type.list</field>
         <field name="model">hr.contract.sr.line.type</field>
         <field name="arch" type="xml">
-            <list string="Loon Code Types" editable="bottom">
+            <list string="Vaste Looncodes" editable="bottom">
                 <field name="sequence" widget="handle"/>
                 <field name="name"/>
                 <field name="code"/>
@@ -39,7 +41,7 @@
         <field name="name">hr.contract.sr.line.type.form</field>
         <field name="model">hr.contract.sr.line.type</field>
         <field name="arch" type="xml">
-            <form string="Loon Code Type">
+            <form string="Vaste Looncode">
                 <sheet>
                     <div class="oe_button_box" name="button_box"/>
                     <widget name="web_ribbon" title="Gearchiveerd" bg_color="text-bg-danger"
@@ -122,12 +124,12 @@
          ═══════════════════════════════════════════════════════════════ -->
 
     <record id="action_sr_line_type" model="ir.actions.act_window">
-        <field name="name">Loon Code Types (Vaste Contract Regels)</field>
+        <field name="name">Vaste Looncodes</field>
         <field name="res_model">hr.contract.sr.line.type</field>
         <field name="view_mode">list,form</field>
         <field name="help" type="html">
-            <p class="o_view_nocontent_smiling_face">Maak een nieuw Loon Code Type aan.</p>
-            <h3>Wat zijn Loon Code Types?</h3>
+            <p class="o_view_nocontent_smiling_face">Maak een nieuwe vaste looncode aan.</p>
+            <h3>Wat zijn vaste looncodes?</h3>
             <p>
                 Dit zijn de <strong>sjablonen</strong> voor vaste loonregels op een contract.
                 Je maakt ze hier één keer aan; daarna zijn ze beschikbaar als keuzelijst
@@ -151,15 +153,15 @@
     </record>
 
     <record id="action_sr_rule_parameters" model="ir.actions.act_window">
-        <field name="name">SR Payroll Referentieparameters</field>
+        <field name="name">Technische Referentieparameters (Admin)</field>
         <field name="res_model">hr.rule.parameter</field>
         <field name="view_mode">list,form</field>
         <field name="view_id" ref="sr_rule_parameter_view_list"/>
         <field name="search_view_id" ref="sr_rule_parameter_view_search"/>
         <field name="domain" eval="[('code', 'like', 'SR_%')]"/>
         <field name="help" type="html">
-            <p class="o_view_nocontent_smiling_face">Geen SR referentieparameters gevonden.</p>
-            <h3>Wat zijn SR Payroll Referentieparameters?</h3>
+            <p class="o_view_nocontent_smiling_face">Geen technische SR referentieparameters gevonden.</p>
+            <h3>Wat zijn technische referentieparameters?</h3>
             <p>
                 De <strong>actuele payrollinstellingen</strong> beheert u via
                 <strong>Payroll → Configuratie → Suriname → SR Payroll Instellingen</strong>.
@@ -167,6 +169,9 @@
                 <code>hr.rule.parameter</code> voor historische inspectie, fallback en
                 technische uitbreidingen.
             </p>
+            <div class="alert alert-warning">
+                Dit scherm is bedoeld voor <strong>systeembeheer en implementatie</strong>, niet voor dagelijkse payrollmutaties.
+            </div>
             <h4>Parametergroepen (gebruik de filterknop &#x25BC; bovenaan)</h4>
             <ul>
                 <li><strong>Loonbelasting Art. 14</strong>: belastingvrije voet, forfaitaire beroepskosten aftrek (%) en een uitbreidbare set schijfgrenzen/tarieven via <code>SR_SCHIJF_*</code> en <code>SR_TARIEF_*</code>.</li>
@@ -207,14 +212,14 @@
     </record>
 
     <record id="action_sr_payslip_input_types" model="ir.actions.act_window">
-        <field name="name">SR Payslip Input Types (Eenmalige Loon Codes)</field>
+        <field name="name">Eenmalige Looncodes</field>
         <field name="res_model">hr.payslip.input.type</field>
         <field name="view_mode">list,form</field>
         <field name="domain" eval="[('sr_categorie', '!=', False)]"/>
         <field name="context" eval="{'default_country_id': ref('base.sr')}"/>
         <field name="help" type="html">
-            <p class="o_view_nocontent_smiling_face">Maak een nieuw SR Payslip Input Type aan.</p>
-            <h3>Wat zijn SR Payslip Input Types?</h3>
+            <p class="o_view_nocontent_smiling_face">Maak een nieuwe eenmalige looncode aan.</p>
+            <h3>Wat zijn eenmalige looncodes?</h3>
             <p>
                 Dit zijn de loon codes voor <strong>variabele of eenmalige betalingen</strong>
                 die per loonstrook handmatig worden ingevoerd. Ze worden toegevoegd
@@ -240,7 +245,7 @@
             <p>
                 <strong>Loon Code Types</strong> = vaste bedragen elke periode op het contract
                 (bijv. altijd SRD 500 olie toelage).<br/>
-                <strong>SR Payslip Input Types</strong> = variabele bedragen per loonstrook
+                <strong>Eenmalige looncodes</strong> = variabele bedragen per loonstrook
                 (bijv. overwerk, vakantietoelage, bonus — wisselend per maand).<br/><br/>
                 <em>Salary &#x2192; Other Input Types</em> toont input types van
                 <strong>alle landen en modules</strong>. Dit scherm toont
@@ -263,21 +268,29 @@
 
     <menuitem
         id="menu_sr_line_types"
-        name="Loon Code Types"
+        name="Vaste Looncodes"
         parent="menu_sr_config_root"
         action="action_sr_line_type"
-        sequence="10"/>
-
-    <menuitem
-        id="menu_sr_parameters"
-        name="SR Payroll Referentieparameters"
-        parent="menu_sr_config_root"
-        action="action_sr_rule_parameters"
         sequence="20"/>
 
     <menuitem
+        id="menu_sr_technical_root"
+        name="Technisch (Admin)"
+        parent="menu_sr_config_root"
+        sequence="80"
+        groups="base.group_system"/>
+
+    <menuitem
+        id="menu_sr_parameters"
+        name="Referentieparameters"
+        parent="menu_sr_technical_root"
+        action="action_sr_rule_parameters"
+        sequence="10"
+        groups="base.group_system"/>
+
+    <menuitem
         id="menu_sr_input_types"
-        name="SR Payslip Input Types"
+        name="Eenmalige Looncodes"
         parent="menu_sr_config_root"
         action="action_sr_payslip_input_types"
         sequence="30"/>

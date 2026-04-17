@@ -286,10 +286,16 @@
 
                     <div class="alert alert-info border mt-3">
                         <strong><i class="fa fa-sliders"/> Toekomstige schijven voorbereiden:</strong>
-                        U kunt extra Art. 14 schijven technisch voorbereiden via
-                        <em>Payroll → Configuratie → Suriname → SR Payroll Referentieparameters</em>
+                        Een <strong>systeembeheerder</strong> kan extra Art. 14 schijven technisch voorbereiden via
+                        <em>Payroll → Configuratie → Suriname → Technisch (Admin) → Referentieparameters</em>
                         met codes zoals <strong>SR_SCHIJF_4_GRENS</strong> en <strong>SR_TARIEF_5</strong>.
                         Zolang er nog geen waarde met ingangsdatum actief is, heeft dat geen effect op de huidige loonberekening.
+                    </div>
+
+                    <div class="alert alert-secondary border mt-3">
+                        <strong><i class="fa fa-info-circle"/> Dagelijks gebruik:</strong>
+                        Voor normale payrollwijzigingen gebruikt u alleen <em>SR Payroll Instellingen</em>.
+                        Het technische parameterenscherm is niet bedoeld voor dagelijkse invoer.
                     </div>
 
                     <h6>Huidige waarden:</h6>
@@ -482,7 +488,7 @@
                         <h6 class="fw-bold"><i class="fa fa-question text-info"/> Hoe pas ik de belastingtarieven aan?</h6>
                                 <p>Ga naar <em>Payroll → Configuratie → Suriname → SR Payroll Instellingen</em>.
                                     Pas daar de actuele waarden aan. Als de wet een extra schijf toevoegt,
-                                    beheer het volgende codepaar technisch via <em>SR Payroll Referentieparameters</em>,
+                                    beheer het volgende codepaar technisch via <em>Technisch (Admin) → Referentieparameters</em>,
                                     bijvoorbeeld <strong>SR_SCHIJF_4_GRENS</strong> en <strong>SR_TARIEF_5</strong>.</p>
                     </div>
 
