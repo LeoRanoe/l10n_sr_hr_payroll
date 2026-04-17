@@ -12,6 +12,7 @@ geen afhankelijkheid heeft op hr.rule.parameter of andere Odoo modellen.
 """
 
 import re
+from decimal import Decimal, ROUND_HALF_UP
 
 from odoo.exceptions import UserError
 
@@ -45,6 +46,100 @@ PARAM_CODE_MAP = {
     'SR_AOV_TARIEF': 'aov_tarief',
     'SR_AOV_FRANCHISE_MAAND': 'aov_franchise_maand',
 }
+
+CONFIG_PARAMETER_MAP = {
+    'SR_BELASTINGVRIJ_JAAR': ('sr_payroll.belastingvrij_jaar', 108000.0),
+    'SR_FORFAITAIRE_PCT': ('sr_payroll.forfaitaire_pct', 0.04),
+    'SR_FORFAITAIRE_MAX_JAAR': ('sr_payroll.forfaitaire_max_jaar', 4800.0),
+    'SR_SCHIJF_1_GRENS': ('sr_payroll.schijf_1_grens', 42000.0),
+    'SR_SCHIJF_2_GRENS': ('sr_payroll.schijf_2_grens', 84000.0),
+    'SR_SCHIJF_3_GRENS': ('sr_payroll.schijf_3_grens', 126000.0),
+    'SR_TARIEF_1': ('sr_payroll.tarief_1', 0.08),
+    'SR_TARIEF_2': ('sr_payroll.tarief_2', 0.18),
+    'SR_TARIEF_3': ('sr_payroll.tarief_3', 0.28),
+    'SR_TARIEF_4': ('sr_payroll.tarief_4', 0.38),
+    'SR_AOV_TARIEF': ('sr_payroll.aov_tarief', 0.04),
+    'SR_AOV_FRANCHISE_MAAND': ('sr_payroll.aov_franchise_maand', 400.0),
+    'SR_KINDBIJ_MAX_KIND_MAAND': ('sr_payroll.akb_per_kind', 250.0),
+    'SR_KINDBIJ_MAX_MAAND': ('sr_payroll.akb_max_bedrag', 1000.0),
+    'SR_BIJZ_VRIJSTELLING_MAX': ('sr_payroll.bijz_beloning_max', 19500.0),
+    'SR_OWK_SCHIJF_1_GRENS': ('sr_payroll.overwerk_schijf_1_grens', 2500.0),
+    'SR_OWK_SCHIJF_2_GRENS': ('sr_payroll.overwerk_schijf_2_grens', 7500.0),
+    'SR_OWK_TARIEF_1': ('sr_payroll.overwerk_tarief_1', 0.05),
+    'SR_OWK_TARIEF_2': ('sr_payroll.overwerk_tarief_2', 0.15),
+    'SR_OWK_TARIEF_3': ('sr_payroll.overwerk_tarief_3', 0.25),
+    'SR_HEFFINGSKORTING': ('sr_payroll.heffingskorting', 750.0),
+}
+
+MONEY_QUANT = Decimal('0.01')
+WHOLE_QUANT = Decimal('1')
+ZERO = Decimal('0')
+
+
+def _to_decimal(value):
+    if isinstance(value, Decimal):
+        return value
+    if value in (None, False, ''):
+        return ZERO
+    return Decimal(str(value))
+
+
+def _quantize(value, quant=MONEY_QUANT):
+    return _to_decimal(value).quantize(quant, rounding=ROUND_HALF_UP)
+
+
+def round_money(value):
+    return float(_quantize(value))
+
+
+def _round_number(value, digits=2):
+    quant = WHOLE_QUANT if digits <= 0 else Decimal('1').scaleb(-digits)
+    return _quantize(value, quant)
+
+
+def _format_number(value, digits=2):
+    rounded = _round_number(value, digits)
+    return f'{abs(rounded):,.{digits}f}'.replace(',', 'X').replace('.', ',').replace('X', '.')
+
+
+def format_srd(value, digits=2):
+    return f'SRD {_format_number(value, digits)}'
+
+
+def get_config_parameter_key(code):
+    return CONFIG_PARAMETER_MAP.get(code, (None, None))[0]
+
+
+def get_config_parameter_default(code):
+    return CONFIG_PARAMETER_MAP.get(code, (None, None))[1]
+
+
+def get_config_parameter_value(env, code, default=None):
+    config_key = get_config_parameter_key(code)
+    if not config_key:
+        return default
+
+    fallback = get_config_parameter_default(code) if default is None else default
+    value = env['ir.config_parameter'].sudo().get_param(config_key)
+    if value in (None, False, ''):
+        return fallback
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return fallback
+
+
+def get_sr_parameter_value(env, code, ref_date, default=None, raise_if_not_found=True):
+    config_value = get_config_parameter_value(env, code, default=None)
+    if config_value is not None:
+        return config_value
+
+    value = env['hr.rule.parameter']._get_parameter_from_code(
+        code, ref_date, raise_if_not_found=raise_if_not_found,
+    )
+    if value in (None, False, ''):
+        return default
+    return value
 
 
 def _collect_dynamic_brackets(code_names, get_value):
@@ -117,13 +212,17 @@ def _collect_dynamic_brackets(code_names, get_value):
         previous_threshold = threshold
 
     brackets = []
+    previous_lower = 0.0
     for index, rate in enumerate(rates, start=1):
         upper = thresholds[index - 1] if index <= len(thresholds) else None
         brackets.append({
             'index': index,
+            'lower': previous_lower,
             'upper': upper,
             'rate': rate,
         })
+        if upper is not None:
+            previous_lower = upper
 
     return brackets
 
@@ -170,13 +269,13 @@ def fetch_params_from_rule_parameter(env, ref_date):
     RuleParam = env['hr.rule.parameter']
     params = {}
     for code, key in PARAM_CODE_MAP.items():
-        params[key] = RuleParam._get_parameter_from_code(
-            code, ref_date, raise_if_not_found=True,
+        params[key] = get_sr_parameter_value(
+            env, code, ref_date, raise_if_not_found=True,
         )
     code_names = RuleParam.search([('code', 'like', 'SR_')]).mapped('code')
     params['brackets'] = _collect_dynamic_brackets(
         code_names,
-        lambda code: RuleParam._get_parameter_from_code(code, ref_date, raise_if_not_found=True),
+        lambda code: get_sr_parameter_value(env, code, ref_date, raise_if_not_found=True),
     )
     return _pad_legacy_bracket_fields(params)
 
@@ -209,35 +308,47 @@ def calculate_lb(bruto_per_periode, periodes, params, aftrek_bv_per_periode=0.0)
     :param aftrek_bv_per_periode: Aftrek belastingvrij per periode (Art. 10f pensioenpremie)
     :returns: dict met alle tussenliggende bedragen
     """
-    bruto_jaar = bruto_per_periode * periodes
-    aftrek_bv_jaar = aftrek_bv_per_periode * periodes
+    if periodes <= 0:
+        raise UserError('SR Art. 14 berekening vereist een positief aantal periodes per jaar.')
+
+    bruto_per_periode_dec = _to_decimal(bruto_per_periode)
+    periodes_dec = _to_decimal(periodes)
+    aftrek_bv_per_periode_dec = _to_decimal(aftrek_bv_per_periode)
+    forfaitaire_pct = _to_decimal(params['forfaitaire_pct'])
+    forfaitaire_max = _to_decimal(params['forfaitaire_max'])
+    belastingvrij_jaar = _to_decimal(params['belastingvrij_jaar'])
+    aov_tarief = _to_decimal(params['aov_tarief'])
+    aov_franchise_maand = _to_decimal(params['aov_franchise_maand'])
+
+    bruto_jaar = bruto_per_periode_dec * periodes_dec
+    aftrek_bv_jaar = aftrek_bv_per_periode_dec * periodes_dec
 
     # Gecorrigeerd bruto na pensioenpremie aftrek (Art. 10f)
-    adjusted_bruto_jaar = max(0.0, bruto_jaar - aftrek_bv_jaar)
+    adjusted_bruto_jaar = max(ZERO, bruto_jaar - aftrek_bv_jaar)
 
     # Forfaitaire beroepskosten aftrek (Art. 12) — over gecorrigeerd bruto
     forfaitaire_jaar = min(
-        adjusted_bruto_jaar * params['forfaitaire_pct'],
-        params['forfaitaire_max'],
+        adjusted_bruto_jaar * forfaitaire_pct,
+        forfaitaire_max,
     )
 
     # Belastbaar jaarloon (Art. 13 + Art. 14)
     belastbaar_jaar = max(
-        0.0,
-        adjusted_bruto_jaar - params['belastingvrij_jaar'] - forfaitaire_jaar,
+        ZERO,
+        adjusted_bruto_jaar - belastingvrij_jaar - forfaitaire_jaar,
     )
 
     # Tariefschijven (Art. 14) — dynamisch uit parameterrecords opgebouwd.
-    previous_upper = 0.0
+    previous_upper = ZERO
     bracket_rows = []
     for bracket in params['brackets']:
-        upper = bracket['upper']
-        rate = bracket['rate']
+        upper = None if bracket['upper'] is None else _to_decimal(bracket['upper'])
+        rate = _to_decimal(bracket['rate'])
 
         if upper is None:
-            basis = max(0.0, belastbaar_jaar - previous_upper)
+            basis = max(ZERO, belastbaar_jaar - previous_upper)
         else:
-            basis = max(0.0, min(belastbaar_jaar, upper) - previous_upper)
+            basis = max(ZERO, min(belastbaar_jaar, upper) - previous_upper)
 
         tax = basis * rate
         bracket_rows.append({
@@ -255,36 +366,48 @@ def calculate_lb(bruto_per_periode, periodes, params, aftrek_bv_per_periode=0.0)
     lb_jaar = sum(row['tax'] for row in bracket_rows)
 
     # LB per periode — conform context formules (geen heffingskorting)
-    lb_per_periode = lb_jaar / periodes
+    lb_per_periode = lb_jaar / periodes_dec
 
     # AOV — ook over gecorrigeerd bruto (Art. 10f aftrek)
-    effective_bruto_per_periode = max(0.0, bruto_per_periode - aftrek_bv_per_periode)
-    franchise_periode = params['aov_franchise_maand'] if periodes == 12 else 0.0
-    aov_grondslag = max(0.0, effective_bruto_per_periode - franchise_periode)
-    aov_per_periode = aov_grondslag * params['aov_tarief']
+    effective_bruto_per_periode = max(ZERO, bruto_per_periode_dec - aftrek_bv_per_periode_dec)
+    franchise_periode = aov_franchise_maand if periodes == 12 else ZERO
+    aov_grondslag = max(ZERO, effective_bruto_per_periode - franchise_periode)
+    aov_per_periode = aov_grondslag * aov_tarief
+
+    serialized_bracket_rows = []
+    for row in bracket_rows:
+        serialized_bracket_rows.append({
+            'index': row['index'],
+            'lower': round_money(row['lower']),
+            'upper': None if row['upper'] is None else round_money(row['upper']),
+            'rate': float(row['rate']),
+            'basis': round_money(row['basis']),
+            'tax': round_money(row['tax']),
+        })
 
     result = {
-        'bruto_per_periode': bruto_per_periode,
+        'bruto_per_periode': round_money(bruto_per_periode_dec),
         'periodes': periodes,
-        'bruto_jaar': bruto_jaar,
-        'aftrek_bv_per_periode': aftrek_bv_per_periode,
-        'aftrek_bv_jaar': aftrek_bv_jaar,
-        'adjusted_bruto_jaar': adjusted_bruto_jaar,
-        'forfaitaire_pct': params['forfaitaire_pct'],
-        'forfaitaire_jaar': forfaitaire_jaar,
-        'belastingvrij_jaar': params['belastingvrij_jaar'],
-        'belastbaar_jaar': belastbaar_jaar,
-        'tax_brackets': bracket_rows,
-        'lb_jaar': lb_jaar,
-        'lb_per_periode': lb_per_periode,
+        'bruto_jaar': round_money(bruto_jaar),
+        'aftrek_bv_per_periode': round_money(aftrek_bv_per_periode_dec),
+        'aftrek_bv_jaar': round_money(aftrek_bv_jaar),
+        'adjusted_bruto_jaar': round_money(adjusted_bruto_jaar),
+        'forfaitaire_pct': float(forfaitaire_pct),
+        'forfaitaire_jaar': round_money(forfaitaire_jaar),
+        'forfaitaire_max': round_money(forfaitaire_max),
+        'belastingvrij_jaar': round_money(belastingvrij_jaar),
+        'belastbaar_jaar': round_money(belastbaar_jaar),
+        'tax_brackets': serialized_bracket_rows,
+        'lb_jaar': round_money(lb_jaar),
+        'lb_per_periode': round_money(lb_per_periode),
         # AOV
-        'franchise_periode': franchise_periode,
-        'aov_grondslag': aov_grondslag,
-        'aov_tarief': params['aov_tarief'],
-        'aov_per_periode': aov_per_periode,
+        'franchise_periode': round_money(franchise_periode),
+        'aov_grondslag': round_money(aov_grondslag),
+        'aov_tarief': float(aov_tarief),
+        'aov_per_periode': round_money(aov_per_periode),
     }
 
-    return _legacy_bracket_fields(result, bracket_rows)
+    return _legacy_bracket_fields(result, serialized_bracket_rows)
 
 
 def generate_breakdown_html(result, wage, periodes, salary_type, kb_split=None,
@@ -308,7 +431,7 @@ def generate_breakdown_html(result, wage, periodes, salary_type, kb_split=None,
     """
     def m(n, sign=''):
         """Formatteert getal met duizendpunten en 2 decimalen."""
-        s = f"SRD {abs(n):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+        s = format_srd(abs(n))
         if sign == '+':
             clr = '#16a34a' if n >= 0 else '#dc2626'
             prefix = '+' if n >= 0 else '−'
@@ -334,17 +457,8 @@ def generate_breakdown_html(result, wage, periodes, salary_type, kb_split=None,
             f'</tr>'
         )
 
-    def total_row(label, value, color='#1e40af'):
-        return (
-            f'<tr class="table-primary">'
-            f'<td colspan="2" class="fw-bold">{label}</td>'
-            f'<td class="text-end fw-bold font-monospace">'
-            f'SRD {abs(result.get(value, 0)):,.2f}'.replace(",", "X").replace(".", ",").replace("X", ".") +
-            f'</td></tr>'
-        )
-
     def total_val(label, val_num, color='#1e40af'):
-        s = f"SRD {abs(val_num):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+        s = format_srd(abs(val_num))
         return (
             f'<tr class="table-primary">'
             f'<td colspan="2" class="fw-bold">{label}</td>'
@@ -380,8 +494,8 @@ def generate_breakdown_html(result, wage, periodes, salary_type, kb_split=None,
     if belastbaar_toelagen > 0:
         rows.append(row('Belastbare toelagen', '(contract regels)', m(belastbaar_toelagen)))
     if kb_b > 0 or kb_v > 0:
-        rows.append(row('Kinderbijslag belastbaar deel', f'KB &gt; {periodes}×SRD 125/kind', m(kb_b)))
-        rows.append(row('Kinderbijslag vrijgesteld deel', f'max SRD 125/kind/mnd', m(kb_v)))
+        rows.append(row('Kinderbijslag belastbaar deel', 'deel boven vrijstelling Art. 10h', m(kb_b)))
+        rows.append(row('Kinderbijslag vrijgesteld deel', 'vrijstelling volgens SR Payroll Instellingen', m(kb_v)))
     if vrijgesteld > 0:
         rows.append(row('Vrijgestelde toelagen', '(transport, maaltijd, ...)', m(vrijgesteld)))
     if r.get('aftrek_bv_per_periode', 0.0) > 0:
@@ -392,19 +506,19 @@ def generate_breakdown_html(result, wage, periodes, salary_type, kb_split=None,
     # ─── Sectie 2: Jaarloon & Forfaitair ───────────
     rows.append(sep('② BELASTBAAR JAARLOON (Art. 12 + 13)'))
     rows.append(row('Bruto jaarloon',
-                    f"SRD {r['bruto_per_periode']:,.2f} × {periodes}".replace(",", "."),
+                    f'{format_srd(r["bruto_per_periode"])} × {periodes}',
                     m(r['bruto_jaar'])))
     if r.get('aftrek_bv_jaar', 0.0) > 0:
         rows.append(row('Aftrek belastingvrij (Art. 10f)',
-                        f"SRD {r.get('aftrek_bv_per_periode', 0):.2f} × {periodes}",
+                        f'{format_srd(r.get("aftrek_bv_per_periode", 0))} × {periodes}',
                         m(r['aftrek_bv_jaar'], '-')))
         rows.append(row('Gecorrigeerd bruto', '(na aftrek)',
                         m(r['adjusted_bruto_jaar']), '#f0f9ff'))
     rows.append(row('Forfaitaire aftrek (Art. 12)',
-                    f"{r['forfaitaire_pct']*100:.0f}% van jaarloon (max SRD {r.get('forfaitaire_jaar',0):,.0f})".replace(",", "."),
+                    f'{_format_number(r["forfaitaire_pct"] * 100, 0)}% van jaarloon (max {format_srd(r.get("forfaitaire_max", 0), 0)})',
                     m(r['forfaitaire_jaar'], '-')))
     rows.append(row('Belastingvrije som (Art. 13)',
-                    f"SRD {r['belastingvrij_jaar']:,.0f}/jaar".replace(",", "."),
+                    f'{format_srd(r["belastingvrij_jaar"], 0)}/jaar',
                     m(r['belastingvrij_jaar'], '-')))
     rows.append(total_val('= Belastbaar Jaarloon', r['belastbaar_jaar']))
 
@@ -415,35 +529,33 @@ def generate_breakdown_html(result, wage, periodes, salary_type, kb_split=None,
             continue
         if bracket['upper'] is None:
             formula = (
-                f"Boven SRD {bracket['lower']:,.0f} × {bracket['rate']*100:.0f}%"
-                .replace(",", ".")
+                f'Boven {format_srd(bracket["lower"], 0)} × {_format_number(bracket["rate"] * 100, 0)}%'
             )
         else:
             formula = (
-                f"SRD {bracket['basis']:,.0f} × {bracket['rate']*100:.0f}%"
-                .replace(",", ".")
+                f'{format_srd(bracket["basis"], 0)} × {_format_number(bracket["rate"] * 100, 0)}%'
             )
         rows.append(row(
-            f"Schijf {bracket['index']} ({bracket['rate']*100:.0f}%)",
+            f'Schijf {bracket["index"]} ({_format_number(bracket["rate"] * 100, 0)}%)',
             formula,
             m(bracket['tax']),
         ))
     rows.append(row('<strong>LB jaar</strong>', 'som schijven',
                     m(r['lb_jaar']), '#f0f9ff'))
     rows.append(row('<strong>LB per periode</strong>',
-                    f"{r['lb_jaar']:,.0f} ÷ {periodes}".replace(",", "."),
+                    f'{format_srd(r["lb_jaar"], 0)} ÷ {periodes}',
                     m(r['lb_per_periode']), '#fef9c3'))
 
     # ─── Sectie 4: AOV ─────────────────────────────
     rows.append(sep('④ AOV BIJDRAGE (4%)'))
-    franchise_label = f"AOV franchise − SRD {r['franchise_periode']:,.0f}/periode".replace(",", ".") \
+    franchise_label = f'AOV franchise − {format_srd(r["franchise_periode"], 0)}/periode' \
         if r['franchise_periode'] > 0 else 'Geen AOV franchise (Fortnight)'
     rows.append(row('Bruto per periode', '', m(r['bruto_per_periode'] - r.get('aftrek_bv_per_periode', 0.0))))
     if r['franchise_periode'] > 0:
         rows.append(row('Franchise (Art. 4 AOV)', franchise_label, m(r['franchise_periode'], '-')))
     rows.append(row('AOV grondslag', '', m(r['aov_grondslag']), '#f0f9ff'))
     rows.append(row('<strong>AOV per periode</strong>',
-                    f"{r['aov_tarief']*100:.0f}% × SRD {r['aov_grondslag']:,.2f}".replace(",", "."),
+                    f'{_format_number(r["aov_tarief"] * 100, 0)}% × {format_srd(r["aov_grondslag"])}',
                     m(r['aov_per_periode']), '#fef9c3'))
 
     # ─── Sectie 5: Netto Berekening ────────────────
@@ -493,10 +605,10 @@ def generate_tax_bracket_html(params):
     """
     def fmt(n):
         """Format number as SRD with thousand separator."""
-        return f"SRD {n:,.0f}".replace(",", ".")
+        return format_srd(n, 0)
 
     def pct(n):
-        return f"{n * 100:.0f}%"
+        return f'{_format_number(_to_decimal(n) * 100, 0)}%'
 
     rows_html = ""
     colors = ['#16a34a', '#d97706', '#dc2626', '#7c3aed', '#0f766e', '#b45309']
@@ -509,7 +621,7 @@ def generate_tax_bracket_html(params):
         elif lower <= 0:
             bereik = f"t/m {fmt(upper)}"
         else:
-            bereik = f"{fmt(lower + 1)} – {fmt(upper)}"
+            bereik = f'{fmt(_to_decimal(lower) + 1)} – {fmt(upper)}'
         rows_html += (
             f'<tr>'
             f'<td>{index}</td>'

@@ -7,7 +7,8 @@ Verifieert dat:
   - categorieën correct doorwerken in loonstrookregels
       belastbaar  → verhoogt SR_ALW → hogere LB grondslag
       vrijgesteld → verhoogt netto maar NIET de LB grondslag
-      inhouding   → verlaagt netto exact
+            aftrek_belastingvrij → verlaagt LB/AOV grondslag en netto
+            inhouding   → verlaagt netto exact
   - meerdere regels van dezelfde categorie correct opgeteld worden
   - de live preview velden (sr_preview_bruto, sr_preview_netto) kloppen
   - een leeg contract (geen vaste regels) geen fouten geeft
@@ -136,6 +137,41 @@ class TestSrVasteRegels(common.TransactionCase):
         contract.unlink()
         remaining = self.env['hr.contract.sr.line'].browse(lijn_id).exists()
         self.assertFalse(remaining, 'sr.line moet verwijderd zijn na cascade unlink van contract')
+
+    def test_type_bepaalt_contractcategorie_op_create(self):
+        """Een gekozen type moet de fiscale categorie afdwingen, ook bij tegenstrijdige invoer."""
+        contract = self._create_contract(wage=25000.0, employee=self.employee_b, vaste_regels=[
+            (0, 0, {
+                'type_id': self.env.ref('l10n_sr_hr_payroll.sr_line_type_pensioen').id,
+                'name': 'Pensioenpremie',
+                'sr_categorie': 'inhouding',
+                'amount': 1250.0,
+            }),
+        ])
+        lijn = contract.sr_vaste_regels
+
+        self.assertEqual(lijn.type_id.code, 'PENSIOEN')
+        self.assertEqual(lijn.sr_categorie, 'aftrek_belastingvrij')
+        self.assertEqual(lijn._sr_effective_category(), 'aftrek_belastingvrij')
+
+        payslip = self._compute_payslip(contract)
+        self._assertclose(self._line_total(payslip, 'SR_AFTREK_BV'), -1250.0,
+                          'Pensioentype moet in SR_AFTREK_BV landen')
+        self._assertclose(self._line_total(payslip, 'SR_PENSIOEN'), 0.0,
+                          'Pensioentype mag niet als gewone inhouding landen')
+
+    def test_type_bepaalt_contractcategorie_bij_write(self):
+        """Een bestaand type-gekoppeld record mag niet naar een strijdige categorie wegschrijven."""
+        contract = self._create_contract(wage=25000.0, employee=self.employee_b, vaste_regels=[
+            (0, 0, {
+                'type_id': self.env.ref('l10n_sr_hr_payroll.sr_line_type_pensioen').id,
+                'amount': 800.0,
+            }),
+        ])
+        lijn = contract.sr_vaste_regels
+
+        lijn.write({'sr_categorie': 'inhouding'})
+        self.assertEqual(lijn.sr_categorie, 'aftrek_belastingvrij')
 
     # ──────────────────────────────────────────────────────────────────────
     # 2. Leeg contract — geen vaste regels
@@ -426,14 +462,27 @@ class TestSrVasteRegels(common.TransactionCase):
     # ──────────────────────────────────────────────────────────────────────
 
     def test_alle_categorieen_aanmaken(self):
-        """Alle drie categorieën moeten aangemaakt kunnen worden."""
-        for categorie in ('belastbaar', 'vrijgesteld', 'inhouding'):
+        """Alle contractcategorieën moeten aangemaakt kunnen worden."""
+        for categorie in ('belastbaar', 'vrijgesteld', 'aftrek_belastingvrij', 'inhouding'):
             lijn = self.env['hr.contract.sr.line'].new({
                 'name': f'Test {categorie}',
                 'sr_categorie': categorie,
                 'amount': 100.0,
             })
             self.assertEqual(lijn.sr_categorie, categorie)
+
+    def test_preview_aftrek_belastingvrij_verlaagt_lb_en_aov(self):
+        """Art. 10f contractregels moeten de contractpreview verlagen in LB en AOV."""
+        contract_basis = self._create_contract(wage=25000.0, employee=self.employee_b)
+        contract_met_aftrek = self._create_contract(wage=25000.0, employee=self.employee, vaste_regels=[
+            (0, 0, {
+                'type_id': self.env.ref('l10n_sr_hr_payroll.sr_line_type_pensioen').id,
+                'amount': 1250.0,
+            }),
+        ])
+
+        self.assertLess(contract_met_aftrek.sr_preview_lb_periode, contract_basis.sr_preview_lb_periode)
+        self.assertLess(contract_met_aftrek.sr_preview_aov_periode, contract_basis.sr_preview_aov_periode)
 
     # ──────────────────────────────────────────────────────────────────────
     # 10. Fortnight loon (26 periodes)

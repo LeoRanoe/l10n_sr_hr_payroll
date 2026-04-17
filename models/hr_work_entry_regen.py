@@ -16,11 +16,32 @@ Deze override:
     entries (toegestaan door hr_work_entry.py override) daarna normale flow
 """
 
-from odoo import models, _
+from odoo import api, models, _
 
 
 class HrWorkEntryRegenerationWizardSr(models.TransientModel):
     _inherit = 'hr.work.entry.regeneration.wizard'
+
+    @api.depends('date_from', 'date_to', 'employee_ids')
+    def _compute_validated_work_entry_ids(self):
+        """
+        Treat overlapping validated entries as in-range blockers as well.
+
+        The base wizard only lists validated entries fully contained inside the
+        selected range. That misses night shifts or boundary entries that cross
+        into the interval and should still block or be cleaned up on regen.
+        """
+        for wizard in self:
+            validated_work_entry_ids = self.env['hr.work.entry']
+            if wizard.search_criteria_completed:
+                search_domain = [
+                    ('employee_id', 'in', wizard.employee_ids.ids),
+                    ('date_start', '<=', wizard.date_to),
+                    ('date_stop', '>=', wizard.date_from),
+                    ('state', '=', 'validated'),
+                ]
+                validated_work_entry_ids = self.env['hr.work.entry'].search(search_domain, order='date_start')
+            wizard.validated_work_entry_ids = validated_work_entry_ids
 
     def _compute_valid(self):
         """

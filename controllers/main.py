@@ -73,14 +73,16 @@ class SrPayrollHelpController(http.Controller):
         )
         param_codes.extend((code, _lb_param_label(code)) for code in extra_lb_codes)
         for code, label in param_codes:
-            try:
-                val = RuleParam._get_parameter_from_code(code, today, raise_if_not_found=True)
-                params[code] = {'label': label, 'value': val}
-            except Exception:
+            val = calc.get_sr_parameter_value(
+                env, code, today, default=None, raise_if_not_found=False,
+            )
+            if val is None:
                 params[code] = {'label': label, 'value': 'N/B'}
+            else:
+                params[code] = {'label': label, 'value': val}
 
         lb_calc_params = calc.fetch_params_from_rule_parameter(env, today)
-        lb_brackets = lb_calc_params.get('tax_brackets', [])
+        lb_brackets = lb_calc_params.get('brackets', [])
 
         return request.render('l10n_sr_hr_payroll.sr_help_template', {
             'params': params,

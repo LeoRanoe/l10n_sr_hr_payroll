@@ -282,11 +282,11 @@ class TestIntegratieVolledigeCyclus(common.TransactionCase):
         lb_bijz = self._haal_totaal(payslip, 'SR_LB_BIJZ')
 
         self.assertAlmostEqual(
-            belastbaar_bijz, 15184.0, places=2,
+            belastbaar_bijz, 5700.0, places=2,
             msg='Gecombineerde Art. 17 grondslag klopt niet',
         )
         self.assertAlmostEqual(
-            aov_bijz, -50.61, places=2,
+            aov_bijz, -19.0, places=2,
             msg='AOV op gecombineerde bijzondere beloningen klopt niet',
         )
         self.assertLess(lb_bijz, 0.0, 'LB bijzondere beloningen moet een inhouding zijn')
@@ -320,7 +320,7 @@ class TestIntegratieVolledigeCyclus(common.TransactionCase):
         )
 
         self.assertAlmostEqual(
-            huidige_slip._sr_bijz_belastbaar_totaal(), 984.0, places=2,
+            huidige_slip._sr_bijz_belastbaar_totaal(), 0.0, places=2,
             msg='YTD-cap moet de historische vrijstelling uit vorige slips correct meenemen',
         )
 

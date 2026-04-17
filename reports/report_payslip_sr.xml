@@ -312,6 +312,12 @@
                                 <td style="width:70%;">Totaal Bruto Loon</td>
                                 <td class="text-end"><t t-esc="'SRD {:,.2f}'.format(bd.get('bruto_totaal', 0))"/></td>
                             </tr>
+                            <t t-if="bd.get('heffingskorting', 0) &gt; 0">
+                                <tr class="text-success">
+                                    <td>+ Heffingskorting</td>
+                                    <td class="text-end"><t t-esc="'SRD {:,.2f}'.format(bd.get('heffingskorting', 0))"/></td>
+                                </tr>
+                            </t>
                             <tr class="text-danger">
                                 <td>&#8722; Loonbelasting (Art. 14 WLB)</td>
                                 <td class="text-end"><t t-esc="'SRD {:,.2f}'.format(bd.get('lb_per_periode', 0))"/></td>
