@@ -80,6 +80,7 @@
             <list string="SR Payroll Referentieparameters — Wet Loonbelasting" create="0">
                 <field name="name" string="Parameter (met wetsbasis en eenheid)"/>
                 <field name="code" string="Code" optional="show"/>
+                <field name="sr_current_value" string="Waarde (vandaag)" optional="show"/>
                 <field name="country_id" optional="hide"/>
             </list>
         </field>
@@ -188,6 +189,11 @@
                 <strong>SR Payroll Instellingen</strong>. Dit scherm is bedoeld voor controle
                 van onderliggende codes, historische parameterregels en technische uitbreidingen
                 zoals extra Art. 14 schijven.
+            </p>
+            <p>
+                De kolom <strong>Waarde (vandaag)</strong> toont de <strong>actuele effectieve waarde</strong>
+                die vandaag door de payroll wordt gelezen: eerst uit <strong>SR Payroll Instellingen</strong>
+                en, als daar geen override bestaat, uit de geldige <code>hr.rule.parameter.value</code>-versie.
             </p>
             <h4>Verschil met Configuratie &#x2192; Salary &#x2192; Rule Parameters?</h4>
             <p>

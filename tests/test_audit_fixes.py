@@ -244,6 +244,15 @@ class TestAuditFixes(common.TransactionCase):
         self.assertEqual(float(params.get_param('sr_payroll.akb_per_kind')), 100.0)
         self.assertEqual(float(params.get_param('sr_payroll.akb_max_bedrag')), 300.0)
 
+        akb_ref = self.env['hr.rule.parameter'].search([
+            ('code', '=', 'SR_KINDBIJ_MAX_KIND_MAAND')
+        ], limit=1)
+        self.assertEqual(
+            akb_ref.sr_current_value,
+            '100.0',
+            'Referentieparameterlijst moet de actuele settings-override tonen.',
+        )
+
         contract = self._make_contract(
             sr_aantal_kinderen=4,
             sr_vaste_regels=[(0, 0, {
