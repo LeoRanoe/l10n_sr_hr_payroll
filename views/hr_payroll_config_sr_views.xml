@@ -230,8 +230,8 @@
                 <li><strong>Belastbaar</strong> — Telt mee in GROSS + Art. 14 LB + AOV grondslag.</li>
                 <li><strong>Belastingvrij</strong> — Geen LB/AOV (Art. 10 WLB vergoedingen).</li>
                 <li><strong>Overwerk</strong> — Art. 17c: eigen schijven 5%/15%/25%.</li>
-                <li><strong>Vakantietoelage</strong> — Art. 10i: vrijstelling = min(maandloon, <em>SR_BIJZ_VRIJSTELLING_MAX</em>/jaar). Bedrag aanpassen via <strong>SR Payroll Instellingen</strong>.</li>
-                <li><strong>Gratificatie/Bonus</strong> — Art. 10j: zelfde vrijstelling als vakantie, pro-rata bij onvolledig dienstjaar. Zie <strong>SR_BIJZ_VRIJSTELLING_MAX</strong>.</li>
+                <li><strong>Vakantietoelage</strong> — Art. 10i: vrijstelling = min(2× basisloon, <em>SR_BIJZ_VRIJSTELLING_MAX</em>/jaar). Bedrag aanpassen via <strong>SR Payroll Instellingen</strong>.</li>
+                <li><strong>Gratificatie/Bonus</strong> — Art. 10j: vrijstelling = min(basisloon, <em>SR_BIJZ_VRIJSTELLING_MAX</em>/jaar), pro-rata bij onvolledig dienstjaar.</li>
                 <li><strong>Bijzondere Beloning</strong> — Art. 17: geen vaste vrijstelling, marginaal tarief methode.</li>
             </ul>
             <div class="alert alert-info">
