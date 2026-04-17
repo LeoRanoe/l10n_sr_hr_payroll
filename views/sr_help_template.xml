@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
     Suriname Payroll Help — QWeb Template
-    ========================================
-    Volledige gebruikersdocumentatie voor de Suriname payroll module.
-    Overzichtelijk, stap-voor-stap, gebruiksvriendelijk.
+    =====================================
+    Geherstructureerde in-app documentatie voor payroll-medewerkers,
+    contractbeheerders en functionele beheerders.
 -->
 <odoo>
 <template id="sr_help_template" name="Suriname Payroll Help &amp; Documentatie">
@@ -12,553 +12,1631 @@
         <meta charset="utf-8"/>
         <meta name="viewport" content="width=device-width, initial-scale=1"/>
         <title>Suriname Payroll — Help &amp; Documentatie</title>
-        <link rel="stylesheet" href="/web/static/lib/bootstrap/css/bootstrap.css"/>
-        <link rel="stylesheet" href="/web/static/lib/fontawesome/css/font-awesome.css"/>
+        <link rel="stylesheet" href="/web/static/lib/bootstrap/dist/css/bootstrap.css"/>
+        <link rel="stylesheet" href="/web/static/src/libs/fontawesome/css/font-awesome.css"/>
         <style>
-            body { background: #f8f9fa; }
-            .sr-help-wrap { max-width: 960px; margin: 0 auto; padding: 2rem 1rem; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
-            .sr-back-btn { position: fixed; bottom: 24px; right: 24px; z-index: 100; }
+            :root {
+                --sr-primary: #0f766e;
+                --sr-primary-dark: #115e59;
+                --sr-accent: #0891b2;
+                --sr-accent-soft: #ecfeff;
+                --sr-warning: #d97706;
+                --sr-danger: #b91c1c;
+                --sr-ink: #0f172a;
+                --sr-muted: #475569;
+                --sr-line: #dbe4ee;
+                --sr-surface: #ffffff;
+                --sr-surface-soft: #f8fafc;
+                --sr-shadow: 0 18px 40px rgba(15, 23, 42, 0.10);
+                --sr-radius: 24px;
+            }
+
+            html {
+                scroll-behavior: smooth;
+            }
+
+            body {
+                margin: 0;
+                color: var(--sr-ink);
+                background:
+                    radial-gradient(circle at top left, rgba(8, 145, 178, 0.10), transparent 26%),
+                    radial-gradient(circle at top right, rgba(15, 118, 110, 0.12), transparent 24%),
+                    linear-gradient(180deg, #f5fbfd 0%, #f8fafc 32%, #eef4f8 100%);
+                font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+            }
+
+            a {
+                color: inherit;
+            }
+
+            .sr-topbar {
+                position: sticky;
+                top: 0;
+                z-index: 30;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+                background: rgba(15, 23, 42, 0.88);
+                backdrop-filter: blur(14px);
+                box-shadow: 0 10px 24px rgba(15, 23, 42, 0.16);
+            }
+
+            .sr-topbar__inner {
+                max-width: 1280px;
+                margin: 0 auto;
+                padding: 14px 20px;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 16px;
+            }
+
+            .sr-topbar__back {
+                display: inline-flex;
+                align-items: center;
+                gap: 10px;
+                color: #ffffff;
+                font-weight: 600;
+                text-decoration: none;
+            }
+
+            .sr-topbar__meta {
+                display: flex;
+                flex-wrap: wrap;
+                justify-content: flex-end;
+                gap: 12px;
+                color: rgba(255, 255, 255, 0.82);
+                font-size: 0.92rem;
+            }
+
+            .sr-topbar__meta span {
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+            }
+
+            .sr-shell {
+                max-width: 1280px;
+                margin: 0 auto;
+                padding: 28px 20px 96px;
+            }
+
+            .sr-hero {
+                position: relative;
+                overflow: hidden;
+                margin-bottom: 28px;
+                padding: 34px;
+                border-radius: 30px;
+                color: #ffffff;
+                background:
+                    radial-gradient(circle at 85% 18%, rgba(255, 255, 255, 0.22), transparent 18%),
+                    linear-gradient(135deg, #0f172a 0%, #0f766e 52%, #0891b2 100%);
+                box-shadow: 0 28px 60px rgba(15, 23, 42, 0.22);
+            }
+
+            .sr-hero::after {
+                content: "";
+                position: absolute;
+                inset: auto -80px -110px auto;
+                width: 260px;
+                height: 260px;
+                border-radius: 50%;
+                background: rgba(255, 255, 255, 0.10);
+            }
+
+            .sr-hero__grid {
+                position: relative;
+                z-index: 1;
+                display: grid;
+                grid-template-columns: minmax(0, 1.7fr) minmax(300px, 1fr);
+                gap: 24px;
+                align-items: start;
+            }
+
+            .sr-chip-row {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 10px;
+                margin-bottom: 18px;
+            }
+
+            .sr-chip {
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+                padding: 8px 14px;
+                border-radius: 999px;
+                font-size: 0.82rem;
+                letter-spacing: 0.01em;
+                font-weight: 600;
+                color: #ffffff;
+                background: rgba(255, 255, 255, 0.15);
+                border: 1px solid rgba(255, 255, 255, 0.18);
+            }
+
+            .sr-hero h1 {
+                margin: 0 0 14px;
+                font-size: clamp(2.2rem, 4vw, 3.4rem);
+                line-height: 1.05;
+                font-weight: 700;
+            }
+
+            .sr-hero__lead {
+                max-width: 760px;
+                margin: 0;
+                color: rgba(255, 255, 255, 0.90);
+                font-size: 1.05rem;
+                line-height: 1.7;
+            }
+
+            .sr-hero__actions {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 12px;
+                margin-top: 22px;
+            }
+
+            .sr-button {
+                display: inline-flex;
+                align-items: center;
+                gap: 10px;
+                padding: 12px 18px;
+                border-radius: 14px;
+                font-weight: 700;
+                text-decoration: none;
+                transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+            }
+
+            .sr-button:hover {
+                transform: translateY(-1px);
+                text-decoration: none;
+            }
+
+            .sr-button--light {
+                background: #ffffff;
+                color: var(--sr-primary-dark);
+                box-shadow: 0 12px 24px rgba(15, 23, 42, 0.18);
+            }
+
+            .sr-button--ghost {
+                color: #ffffff;
+                border: 1px solid rgba(255, 255, 255, 0.28);
+                background: rgba(255, 255, 255, 0.08);
+            }
+
+            .sr-hero__panel {
+                position: relative;
+                z-index: 1;
+                padding: 24px;
+                border-radius: 24px;
+                background: rgba(255, 255, 255, 0.12);
+                border: 1px solid rgba(255, 255, 255, 0.18);
+                box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+            }
+
+            .sr-hero__panel h2 {
+                margin: 8px 0 14px;
+                font-size: 1.28rem;
+                font-weight: 700;
+                line-height: 1.35;
+            }
+
+            .sr-panel__kicker {
+                margin: 0;
+                font-size: 0.8rem;
+                letter-spacing: 0.08em;
+                text-transform: uppercase;
+                color: rgba(255, 255, 255, 0.72);
+                font-weight: 700;
+            }
+
+            .sr-hero__list {
+                margin: 0;
+                padding-left: 18px;
+                color: rgba(255, 255, 255, 0.92);
+                line-height: 1.65;
+            }
+
+            .sr-stat-grid {
+                position: relative;
+                z-index: 1;
+                display: grid;
+                grid-template-columns: repeat(4, minmax(0, 1fr));
+                gap: 14px;
+                margin-top: 26px;
+            }
+
+            .sr-stat {
+                padding: 18px 20px;
+                border-radius: 18px;
+                background: rgba(255, 255, 255, 0.10);
+                border: 1px solid rgba(255, 255, 255, 0.14);
+            }
+
+            .sr-stat strong {
+                display: block;
+                margin-bottom: 4px;
+                font-size: 1.7rem;
+                line-height: 1;
+            }
+
+            .sr-stat span {
+                display: block;
+                color: rgba(255, 255, 255, 0.82);
+                font-size: 0.92rem;
+                line-height: 1.45;
+            }
+
+            .sr-layout {
+                display: grid;
+                grid-template-columns: 300px minmax(0, 1fr);
+                gap: 24px;
+                align-items: start;
+            }
+
+            .sr-sidebar {
+                position: sticky;
+                top: 88px;
+                display: flex;
+                flex-direction: column;
+                gap: 18px;
+            }
+
+            .sr-side-card--nav {
+                display: flex;
+                flex-direction: column;
+                max-height: calc(100vh - 124px);
+                min-height: 0;
+            }
+
+            .sr-side-card,
+            .sr-section {
+                background: var(--sr-surface);
+                border: 1px solid var(--sr-line);
+                border-radius: var(--sr-radius);
+                box-shadow: var(--sr-shadow);
+            }
+
+            .sr-side-card {
+                padding: 22px;
+            }
+
+            .sr-side-card--accent {
+                background: linear-gradient(180deg, #f0fdfa 0%, #ffffff 100%);
+            }
+
+            .sr-kicker {
+                margin: 0 0 10px;
+                font-size: 0.76rem;
+                letter-spacing: 0.08em;
+                text-transform: uppercase;
+                color: var(--sr-accent);
+                font-weight: 800;
+            }
+
+            .sr-side-card h2,
+            .sr-section__header h2 {
+                margin: 0;
+                font-weight: 700;
+                line-height: 1.2;
+            }
+
+            .sr-side-card h2 {
+                font-size: 1.25rem;
+                margin-bottom: 16px;
+            }
+
+            .sr-nav-list {
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+                overflow-y: auto;
+                min-height: 0;
+                padding-right: 6px;
+                scrollbar-width: thin;
+                scrollbar-color: #94a3b8 transparent;
+            }
+
+            .sr-nav-list::-webkit-scrollbar {
+                width: 8px;
+            }
+
+            .sr-nav-list::-webkit-scrollbar-thumb {
+                background: #cbd5e1;
+                border-radius: 999px;
+            }
+
+            .sr-nav-list::-webkit-scrollbar-track {
+                background: transparent;
+            }
+
+            .sr-nav-link {
+                display: grid;
+                grid-template-columns: 38px minmax(0, 1fr);
+                gap: 12px;
+                padding: 12px 14px;
+                border-radius: 16px;
+                text-decoration: none;
+                color: var(--sr-ink);
+                background: var(--sr-surface-soft);
+                border: 1px solid #e7eef6;
+                transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+            }
+
+            .sr-nav-link:hover {
+                transform: translateX(2px);
+                border-color: #bae6fd;
+                background: #f0f9ff;
+                text-decoration: none;
+            }
+
+            .sr-nav-link__index {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                width: 38px;
+                height: 38px;
+                border-radius: 12px;
+                font-weight: 800;
+                color: var(--sr-primary-dark);
+                background: var(--sr-accent-soft);
+                border: 1px solid #a5f3fc;
+            }
+
+            .sr-nav-link strong,
+            .sr-nav-link small {
+                display: block;
+            }
+
+            .sr-nav-link small {
+                margin-top: 3px;
+                color: var(--sr-muted);
+                line-height: 1.45;
+            }
+
+            .sr-checklist,
+            .sr-list {
+                margin: 0;
+                padding-left: 18px;
+                line-height: 1.7;
+                color: var(--sr-ink);
+            }
+
+            .sr-checklist li + li,
+            .sr-list li + li {
+                margin-top: 6px;
+            }
+
+            .sr-side-card p:last-child {
+                margin-bottom: 0;
+            }
+
+            .sr-main {
+                display: flex;
+                flex-direction: column;
+                gap: 24px;
+            }
+
+            .sr-section__header {
+                padding: 28px 30px 0;
+            }
+
+            .sr-section__body {
+                padding: 22px 30px 30px;
+            }
+
+            .sr-section__eyebrow {
+                display: inline-flex;
+                align-items: center;
+                gap: 10px;
+                margin-bottom: 10px;
+                font-size: 0.82rem;
+                font-weight: 800;
+                letter-spacing: 0.06em;
+                text-transform: uppercase;
+                color: var(--sr-primary);
+            }
+
+            .sr-section__intro {
+                max-width: 840px;
+                margin: 14px 0 0;
+                color: var(--sr-muted);
+                line-height: 1.75;
+            }
+
+            .sr-grid {
+                display: grid;
+                gap: 18px;
+            }
+
+            .sr-grid--2 {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .sr-grid--3 {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+
+            .sr-info-card {
+                padding: 20px;
+                border-radius: 20px;
+                background: var(--sr-surface-soft);
+                border: 1px solid #e4edf5;
+            }
+
+            .sr-info-card h3 {
+                margin: 0 0 10px;
+                font-size: 1.06rem;
+                font-weight: 700;
+            }
+
+            .sr-info-card p {
+                margin: 0;
+                color: var(--sr-muted);
+                line-height: 1.65;
+            }
+
+            .sr-icon {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                width: 42px;
+                height: 42px;
+                margin-bottom: 14px;
+                border-radius: 14px;
+                color: var(--sr-primary-dark);
+                background: var(--sr-accent-soft);
+                border: 1px solid #a5f3fc;
+            }
+
+            .sr-callout {
+                margin-top: 18px;
+                padding: 18px 20px;
+                border-radius: 18px;
+                border-left: 5px solid var(--sr-accent);
+                background: var(--sr-accent-soft);
+                color: var(--sr-ink);
+                line-height: 1.7;
+            }
+
+            .sr-callout--warning {
+                background: #fff7ed;
+                border-left-color: var(--sr-warning);
+            }
+
+            .sr-callout--danger {
+                background: #fff1f2;
+                border-left-color: var(--sr-danger);
+            }
+
+            .sr-callout--neutral {
+                background: #f8fafc;
+                border-left-color: #64748b;
+            }
+
+            .sr-table-wrap {
+                overflow-x: auto;
+                margin-top: 18px;
+                border: 1px solid #e4edf5;
+                border-radius: 18px;
+            }
+
+            .sr-table {
+                width: 100%;
+                border-collapse: collapse;
+                min-width: 640px;
+                background: #ffffff;
+            }
+
+            .sr-table th,
+            .sr-table td {
+                padding: 14px 16px;
+                vertical-align: top;
+                border-bottom: 1px solid #e9eff5;
+            }
+
+            .sr-table th {
+                background: #f8fafc;
+                color: #334155;
+                font-size: 0.88rem;
+                font-weight: 800;
+                text-transform: uppercase;
+                letter-spacing: 0.03em;
+            }
+
+            .sr-table tbody tr:last-child td {
+                border-bottom: 0;
+            }
+
+            .sr-step {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                min-width: 34px;
+                height: 34px;
+                border-radius: 12px;
+                font-weight: 800;
+                color: #ffffff;
+                background: linear-gradient(135deg, var(--sr-primary) 0%, var(--sr-accent) 100%);
+            }
+
+            .sr-badge {
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+                padding: 7px 12px;
+                border-radius: 999px;
+                font-size: 0.84rem;
+                font-weight: 700;
+            }
+
+            .sr-badge--danger {
+                color: #7f1d1d;
+                background: #fee2e2;
+            }
+
+            .sr-badge--success {
+                color: #166534;
+                background: #dcfce7;
+            }
+
+            .sr-badge--neutral {
+                color: #334155;
+                background: #e2e8f0;
+            }
+
+            .sr-badge--warning {
+                color: #854d0e;
+                background: #fef3c7;
+            }
+
+            .sr-badge--primary {
+                color: #0c4a6e;
+                background: #dbeafe;
+            }
+
+            .sr-badge--dark {
+                color: #ffffff;
+                background: #334155;
+            }
+
+            .sr-flow {
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 16px;
+                margin-top: 18px;
+            }
+
+            .sr-flow-card {
+                padding: 18px 20px;
+                border-radius: 20px;
+                background: #ffffff;
+                border: 1px solid #e5edf4;
+                box-shadow: 0 10px 26px rgba(15, 23, 42, 0.05);
+            }
+
+            .sr-flow-card h3 {
+                margin: 0 0 6px;
+                font-size: 1.04rem;
+                font-weight: 700;
+            }
+
+            .sr-flow-card p {
+                margin: 0;
+                color: var(--sr-muted);
+                line-height: 1.6;
+            }
+
+            .sr-flow-card .sr-step {
+                margin-bottom: 12px;
+            }
+
+            .sr-faq-grid {
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 16px;
+                margin-top: 18px;
+            }
+
+            .sr-faq-card {
+                padding: 20px;
+                border-radius: 20px;
+                background: #ffffff;
+                border: 1px solid #e4edf5;
+            }
+
+            .sr-faq-card h3 {
+                margin: 0 0 10px;
+                font-size: 1.05rem;
+                font-weight: 700;
+            }
+
+            .sr-faq-card p,
+            .sr-faq-card ul {
+                margin: 0;
+                color: var(--sr-muted);
+                line-height: 1.7;
+            }
+
+            .sr-footer {
+                margin-top: 28px;
+                padding: 24px 26px;
+                border-radius: 24px;
+                background: linear-gradient(180deg, #f8fafc 0%, #edf7f8 100%);
+                border: 1px solid #d9e8ee;
+                box-shadow: var(--sr-shadow);
+            }
+
+            .sr-footer p {
+                margin: 0;
+                color: var(--sr-muted);
+                line-height: 1.8;
+            }
+
+            .sr-footer strong {
+                color: var(--sr-ink);
+            }
+
+            .sr-back-btn {
+                position: fixed;
+                right: 24px;
+                bottom: 24px;
+                z-index: 40;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                width: 56px;
+                height: 56px;
+                border-radius: 18px;
+                color: #ffffff;
+                text-decoration: none;
+                background: linear-gradient(135deg, var(--sr-primary) 0%, var(--sr-accent) 100%);
+                box-shadow: 0 18px 32px rgba(15, 23, 42, 0.22);
+            }
+
+            @media (max-width: 1100px) {
+                .sr-layout {
+                    grid-template-columns: 1fr;
+                }
+
+                .sr-sidebar {
+                    position: static;
+                }
+
+                .sr-side-card--nav {
+                    max-height: none;
+                }
+
+                .sr-nav-list {
+                    overflow: visible;
+                    padding-right: 0;
+                }
+            }
+
+            @media (max-width: 900px) {
+                .sr-hero__grid,
+                .sr-stat-grid,
+                .sr-grid--2,
+                .sr-grid--3,
+                .sr-flow,
+                .sr-faq-grid {
+                    grid-template-columns: 1fr;
+                }
+
+                .sr-topbar__inner {
+                    flex-direction: column;
+                    align-items: flex-start;
+                }
+
+                .sr-topbar__meta {
+                    justify-content: flex-start;
+                }
+            }
+
+            @media (max-width: 640px) {
+                .sr-shell {
+                    padding-inline: 14px;
+                }
+
+                .sr-hero,
+                .sr-side-card,
+                .sr-section__header,
+                .sr-section__body,
+                .sr-footer {
+                    padding-left: 20px;
+                    padding-right: 20px;
+                }
+
+                .sr-hero {
+                    padding-top: 26px;
+                    padding-bottom: 26px;
+                }
+
+                .sr-back-btn {
+                    right: 16px;
+                    bottom: 16px;
+                }
+            }
         </style>
     </head>
     <body>
-        <!-- Navigatiebalk -->
-        <nav class="navbar navbar-dark" style="background: #0e7490;">
-            <div class="container">
-                <a class="navbar-brand" href="/odoo/payslips"><i class="fa fa-arrow-left"/> Terug naar Payroll</a>
-                <span class="navbar-text text-white-50">Help &amp; Documentatie</span>
+        <nav class="sr-topbar">
+            <div class="sr-topbar__inner">
+                <a class="sr-topbar__back" href="/odoo/payslips">
+                    <i class="fa fa-arrow-left"/> Terug naar Payroll
+                </a>
+                <div class="sr-topbar__meta">
+                    <span><i class="fa fa-map-signs"/> Payroll → Suriname → Help &amp; Documentatie</span>
+                    <span><i class="fa fa-database"/> Actuele parameterweergave uit de database</span>
+                </div>
             </div>
         </nav>
 
-        <div class="sr-help-wrap">
-
-            <!-- ═══ HEADER ════════════════════════════════════════════ -->
-            <div class="text-center mb-5">
-                <h1 style="color: #0e7490; font-weight: 700;">
-                    <i class="fa fa-book"/> Suriname Salarisverwerking
-                </h1>
-                <p class="lead text-muted">Help &amp; Documentatie — Wet Loonbelasting</p>
-                <hr style="border-color: #0891b2; width: 80px; border-width: 3px;" class="mx-auto"/>
-            </div>
-
-            <!-- ═══ SNELLE NAVIGATIE ════════════════════════════════ -->
-            <div class="card mb-4 border-0 shadow-sm">
-                <div class="card-body">
-                    <h5 class="card-title"><i class="fa fa-compass text-info"/> Snelle Navigatie</h5>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <ul class="list-unstyled">
-                                <li><a href="#sect-loonstrook"><i class="fa fa-angle-right text-info"/> Loonstrook aanmaken</a></li>
-                                <li><a href="#sect-contract"><i class="fa fa-angle-right text-info"/> Contract instellen</a></li>
-                                <li><a href="#sect-vaste-regels"><i class="fa fa-angle-right text-info"/> Vaste Loon Regels</a></li>
-                                <li><a href="#sect-categorieen"><i class="fa fa-angle-right text-info"/> Looncategorieën</a></li>
-                            </ul>
+        <div class="sr-shell">
+            <header class="sr-hero">
+                <div class="sr-hero__grid">
+                    <div>
+                        <div class="sr-chip-row">
+                            <span class="sr-chip"><i class="fa fa-balance-scale"/> Wet Loonbelasting 2026</span>
+                            <span class="sr-chip"><i class="fa fa-desktop"/> Odoo 18</span>
+                            <span class="sr-chip"><i class="fa fa-book"/> l10n_sr_hr_payroll</span>
                         </div>
-                        <div class="col-md-6">
-                            <ul class="list-unstyled">
-                                <li><a href="#sect-parameters"><i class="fa fa-angle-right text-info"/> Belastingparameters</a></li>
-                                <li><a href="#sect-migratie"><i class="fa fa-angle-right text-info"/> Migratie 2025 → 2026</a></li>
-                                <li><a href="#sect-berekening"><i class="fa fa-angle-right text-info"/> Hoe de berekening werkt</a></li>
-                                <li><a href="#sect-bijzonder"><i class="fa fa-angle-right text-info"/> Bijzondere beloningen</a></li>
-                                <li><a href="#sect-faq"><i class="fa fa-angle-right text-info"/> Veelgestelde vragen (FAQ)</a></li>
-                            </ul>
+                        <h1>Suriname Salarisverwerking</h1>
+                        <p class="sr-hero__lead">
+                            Centrale handleiding voor payroll-medewerkers, HR en beheerders. Deze pagina bundelt de dagelijkse payrollflow,
+                            contractinvoer, fiscale categorieen, parameterbeheer, jaarupdate en probleemoplossing in een leesbare en
+                            beheersbare layout.
+                        </p>
+                        <div class="sr-hero__actions">
+                            <a class="sr-button sr-button--light" href="#sect-snelstart">
+                                <i class="fa fa-compass"/> Start met de snelstart
+                            </a>
+                            <a class="sr-button sr-button--ghost" href="#sect-parameters">
+                                <i class="fa fa-cogs"/> Bekijk actuele parameters
+                            </a>
                         </div>
                     </div>
-                </div>
-            </div>
-
-            <!-- ═══ 1. LOONSTROOK AANMAKEN ════════════════════════ -->
-            <div class="card mb-4 border-0 shadow-sm" id="sect-loonstrook">
-                <div class="card-header bg-info text-white">
-                    <h5 class="mb-0"><i class="fa fa-file-text"/> 1. Loonstrook Aanmaken — Stap voor Stap</h5>
-                </div>
-                <div class="card-body">
-                    <div class="alert alert-light border-start border-4 border-info">
-                        <strong>Tip:</strong> Zorg dat de werknemer een <em>actief contract</em> heeft voordat u een loonstrook maakt.
-                    </div>
-
-                    <table class="table table-bordered">
-                        <thead class="table-light">
-                            <tr><th style="width:50px">Stap</th><th>Wat te doen</th><th>Waar te vinden</th></tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td class="text-center"><span class="badge bg-info">1</span></td>
-                                <td>Ga naar het <strong>Loonstroken</strong> overzicht</td>
-                                <td><em>Payroll → Suriname → Loonstroken SR</em></td>
-                            </tr>
-                            <tr>
-                                <td class="text-center"><span class="badge bg-info">2</span></td>
-                                <td>Klik op <strong>Nieuw</strong> (knop linksboven)</td>
-                                <td>Of via <em>Payroll → Werk Entries → Loonstroken Genereren</em></td>
-                            </tr>
-                            <tr>
-                                <td class="text-center"><span class="badge bg-info">3</span></td>
-                                <td>Selecteer de <strong>werknemer</strong></td>
-                                <td>Het contract wordt automatisch geladen</td>
-                            </tr>
-                            <tr>
-                                <td class="text-center"><span class="badge bg-info">4</span></td>
-                                <td>Controleer de <strong>periode</strong> (datum van/tot)</td>
-                                <td>Standaard: huidige maand</td>
-                            </tr>
-                            <tr>
-                                <td class="text-center"><span class="badge bg-info">5</span></td>
-                                <td>Klik <strong>Bereken Loonstrook</strong></td>
-                                <td>Knop bovenaan het formulier</td>
-                            </tr>
-                            <tr>
-                                <td class="text-center"><span class="badge bg-info">6</span></td>
-                                <td>Controleer de <strong>salarisregels</strong> (LB, AOV, Netto)</td>
-                                <td>Tab "Salary Computation" onderaan</td>
-                            </tr>
-                            <tr>
-                                <td class="text-center"><span class="badge bg-info">7</span></td>
-                                <td>Klik <strong>Bevestigen</strong> als alles klopt</td>
-                                <td>Status verandert naar "Afgerond"</td>
-                            </tr>
-                            <tr>
-                                <td class="text-center"><span class="badge bg-info">8</span></td>
-                                <td><strong>Print</strong> de loonstrook (PDF)</td>
-                                <td>Knop "PDF Loonstrook" of "HTML Preview"</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- ═══ 2. CONTRACT INSTELLEN ══════════════════════════ -->
-            <div class="card mb-4 border-0 shadow-sm" id="sect-contract">
-                <div class="card-header bg-info text-white">
-                    <h5 class="mb-0"><i class="fa fa-briefcase"/> 2. Contract Instellen voor Suriname</h5>
-                </div>
-                <div class="card-body">
-                    <p>Elk Surinaams contract heeft een <strong>Suriname Payroll</strong> tab. De eerste subtab <strong>Fiscale Data</strong> is de wettelijke bron voor contractverloning.</p>
-
-                    <table class="table table-bordered">
-                        <thead class="table-light">
-                            <tr><th>Veld</th><th>Uitleg</th><th>Voorbeeld</th></tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td><strong>Belastingtype</strong></td>
-                                <td>Hoe vaak de werknemer betaald wordt en welke periodevalidatie geldt</td>
-                                <td><strong>1 lb sal ovw</strong> of <strong>FN</strong></td>
-                            </tr>
-                            <tr>
-                                <td><strong>Aantal Kinderen</strong></td>
-                                <td>Voor kinderbijslagberekening (Art. 10h WLB)</td>
-                                <td>0 t/m 4</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Bruto Maandloon (Wage)</strong></td>
-                                <td>Het basisloon per maand in SRD</td>
-                                <td>SRD 20.255,60</td>
-                            </tr>
-                        </tbody>
-                    </table>
-
-                    <div class="alert alert-warning mt-3">
-                        <strong><i class="fa fa-exclamation-triangle"/> Let op:</strong>
-                        <ul class="mb-0">
-                            <li>Het <em>Salary Structure Type</em> moet ingesteld zijn op <strong>"Suriname Salaris Structuur"</strong></li>
-                            <li>De status van het contract moet <strong>Actief (Running)</strong> zijn</li>
-                            <li>Gebruik de subtab <strong>Controle &amp; Preview</strong> om de berekening direct te verifiëren</li>
+                    <div class="sr-hero__panel">
+                        <p class="sr-panel__kicker">Belangrijk in de praktijk</p>
+                        <h2>Wat deze module wel en niet automatiseert</h2>
+                        <ul class="sr-hero__list">
+                            <li>Art. 14 loonbelasting, AOV, vrijstellingen en FN-validatie worden automatisch berekend.</li>
+                            <li>De contracttab <strong>Suriname Payroll</strong> en <strong>SR Payroll Instellingen</strong> zijn de primaire gegevensbron.</li>
+                            <li>Eenmalige bedragen zoals overwerk, bonus en bijzondere beloning lopen via <strong>Other Inputs</strong> op de loonstrook.</li>
+                            <li>Work entries worden niet automatisch omgezet naar fiscale overwerk-inputs; die invoer blijft handmatig.</li>
                         </ul>
                     </div>
                 </div>
-            </div>
-
-            <!-- ═══ 3. VASTE LOON REGELS ══════════════════════════ -->
-            <div class="card mb-4 border-0 shadow-sm" id="sect-vaste-regels">
-                <div class="card-header bg-info text-white">
-                    <h5 class="mb-0"><i class="fa fa-list-ol"/> 3. Vaste Loon Regels</h5>
-                </div>
-                <div class="card-body">
-                    <p>Vaste Loon Regels zijn <strong>extra looncomponenten</strong> die elke maand automatisch meekomen op de loonstrook.
-                       Denk aan toelagen, vergoedingen, of inhoudingen.</p>
-
-                    <h6 class="mt-3">Hoe toe te voegen:</h6>
-                    <ol>
-                        <li>Open het <strong>contract</strong> van de werknemer</li>
-                        <li>Ga naar de tab <strong>Suriname Payroll → Fiscale Data</strong></li>
-                        <li>Klik <strong>"Voeg een regel toe"</strong> bij Vaste Loon Regels</li>
-                        <li>Vul in: <strong>Naam</strong>, <strong>Categorie</strong>, <strong>Bedrag of Percentage</strong></li>
-                    </ol>
-
-                    <h6 class="mt-3">Type bedrag:</h6>
-                    <table class="table table-sm table-bordered">
-                        <thead class="table-light">
-                            <tr><th>Type</th><th>Uitleg</th><th>Voorbeeld</th></tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td><strong>Vast bedrag</strong></td>
-                                <td>Een exact SRD bedrag per periode</td>
-                                <td>SRD 500 transporttoelage</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Percentage</strong></td>
-                                <td>Een % van het bruto loon (wage)</td>
-                                <td>5% = 5% van het bruto maandloon</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- ═══ 4. CATEGORIEËN ════════════════════════════════ -->
-            <div class="card mb-4 border-0 shadow-sm" id="sect-categorieen">
-                <div class="card-header bg-info text-white">
-                    <h5 class="mb-0"><i class="fa fa-tags"/> 4. Looncategorieën — Wat is het verschil?</h5>
-                </div>
-                <div class="card-body">
-                    <p>Elke loonregel heeft een <strong>categorie</strong> die bepaalt hoe het bedrag fiscaal behandeld wordt.</p>
-
-                    <table class="table table-bordered">
-                        <thead class="table-light">
-                            <tr><th>Categorie</th><th>Wat doet het?</th><th>Effect op belasting</th><th>Voorbeeld</th></tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td><span class="badge bg-danger">Belastbaar</span></td>
-                                <td>Verhoogt het bruto loon</td>
-                                <td><strong>Meer LB + AOV</strong> betalen</td>
-                                <td>Toelagen, representatievergoeding</td>
-                            </tr>
-                            <tr>
-                                <td><span class="badge bg-success">Vrijgesteld</span></td>
-                                <td>Wordt netto bijgeteld, NIET belast</td>
-                                <td>Geen extra belasting</td>
-                                <td>Kinderbijslag, onkostenvergoeding</td>
-                            </tr>
-                            <tr>
-                                <td><span class="badge bg-secondary">Inhouding</span></td>
-                                <td>Wordt van het netto loon afgetrokken</td>
-                                <td>Geen effect op belasting</td>
-                                <td>Pensioenpremie, leningaflossing</td>
-                            </tr>
-                            <tr>
-                                <td><span class="badge bg-warning text-dark">Overwerk</span></td>
-                                <td>Belast tegen apart tarief (Art. 17c)</td>
-                                <td>Gescheiden overwerkbelasting</td>
-                                <td>Overuren, extra diensten</td>
-                            </tr>
-                            <tr>
-                                <td><span class="badge bg-primary">Vakantietoelage</span></td>
-                                <td>Vrijstelling volgens Art. 10i</td>
-                                <td>Deels vrijgesteld, rest belast</td>
-                                <td>Vakantiebijslag</td>
-                            </tr>
-                            <tr>
-                                <td><span class="badge bg-primary">Gratificatie</span></td>
-                                <td>Vrijstelling volgens Art. 10j</td>
-                                <td>Deels vrijgesteld, rest belast</td>
-                                <td>Eindejaarsuitkering, bonus</td>
-                            </tr>
-                            <tr>
-                                <td><span class="badge bg-dark">Bijzondere beloning</span></td>
-                                <td>Belast via marginaal tarief (Art. 17)</td>
-                                <td>Speciaal belastingtarief</td>
-                                <td>Eenmalige bonus, dertiende maand</td>
-                            </tr>
-                        </tbody>
-                    </table>
-
-                    <div class="alert alert-info mt-3">
-                        <strong><i class="fa fa-lightbulb-o"/> Tip:</strong>
-                        Weet u niet welke categorie? Kies <strong>Belastbaar</strong> — dat is de veiligste optie.
-                        Belastingvrij stellen kan altijd later nog na overleg met de boekhouder.
+                <div class="sr-stat-grid">
+                    <div class="sr-stat">
+                        <strong>26</strong>
+                        <span>Ondersteunde FN-tijdvakken voor 2026</span>
+                    </div>
+                    <div class="sr-stat">
+                        <strong>Live</strong>
+                        <span>Actuele SR-parameters rechtstreeks uit de payrollconfiguratie</span>
+                    </div>
+                    <div class="sr-stat">
+                        <strong>Art. 14</strong>
+                        <span>Actieve progressieve schijven en tarieven voor de live berekening</span>
+                    </div>
+                    <div class="sr-stat">
+                        <strong>10</strong>
+                        <span>Onderwerpen voor operatie, beheer en troubleshooting</span>
                     </div>
                 </div>
-            </div>
+            </header>
 
-            <!-- ═══ 5. BELASTINGPARAMETERS ════════════════════════ -->
-            <div class="card mb-4 border-0 shadow-sm" id="sect-parameters">
-                <div class="card-header bg-info text-white">
-                    <h5 class="mb-0"><i class="fa fa-cogs"/> 5. Belastingparameters — Actuele Waarden</h5>
-                </div>
-                <div class="card-body">
-                    <p>Alle belastingpercentages en bedragen zijn <strong>centraal configureerbaar</strong>.
-                       Als de overheid deze wijzigt, hoeft u alleen de parameter aan te passen.</p>
-
-                    <div class="alert alert-light border">
-                        <strong>Waar te vinden:</strong> <em>Payroll → Configuratie → Suriname → SR Payroll Instellingen</em>
-                    </div>
-
-                    <div class="alert alert-secondary border mt-3">
-                        <strong><i class="fa fa-balance-scale"/> 2026 kernwaarden:</strong>
-                        AKB = SRD 250 per kind, max SRD 1.000 per maand en max 4 kinderen. Bijzondere vrijstellingscap = SRD 19.500. Heffingskorting blijft alleen auditbaar en is niet actief in Art. 14.
-                    </div>
-
-                    <div class="alert alert-info border mt-3">
-                        <strong><i class="fa fa-sliders"/> Toekomstige schijven voorbereiden:</strong>
-                        Een <strong>systeembeheerder</strong> kan extra Art. 14 schijven technisch voorbereiden via
-                        <em>Payroll → Configuratie → Suriname → Technisch (Admin) → Referentieparameters</em>
-                        met codes zoals <strong>SR_SCHIJF_4_GRENS</strong> en <strong>SR_TARIEF_5</strong>.
-                        Zolang er nog geen waarde met ingangsdatum actief is, heeft dat geen effect op de huidige loonberekening.
-                    </div>
-
-                    <div class="alert alert-secondary border mt-3">
-                        <strong><i class="fa fa-info-circle"/> Dagelijks gebruik:</strong>
-                        Voor normale payrollwijzigingen gebruikt u alleen <em>SR Payroll Instellingen</em>.
-                        Het technische parameterenscherm is niet bedoeld voor dagelijkse invoer.
-                    </div>
-
-                    <h6>Huidige waarden:</h6>
-                    <table class="table table-sm table-bordered">
-                        <thead class="table-light">
-                            <tr><th>Parameter</th><th>Waarde</th></tr>
-                        </thead>
-                        <tbody>
-                            <t t-foreach="params.items()" t-as="item">
-                                <tr>
-                                    <td><t t-out="item[1]['label']"/></td>
-                                    <td>
-                                        <strong><t t-out="item[1]['value']"/></strong>
-                                        <small class="text-muted ms-2">(<t t-out="item[0]"/>)</small>
-                                    </td>
-                                </tr>
-                            </t>
-                        </tbody>
-                    </table>
-
-                    <div class="alert alert-warning mt-3">
-                        <strong><i class="fa fa-exclamation-triangle"/> Belangrijk:</strong>
-                        Wijzig deze waarden alleen als de overheid de belastingtarieven aanpast.
-                        Verkeerde waarden leiden tot onjuiste loonberekeningen!
-                    </div>
-                </div>
-            </div>
-
-            <div class="card mb-4 border-0 shadow-sm" id="sect-migratie">
-                <div class="card-header bg-info text-white">
-                    <h5 class="mb-0"><i class="fa fa-refresh"/> 6. Migratie 2025 → 2026</h5>
-                </div>
-                <div class="card-body">
-                    <p>Gebruik deze checklist wanneer u een bestaande payrollomgeving van de 2025-release naar de 2026-release bijwerkt.</p>
-                    <ol>
-                        <li>Maak een back-up van de database en update daarna de module <strong>l10n_sr_hr_payroll</strong>.</li>
-                        <li>Open <strong>SR Payroll Instellingen</strong> en bevestig de 2026-waarden: AKB SRD 250 / 1.000, AOV franchise SRD 400, heffingskorting SRD 750 (audit-only), bijzondere vrijstellingscap SRD 19.500.</li>
-                        <li>Controleer alle actieve contracten in <strong>Suriname Payroll → Fiscale Data</strong>: zet het juiste belastingtype (`1 lb sal ovw` of `FN`) en corrigeer AKB naar maximaal 4 kinderen.</li>
-                        <li>Controleer vaste loonregels en other input types op categorie: overwerk, vakantietoelage, gratificatie en uitkering ineens moeten hun SR-categorie behouden.</li>
-                        <li>Voor FN-contracten: gebruik in 2026 alleen de 26 ondersteunde FN-tijdvakken. Vrije datumbereiken worden geweigerd.</li>
-                        <li>Genereer minimaal één proefloonstrook met het referentiesalaris van SRD 20.255,60 en vergelijk LB/AOV/NET met het rekenvoorbeeld.</li>
-                    </ol>
-                </div>
-            </div>
-
-            <!-- ═══ 6. HOE DE BEREKENING WERKT ════════════════════ -->
-            <div class="card mb-4 border-0 shadow-sm" id="sect-berekening">
-                <div class="card-header bg-info text-white">
-                    <h5 class="mb-0"><i class="fa fa-calculator"/> 7. Hoe de Berekening Werkt</h5>
-                </div>
-                <div class="card-body">
-                    <p>De loonberekening volgt de <strong>Wet Loonbelasting (WLB)</strong> van Suriname.
-                       Hieronder de stappen die het systeem automatisch uitvoert:</p>
-
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="card border-start border-4 border-info mb-3">
-                                <div class="card-body py-2">
-                                    <h6><span class="badge bg-info">1</span> Bruto Loon</h6>
-                                    <small>Basisloon + belastbare toelagen</small>
-                                </div>
-                            </div>
-                            <div class="card border-start border-4 border-info mb-3">
-                                <div class="card-body py-2">
-                                    <h6><span class="badge bg-info">2</span> Forfaitaire Aftrek (Art. 12)</h6>
-                                    <small><t t-esc="'{:.0f}'.format(v.get('SR_FORFAITAIRE_PCT', 0.04) * 100)"/>% van bruto, max SRD <t t-esc="'{:,.0f}'.format(v.get('SR_FORFAITAIRE_MAX_JAAR', 4800))"/>/jaar</small>
-                                </div>
-                            </div>
-                            <div class="card border-start border-4 border-info mb-3">
-                                <div class="card-body py-2">
-                                    <h6><span class="badge bg-info">3</span> Belastingvrije Voet (Art. 13)</h6>
-                                    <small>SRD <t t-esc="'{:,.0f}'.format(v.get('SR_BELASTINGVRIJ_JAAR', 108000))"/>/jaar (SRD <t t-esc="'{:,.0f}'.format(v.get('SR_BELASTINGVRIJ_JAAR', 108000) / 12)"/>/maand)</small>
-                                </div>
-                            </div>
-                            <div class="card border-start border-4 border-info mb-3">
-                                <div class="card-body py-2">
-                                    <h6><span class="badge bg-info">4</span> Belastbaar Inkomen</h6>
-                                    <small>Bruto − forfaitair − belastingvrije voet</small>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="card border-start border-4 border-warning mb-3">
-                                <div class="card-body py-2">
-                                    <h6><span class="badge bg-warning text-dark">5</span> Loonbelasting (Art. 14)</h6>
-                                    <small>Progressief: <t t-esc="lb_rate_summary or '-'"/></small>
-                                </div>
-                            </div>
-                            <div class="card border-start border-4 border-success mb-3">
-                                <div class="card-body py-2">
-                                    <h6><span class="badge bg-success">6</span> AOV Bijdrage</h6>
-                                    <small><t t-esc="'{:.0f}'.format(v.get('SR_AOV_TARIEF', 0.04) * 100)"/>% over bruto minus franchise SRD <t t-esc="'{:,.0f}'.format(v.get('SR_AOV_FRANCHISE_MAAND', 400))"/> voor maandloon; FN heeft geen franchise</small>
-                                </div>
-                            </div>
-                            <div class="card border-start border-4 border-success mb-3">
-                                <div class="card-body py-2">
-                                    <h6><span class="badge bg-success">7</span> Netto Loon</h6>
-                                    <small>Bruto − LB − AOV − inhoudingen + vrijstellingen</small>
-                                </div>
-                            </div>
+            <div class="sr-layout">
+                <aside class="sr-sidebar">
+                    <div class="sr-side-card sr-side-card--nav">
+                        <p class="sr-kicker">Navigatie</p>
+                        <h2>Direct naar</h2>
+                        <div class="sr-nav-list">
+                            <a class="sr-nav-link" href="#sect-snelstart">
+                                <span class="sr-nav-link__index">01</span>
+                                <span>
+                                    <strong>Snelstart</strong>
+                                    <small>Rollen, menu's en startpunten</small>
+                                </span>
+                            </a>
+                            <a class="sr-nav-link" href="#sect-loonstrook">
+                                <span class="sr-nav-link__index">02</span>
+                                <span>
+                                    <strong>Loonstrook aanmaken</strong>
+                                    <small>Dagelijkse payrollflow en controles</small>
+                                </span>
+                            </a>
+                            <a class="sr-nav-link" href="#sect-contract">
+                                <span class="sr-nav-link__index">03</span>
+                                <span>
+                                    <strong>Contract instellen</strong>
+                                    <small>Fiscale brongegevens in het contract</small>
+                                </span>
+                            </a>
+                            <a class="sr-nav-link" href="#sect-vaste-regels">
+                                <span class="sr-nav-link__index">04</span>
+                                <span>
+                                    <strong>Vaste loonregels</strong>
+                                    <small>Terugkerende toelagen en inhoudingen</small>
+                                </span>
+                            </a>
+                            <a class="sr-nav-link" href="#sect-categorieen">
+                                <span class="sr-nav-link__index">05</span>
+                                <span>
+                                    <strong>Looncategorieen</strong>
+                                    <small>Fiscale behandeling per categorie</small>
+                                </span>
+                            </a>
+                            <a class="sr-nav-link" href="#sect-parameters">
+                                <span class="sr-nav-link__index">06</span>
+                                <span>
+                                    <strong>Parameters &amp; beheer</strong>
+                                    <small>Dagelijks beheer versus technische referenties</small>
+                                </span>
+                            </a>
+                            <a class="sr-nav-link" href="#sect-migratie">
+                                <span class="sr-nav-link__index">07</span>
+                                <span>
+                                    <strong>Controle &amp; migratie</strong>
+                                    <small>Payroll-run, maandafsluiting en 2026 update</small>
+                                </span>
+                            </a>
+                            <a class="sr-nav-link" href="#sect-berekening">
+                                <span class="sr-nav-link__index">08</span>
+                                <span>
+                                    <strong>Hoe de berekening werkt</strong>
+                                    <small>Art. 14, AOV en netto-opbouw</small>
+                                </span>
+                            </a>
+                            <a class="sr-nav-link" href="#sect-bijzonder">
+                                <span class="sr-nav-link__index">09</span>
+                                <span>
+                                    <strong>Bijzondere beloningen</strong>
+                                    <small>Overwerk, bonus en vrijstellingen</small>
+                                </span>
+                            </a>
+                            <a class="sr-nav-link" href="#sect-faq">
+                                <span class="sr-nav-link__index">10</span>
+                                <span>
+                                    <strong>Probleemoplossing &amp; FAQ</strong>
+                                    <small>Snelle diagnose bij afwijkingen</small>
+                                </span>
+                            </a>
                         </div>
                     </div>
 
-                    <h6 class="mt-3">Tariefschijven Loonbelasting (Art. 14):</h6>
-                    <table class="table table-sm table-bordered">
-                        <thead class="table-light">
-                            <tr><th>Schijf</th><th>Van</th><th>Tot</th><th>Tarief</th></tr>
-                        </thead>
-                        <tbody>
-                            <t t-foreach="lb_brackets" t-as="bracket">
-                                <tr>
-                                    <td><t t-esc="bracket.get('index')"/></td>
-                                    <td>
-                                        <t t-if="bracket.get('lower', 0) &lt;= 0">SRD 0</t>
-                                        <t t-else="">SRD <t t-esc="'{:,.0f}'.format(bracket.get('lower', 0))"/></t>
-                                    </td>
-                                    <td>
-                                        <t t-if="bracket.get('upper') is None">∞</t>
-                                        <t t-else="">SRD <t t-esc="'{:,.0f}'.format(bracket.get('upper', 0))"/></t>
-                                    </td>
-                                    <td class="fw-bold text-primary"><t t-esc="'{:.0f}'.format(bracket.get('rate', 0) * 100)"/>%</td>
-                                </tr>
-                            </t>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- ═══ 7. BIJZONDERE BELONINGEN ══════════════════════ -->
-            <div class="card mb-4 border-0 shadow-sm" id="sect-bijzonder">
-                <div class="card-header bg-info text-white">
-                    <h5 class="mb-0"><i class="fa fa-gift"/> 8. Bijzondere Beloningen &amp; Overwerk</h5>
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <h6><i class="fa fa-clock-o text-warning"/> Overwerk (Art. 17c)</h6>
-                            <p>Overwerk wordt <strong>apart belast</strong> met een afzonderlijk tarief:</p>
-                            <ul>
-                                <li>5% over het eerste deel</li>
-                                <li>15% over het tweede deel</li>
-                                <li>25% over het resterende deel</li>
-                            </ul>
-                            <p class="text-muted"><small>Overwerk wordt apart belast, niet via Art. 14.</small></p>
-                        </div>
-                        <div class="col-md-6">
-                            <h6><i class="fa fa-star text-primary"/> Bijzondere Beloning (Art. 17)</h6>
-                            <p>Wordt belast via het <strong>marginaal tarief</strong>:</p>
-                            <ul>
-                                <li>Systeem berekent LB over jaarloon + bonus</li>
-                                <li>Trekt de reguliere LB af</li>
-                                <li>Het verschil = belasting over de bonus</li>
-                            </ul>
-                        </div>
-                    </div>
-
-                    <h6 class="mt-3"><i class="fa fa-umbrella text-success"/> Vrijstellingen (Art. 10)</h6>
-                    <table class="table table-sm table-bordered">
-                        <thead class="table-light">
-                            <tr><th>Type</th><th>Artikel</th><th>Werking</th></tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>Vakantietoelage</td>
-                                <td>Art. 10i</td>
-                                <td>Belastingvrij tot <strong>min(2× basisloon, SRD 19.500)</strong> per jaar</td>
-                            </tr>
-                            <tr>
-                                <td>Gratificatie / Bonus</td>
-                                <td>Art. 10j</td>
-                                <td>Belastingvrij tot <strong>min(basisloon, SRD 19.500)</strong> per jaar, pro-rata bij onvolledig dienstjaar</td>
-                            </tr>
-                            <tr>
-                                <td>Kinderbijslag</td>
-                                <td>Art. 10h</td>
-                                <td>Max SRD <t t-esc="'{:,.0f}'.format(v.get('SR_KINDBIJ_MAX_KIND_MAAND', 250))"/> per kind, max SRD <t t-esc="'{:,.0f}'.format(v.get('SR_KINDBIJ_MAX_MAAND', 1000))"/> totaal per maand en max 4 kinderen</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- ═══ 8. FAQ ════════════════════════════════════════ -->
-            <div class="card mb-4 border-0 shadow-sm" id="sect-faq">
-                <div class="card-header bg-info text-white">
-                    <h5 class="mb-0"><i class="fa fa-question-circle"/> 9. Veelgestelde Vragen (FAQ)</h5>
-                </div>
-                <div class="card-body">
-
-                    <div class="border-bottom pb-3 mb-3">
-                        <h6 class="fw-bold"><i class="fa fa-question text-info"/> De loonstrook toont geen Suriname regels?</h6>
-                        <p>Controleer of het contract het <strong>Salary Structure Type</strong> = "Suriname Salaris Structuur" heeft.
-                           Alleen contracten met dit structuurtype krijgen de SR-berekeningen.</p>
-                    </div>
-
-                    <div class="border-bottom pb-3 mb-3">
-                        <h6 class="fw-bold"><i class="fa fa-question text-info"/> De Loonbelasting lijkt te hoog?</h6>
-                        <p>Check of:
-                        </p><ul>
-                            <li>De <strong>belastingvrije voet</strong> correct is ingesteld (SR_BELASTINGVRIJ_JAAR)</li>
-                            <li>De <strong>forfaitaire aftrek</strong> correct is ingesteld (SR_FORFAITAIRE_PCT / SR_FORFAITAIRE_MAX_JAAR)</li>
-                            <li>Alle toelagen op de juiste <strong>categorie</strong> staan (belastbaar vs vrijgesteld)</li>
+                    <div class="sr-side-card">
+                        <p class="sr-kicker">Snelste controles</p>
+                        <ul class="sr-checklist">
+                            <li>Contract staat op <strong>Running</strong> en gebruikt <strong>Suriname Salaris Structuur</strong>.</li>
+                            <li><strong>Belastingtype</strong> staat correct op <strong>1 lb sal ovw</strong> of <strong>FN</strong>.</li>
+                            <li><strong>Aantal Kinderen</strong> blijft tussen <strong>0</strong> en <strong>4</strong>.</li>
+                            <li>Eenmalige bedragen staan in <strong>Other Inputs</strong>, terugkerende bedragen in <strong>Vaste Loon Regels</strong>.</li>
                         </ul>
                     </div>
 
-                    <div class="border-bottom pb-3 mb-3">
-                        <h6 class="fw-bold"><i class="fa fa-question text-info"/> Hoe pas ik de belastingtarieven aan?</h6>
-                                <p>Ga naar <em>Payroll → Configuratie → Suriname → SR Payroll Instellingen</em>.
-                                    Pas daar de actuele waarden aan. Als de wet een extra schijf toevoegt,
-                                    beheer het volgende codepaar technisch via <em>Technisch (Admin) → Referentieparameters</em>,
-                                    bijvoorbeeld <strong>SR_SCHIJF_4_GRENS</strong> en <strong>SR_TARIEF_5</strong>.</p>
+                    <div class="sr-side-card sr-side-card--accent">
+                        <p class="sr-kicker">Belangrijke menu's</p>
+                        <p><strong>Dagelijkse payroll</strong><br/>Payroll → Suriname → Loonstroken SR</p>
+                        <p><strong>Contractcontrole</strong><br/>Contract → Suriname Payroll → Fiscale Data</p>
+                        <p><strong>Berekeningsdetail</strong><br/>Contract → Suriname Payroll → Controle &amp; Preview</p>
+                        <p class="mb-0"><strong>Configuratie</strong><br/>Payroll → Configuratie → Suriname → SR Payroll Instellingen</p>
                     </div>
+                </aside>
 
-                    <div class="border-bottom pb-3 mb-3">
-                        <h6 class="fw-bold"><i class="fa fa-question text-info"/> Kan ik een loonstrook opnieuw berekenen?</h6>
-                        <p>Ja, zolang de loonstrook in status <strong>Concept (Draft)</strong> staat.
-                           Klik op "Bereken Loonstrook" om opnieuw te berekenen.</p>
+                <main class="sr-main">
+                    <section class="sr-section" id="sect-snelstart">
+                        <div class="sr-section__header">
+                            <div class="sr-section__eyebrow">01. Snelstart</div>
+                            <h2>Werk vanuit de juiste rol en het juiste scherm</h2>
+                            <p class="sr-section__intro">
+                                De documentatie is bedoeld voor drie soorten gebruikers. Begin altijd vanuit het scherm dat hoort bij uw taak,
+                                zodat u geen payrollgegevens op de verkeerde plaats invoert.
+                            </p>
+                        </div>
+                        <div class="sr-section__body">
+                            <div class="sr-grid sr-grid--3">
+                                <article class="sr-info-card">
+                                    <div class="sr-icon"><i class="fa fa-calculator"/></div>
+                                    <h3>Payroll-medewerker</h3>
+                                    <p>Maakt loonstroken aan, vult <strong>Other Inputs</strong> aan, draait de berekening en controleert LB, AOV en netto voor bevestiging.</p>
+                                </article>
+                                <article class="sr-info-card">
+                                    <div class="sr-icon"><i class="fa fa-briefcase"/></div>
+                                    <h3>HR / contractbeheer</h3>
+                                    <p>Beheert <strong>Belastingtype</strong>, <strong>Aantal Kinderen</strong>, wage en terugkerende vaste regels in <strong>Fiscale Data</strong>.</p>
+                                </article>
+                                <article class="sr-info-card">
+                                    <div class="sr-icon"><i class="fa fa-cogs"/></div>
+                                    <h3>Functioneel beheer</h3>
+                                    <p>Wijzigt <strong>SR Payroll Instellingen</strong>, bereidt toekomstige schijven voor en voert de jaarupdate of releasereview uit.</p>
+                                </article>
+                            </div>
+                            <div class="sr-callout">
+                                <strong>Beslisregel:</strong> gebruik <strong>Vaste Loon Regels</strong> voor bedragen die elke periode terugkomen.
+                                Gebruik <strong>Other Inputs</strong> voor bedragen die alleen op deze loonstrook horen, zoals overwerk, bonus, gratificatie of een correctie.
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="sr-section" id="sect-loonstrook">
+                        <div class="sr-section__header">
+                            <div class="sr-section__eyebrow">02. Loonstrook aanmaken</div>
+                            <h2>Dagelijkse payrollflow stap voor stap</h2>
+                            <p class="sr-section__intro">
+                                Gebruik deze volgorde om een loonstrook veilig op te bouwen. Zo voorkomt u dat contractfouten,
+                                verkeerde categorieen of ontbrekende inputtypes pas bij de uitbetaling zichtbaar worden.
+                            </p>
+                        </div>
+                        <div class="sr-section__body">
+                            <div class="sr-grid sr-grid--2">
+                                <article class="sr-info-card">
+                                    <div class="sr-icon"><i class="fa fa-check-square-o"/></div>
+                                    <h3>Controleer eerst dit</h3>
+                                    <ul class="sr-checklist">
+                                        <li>De werknemer heeft een actief contract in status <strong>Running</strong>.</li>
+                                        <li>De contracttab <strong>Suriname Payroll</strong> is volledig ingevuld.</li>
+                                        <li>Eenmalige bedragen die deze periode gelden staan klaar voor <strong>Other Inputs</strong>.</li>
+                                        <li>Bij FN gebruikt u een ondersteund 2026-tijdvak en geen vrij datumbereik.</li>
+                                    </ul>
+                                </article>
+                                <article class="sr-info-card">
+                                    <div class="sr-icon"><i class="fa fa-list-alt"/></div>
+                                    <h3>Controleer na de berekening</h3>
+                                    <ul class="sr-checklist">
+                                        <li><strong>Salary Computation</strong> toont LB, AOV en netto zonder onverwachte dubbele regels.</li>
+                                        <li><strong>Other Inputs</strong> bevat alleen de invoer van deze specifieke loonstrook.</li>
+                                        <li><strong>HTML Preview</strong> of PDF sluit aan op de contractpreview en de verwachte uitkomst.</li>
+                                        <li>Zolang de loonstrook in <strong>Concept</strong> staat kunt u opnieuw berekenen.</li>
+                                    </ul>
+                                </article>
+                            </div>
+
+                            <div class="sr-table-wrap">
+                                <table class="sr-table">
+                                    <thead>
+                                        <tr>
+                                            <th style="width: 88px;">Stap</th>
+                                            <th>Wat te doen</th>
+                                            <th>Waar te vinden</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td><span class="sr-step">1</span></td>
+                                            <td>Open het overzicht <strong>Loonstroken SR</strong> en maak een nieuwe loonstrook voor de werknemer.</td>
+                                            <td>Payroll → Suriname → Loonstroken SR</td>
+                                        </tr>
+                                        <tr>
+                                            <td><span class="sr-step">2</span></td>
+                                            <td>Controleer werknemer, contract en periode. Het contract hoort automatisch te koppelen.</td>
+                                            <td>Loonstrookformulier</td>
+                                        </tr>
+                                        <tr>
+                                            <td><span class="sr-step">3</span></td>
+                                            <td>Voeg alleen indien nodig <strong>Other Inputs</strong> toe voor eenmalige posten zoals overwerk, bonus of bijzondere beloning.</td>
+                                            <td>Tab <strong>Other Inputs</strong></td>
+                                        </tr>
+                                        <tr>
+                                            <td><span class="sr-step">4</span></td>
+                                            <td>Klik op <strong>Bereken Loonstrook</strong> en wacht tot de salarisregels zijn opgebouwd.</td>
+                                            <td>Bovenaan het formulier</td>
+                                        </tr>
+                                        <tr>
+                                            <td><span class="sr-step">5</span></td>
+                                            <td>Controleer de regels voor <strong>SR_LB</strong>, <strong>SR_AOV</strong>, eventuele vrijstellingen en het nettoresultaat.</td>
+                                            <td>Tab <strong>Salary Computation</strong></td>
+                                        </tr>
+                                        <tr>
+                                            <td><span class="sr-step">6</span></td>
+                                            <td>Gebruik <strong>HTML Preview</strong> of de contractpreview als u de berekening stap voor stap wilt uitleggen of vergelijken.</td>
+                                            <td>Loonstrook of contract</td>
+                                        </tr>
+                                        <tr>
+                                            <td><span class="sr-step">7</span></td>
+                                            <td>Bevestig de loonstrook pas nadat alle bedragen juist zijn. Daarna kunt u de PDF of HTML versie delen.</td>
+                                            <td>Status wisselt van <strong>Concept</strong> naar afgerond</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="sr-callout sr-callout--warning">
+                                <strong>Let op:</strong> overwerk wordt in deze release niet automatisch uit work entries omgerekend naar fiscale looninvoer.
+                                Voeg overwerk daarom expliciet toe via <strong>Other Inputs</strong> met het correcte SR input type.
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="sr-section" id="sect-contract">
+                        <div class="sr-section__header">
+                            <div class="sr-section__eyebrow">03. Contract instellen</div>
+                            <h2>De contracttab is de wettelijke bron voor de payroll</h2>
+                            <p class="sr-section__intro">
+                                Elk Surinaams contract heeft de notebook <strong>Suriname Payroll</strong>. De subtab <strong>Fiscale Data</strong>
+                                bepaalt hoe de werknemer juridisch en fiscaal wordt behandeld tijdens de berekening.
+                            </p>
+                        </div>
+                        <div class="sr-section__body">
+                            <div class="sr-grid sr-grid--2">
+                                <article class="sr-info-card">
+                                    <div class="sr-icon"><i class="fa fa-id-card-o"/></div>
+                                    <h3>Verplichte contractchecks</h3>
+                                    <ul class="sr-checklist">
+                                        <li><strong>Salary Structure Type</strong> = <strong>Suriname Salaris Structuur</strong>.</li>
+                                        <li>Contractstatus = <strong>Running</strong>.</li>
+                                        <li><strong>Belastingtype</strong> correct ingesteld op <strong>1 lb sal ovw</strong> of <strong>FN</strong>.</li>
+                                        <li><strong>Aantal Kinderen</strong> tussen <strong>0</strong> en <strong>4</strong>.</li>
+                                    </ul>
+                                </article>
+                                <article class="sr-info-card">
+                                    <div class="sr-icon"><i class="fa fa-search"/></div>
+                                    <h3>Controle &amp; Preview</h3>
+                                    <p>
+                                        Gebruik de subtab <strong>Controle &amp; Preview</strong> om de berekening rechtstreeks vanuit het contract te valideren.
+                                        Dit is de snelste plek om te zien of parameters, categorieen en contractdata op elkaar aansluiten.
+                                    </p>
+                                </article>
+                            </div>
+
+                            <div class="sr-table-wrap">
+                                <table class="sr-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Veld</th>
+                                            <th>Uitleg</th>
+                                            <th>Praktische notitie</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td><strong>Belastingtype</strong></td>
+                                            <td>Bepaalt of de werknemer per maand of per FN-tijdvak wordt belast.</td>
+                                            <td><strong>1 lb sal ovw</strong> gebruikt 12 periodes en past de AOV-franchise toe. <strong>FN</strong> gebruikt 26 perioden en geen AOV-franchise.</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Aantal Kinderen</strong></td>
+                                            <td>Gebruikt voor de vrijgestelde kinderbijslag conform Art. 10h.</td>
+                                            <td>Maximaal 4 kinderen tellen mee in de payroll.</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Bruto Maandloon (Wage)</strong></td>
+                                            <td>Basissalaris in SRD dat als uitgangspunt dient voor reguliere loonbelasting en verschillende vrijstellingsdrempels.</td>
+                                            <td>Gebruik het actuele contractloon; een voorbeeldsalaris voor regressie is SRD 20.255,60.</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Vaste Loon Regels</strong></td>
+                                            <td>Terugkerende toelagen, vrijstellingen of inhoudingen die iedere periode mee moeten lopen.</td>
+                                            <td>Eenmalige posten horen niet hier, maar op de loonstrook in <strong>Other Inputs</strong>.</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="sr-section" id="sect-vaste-regels">
+                        <div class="sr-section__header">
+                            <div class="sr-section__eyebrow">04. Vaste loonregels</div>
+                            <h2>Gebruik vaste regels alleen voor terugkerende componenten</h2>
+                            <p class="sr-section__intro">
+                                Vaste loonregels komen automatisch elke loonperiode terug. Daarmee zijn ze geschikt voor structurele toelagen,
+                                vaste onkostenvergoedingen of inhoudingen die niet per loonstrook opnieuw beoordeeld hoeven te worden.
+                            </p>
+                        </div>
+                        <div class="sr-section__body">
+                            <div class="sr-grid sr-grid--2">
+                                <article class="sr-info-card">
+                                    <div class="sr-icon"><i class="fa fa-plus-square"/></div>
+                                    <h3>Zo voegt u een vaste regel toe</h3>
+                                    <ul class="sr-checklist">
+                                        <li>Open het contract van de werknemer.</li>
+                                        <li>Ga naar <strong>Suriname Payroll → Fiscale Data</strong>.</li>
+                                        <li>Kies <strong>Voeg een regel toe</strong> bij <strong>Vaste Loon Regels</strong>.</li>
+                                        <li>Vul naam, categorie en bedrag of percentage in.</li>
+                                    </ul>
+                                </article>
+                                <article class="sr-info-card">
+                                    <div class="sr-icon"><i class="fa fa-filter"/></div>
+                                    <h3>Wanneer geen vaste regel gebruiken</h3>
+                                    <ul class="sr-checklist">
+                                        <li>Als het bedrag alleen deze maand geldt.</li>
+                                        <li>Als de hoogte per loonstrook wisselt op basis van prestaties of uren.</li>
+                                        <li>Bij overwerk, bonus, gratificatie of een correctie op een afgesloten periode.</li>
+                                        <li>Als de fiscale categorie per geval nog gecontroleerd moet worden.</li>
+                                    </ul>
+                                </article>
+                            </div>
+
+                            <div class="sr-table-wrap">
+                                <table class="sr-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Type</th>
+                                            <th>Werking</th>
+                                            <th>Voorbeeld</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td><strong>Vast bedrag</strong></td>
+                                            <td>Een exact SRD-bedrag dat iedere periode op dezelfde manier moet terugkomen.</td>
+                                            <td>SRD 500 transporttoelage of een vaste pensioeninhouding.</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Percentage</strong></td>
+                                            <td>Een percentage van het contractloon dat periodiek wordt berekend.</td>
+                                            <td>5% representatietoelage op het bruto maandloon.</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="sr-callout sr-callout--neutral">
+                                <strong>Operationele grens:</strong> negatieve SR-inputs, negatieve lonen en negatieve vaste SR-regels horen niet in de normale payrollstroom.
+                                Corrigeer de bronoorzaak in contract of inputtype in plaats van een negatieve workaround te registreren.
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="sr-section" id="sect-categorieen">
+                        <div class="sr-section__header">
+                            <div class="sr-section__eyebrow">05. Looncategorieen</div>
+                            <h2>Kies de categorie die past bij de fiscale behandeling</h2>
+                            <p class="sr-section__intro">
+                                De categorie bepaalt niet alleen de presentatie op de loonstrook, maar ook of een bedrag belast wordt,
+                                vrijgesteld blijft of via een apart regime loopt. Een verkeerde categorie geeft direct een verkeerde uitkomst.
+                            </p>
+                        </div>
+                        <div class="sr-section__body">
+                            <div class="sr-table-wrap">
+                                <table class="sr-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Categorie</th>
+                                            <th>Wat doet het?</th>
+                                            <th>Effect op payroll</th>
+                                            <th>Voorbeelden</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td><span class="sr-badge sr-badge--danger">Belastbaar</span></td>
+                                            <td>Verhoogt het bruto loon.</td>
+                                            <td>Meer LB en meestal ook meer AOV.</td>
+                                            <td>Representatievergoeding, reguliere toelagen.</td>
+                                        </tr>
+                                        <tr>
+                                            <td><span class="sr-badge sr-badge--success">Vrijgesteld</span></td>
+                                            <td>Wordt netto toegevoegd zonder loonbelasting.</td>
+                                            <td>Geen extra LB; wel goed documenteren waarom vrijgesteld.</td>
+                                            <td>Kinderbijslag, bepaalde onkostenvergoeding.</td>
+                                        </tr>
+                                        <tr>
+                                            <td><span class="sr-badge sr-badge--neutral">Inhouding</span></td>
+                                            <td>Wordt van netto afgetrokken.</td>
+                                            <td>Verlaagt het uit te betalen netto loon.</td>
+                                            <td>Leningaflossing, pensioenpremie.</td>
+                                        </tr>
+                                        <tr>
+                                            <td><span class="sr-badge sr-badge--warning">Overwerk</span></td>
+                                            <td>Loopt via het aparte overwerkregime van Art. 17c.</td>
+                                            <td>Wordt los belast en niet via gewone Art. 14 schijven.</td>
+                                            <td>Overuren, extra diensten.</td>
+                                        </tr>
+                                        <tr>
+                                            <td><span class="sr-badge sr-badge--primary">Vakantietoelage</span></td>
+                                            <td>Vrijstelling volgens Art. 10i.</td>
+                                            <td>Deels vrijgesteld, restant belast.</td>
+                                            <td>Vakantiebijslag.</td>
+                                        </tr>
+                                        <tr>
+                                            <td><span class="sr-badge sr-badge--primary">Gratificatie</span></td>
+                                            <td>Vrijstelling volgens Art. 10j.</td>
+                                            <td>Deels vrijgesteld, restant belast.</td>
+                                            <td>Eindejaarsbonus, bonusuitkering.</td>
+                                        </tr>
+                                        <tr>
+                                            <td><span class="sr-badge sr-badge--dark">Bijzondere beloning</span></td>
+                                            <td>Wordt belast via het marginale tarief van Art. 17.</td>
+                                            <td>Niet als regulier loon behandelen.</td>
+                                            <td>Dertiende maand, eenmalige bonus.</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="sr-grid sr-grid--2" style="margin-top: 18px;">
+                                <article class="sr-info-card">
+                                    <div class="sr-icon"><i class="fa fa-lightbulb-o"/></div>
+                                    <h3>Snelle keuzehulp</h3>
+                                    <ul class="sr-checklist">
+                                        <li>Structurele toelage of vergoeding: meestal <strong>Belastbaar</strong> of <strong>Vrijgesteld</strong>.</li>
+                                        <li>Terugbetaling door werknemer: meestal <strong>Inhouding</strong>.</li>
+                                        <li>Eenmalige bonus: gebruik <strong>Bijzondere beloning</strong> via een passend inputtype.</li>
+                                        <li>Vakantiegeld of gratificatie: gebruik de specifieke SR-categorie, niet een generieke belastbare regel.</li>
+                                    </ul>
+                                </article>
+                                <article class="sr-info-card">
+                                    <div class="sr-icon"><i class="fa fa-exclamation-triangle"/></div>
+                                    <h3>Veiligheidsregel</h3>
+                                    <p>
+                                        Twijfelt u tussen vrijgesteld en belastbaar, kies dan niet op gevoel. Controleer eerst de wettelijke grondslag of stem af met de boekhouder.
+                                        Een onterecht vrijgestelde regel is inhoudelijk riskanter dan een te conservatieve belastbare regel.
+                                    </p>
+                                </article>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="sr-section" id="sect-parameters">
+                        <div class="sr-section__header">
+                            <div class="sr-section__eyebrow">06. Parameters &amp; beheer</div>
+                            <h2>Houd het verschil scherp tussen dagelijks beheer en technische referenties</h2>
+                            <p class="sr-section__intro">
+                                De payroll-engine leest eerst de actuele waarden uit <strong>SR Payroll Instellingen</strong> en valt pas daarna terug op
+                                technische referentieparameters. Gebruik daarom het juiste scherm voor het juiste doel.
+                            </p>
+                        </div>
+                        <div class="sr-section__body">
+                            <div class="sr-grid sr-grid--2">
+                                <article class="sr-info-card">
+                                    <div class="sr-icon"><i class="fa fa-sliders"/></div>
+                                    <h3>Dagelijks beheer</h3>
+                                    <ul class="sr-checklist">
+                                        <li>Ga naar <strong>Payroll → Configuratie → Suriname → SR Payroll Instellingen</strong>.</li>
+                                        <li>Pas alleen waarden aan als wet of bedrijfsbeleid dat vereist.</li>
+                                        <li>Documenteer wanneer en waarom de wijziging is doorgevoerd.</li>
+                                        <li>Controleer na elke wijziging een proefloonstrook.</li>
+                                    </ul>
+                                </article>
+                                <article class="sr-info-card">
+                                    <div class="sr-icon"><i class="fa fa-wrench"/></div>
+                                    <h3>Technische voorbereiding</h3>
+                                    <ul class="sr-checklist">
+                                        <li>Gebruik <strong>Technisch (Admin) → Referentieparameters</strong> alleen voor voorbereiding of analyse.</li>
+                                        <li>Extra schijven kunnen vooruit worden klaargezet met codes zoals <strong>SR_SCHIJF_4_GRENS</strong> en <strong>SR_TARIEF_5</strong>.</li>
+                                        <li>Zonder actieve waarde en ingangsdatum heeft een reserveparameter geen effect op de live payroll.</li>
+                                        <li>Voer dagelijkse payrollwijzigingen niet in dit technische scherm door.</li>
+                                    </ul>
+                                </article>
+                            </div>
+
+                            <div class="sr-callout">
+                                <strong>2026 kernregels:</strong> AKB = SRD 250 per kind met een maximum van SRD 1.000 per maand en maximaal 4 kinderen.
+                                De bijzondere vrijstellingscap blijft SRD 19.500. De heffingskorting is zichtbaar voor audit, maar wordt niet actief toegepast in de Art. 14 engine.
+                            </div>
+
+                            <div class="sr-table-wrap">
+                                <table class="sr-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Parameter</th>
+                                            <th>Actuele waarde</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <t t-foreach="params.items()" t-as="item">
+                                            <tr>
+                                                <td>
+                                                    <strong><t t-out="item[1]['label']"/></strong><br/>
+                                                    <span class="text-muted"><t t-out="item[0]"/></span>
+                                                </td>
+                                                <td><strong><t t-out="item[1].get('display_value', item[1]['value'])"/></strong></td>
+                                            </tr>
+                                        </t>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="sr-callout sr-callout--warning">
+                                <strong>Belangrijk:</strong> parameterwijzigingen raken alle volgende payrollruns. Maak bij twijfel eerst een proefloonstrook of laat de wijziging reviewen voordat u live lonen bevestigt.
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="sr-section" id="sect-migratie">
+                        <div class="sr-section__header">
+                            <div class="sr-section__eyebrow">07. Controle &amp; migratie</div>
+                            <h2>Gebruik vaste checklists voor maandafsluiting en jaarupdate</h2>
+                            <p class="sr-section__intro">
+                                De grootste fouten ontstaan meestal niet in de formule, maar in een gemiste controle: verkeerde contractstatus,
+                                verouderde parameters, fout inputtype of een FN-periode buiten de ondersteunde kalender.
+                            </p>
+                        </div>
+                        <div class="sr-section__body">
+                            <div class="sr-grid sr-grid--2">
+                                <article class="sr-info-card">
+                                    <div class="sr-icon"><i class="fa fa-repeat"/></div>
+                                    <h3>Voor iedere payroll-run</h3>
+                                    <ul class="sr-checklist">
+                                        <li>Controleer contractstatus, belastingtype en wage.</li>
+                                        <li>Valideer of vaste regels en <strong>Other Inputs</strong> bij de juiste werknemer staan.</li>
+                                        <li>Herbereken de loonstrook zolang deze nog in <strong>Concept</strong> staat.</li>
+                                        <li>Vergelijk HTML Preview of contractpreview bij twijfelgevallen.</li>
+                                    </ul>
+                                </article>
+                                <article class="sr-info-card">
+                                    <div class="sr-icon"><i class="fa fa-rocket"/></div>
+                                    <h3>Migratie 2025 → 2026</h3>
+                                    <ul class="sr-checklist">
+                                        <li>Maak een back-up en werk daarna de module bij.</li>
+                                        <li>Bevestig 2026-waarden in <strong>SR Payroll Instellingen</strong>.</li>
+                                        <li>Controleer actieve contracten op <strong>1 lb sal ovw</strong> of <strong>FN</strong> en AKB max 4.</li>
+                                        <li>Maak een proefloonstrook met SRD 20.255,60 en vergelijk LB, AOV en netto.</li>
+                                    </ul>
+                                </article>
+                            </div>
+
+                            <div class="sr-grid sr-grid--2" style="margin-top: 18px;">
+                                <article class="sr-info-card">
+                                    <div class="sr-icon"><i class="fa fa-calendar-check-o"/></div>
+                                    <h3>Specifiek voor FN-contracten</h3>
+                                    <ul class="sr-checklist">
+                                        <li>Gebruik uitsluitend de 26 ondersteunde FN-perioden voor 2026.</li>
+                                        <li>Maak geen vrije 14-daagse periode buiten de kalender om.</li>
+                                        <li>Controleer bij de proefloonstrook dat de FN-indicator zichtbaar is.</li>
+                                        <li>FN gebruikt geen AOV-franchise; dat is correct gedrag.</li>
+                                    </ul>
+                                </article>
+                                <article class="sr-info-card">
+                                    <div class="sr-icon"><i class="fa fa-clipboard"/></div>
+                                    <h3>Na een update controleren</h3>
+                                    <ul class="sr-checklist">
+                                        <li>Open deze help-pagina en controleer of de actuele parameters logisch zijn.</li>
+                                        <li>Open een actief contract en verifieer de tabs <strong>Fiscale Data</strong> en <strong>Controle &amp; Preview</strong>.</li>
+                                        <li>Controleer dat inputtypes voor overwerk, vakantietoelage en bonus nog beschikbaar zijn.</li>
+                                        <li>Laat minimaal een proefloonstrook door een tweede persoon reviewen.</li>
+                                    </ul>
+                                </article>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="sr-section" id="sect-berekening">
+                        <div class="sr-section__header">
+                            <div class="sr-section__eyebrow">08. Hoe de berekening werkt</div>
+                            <h2>Van bruto loon naar netto loon</h2>
+                            <p class="sr-section__intro">
+                                De loonberekening volgt de Wet Loonbelasting van Suriname. Onderstaand ziet u dezelfde logica die de module gebruikt,
+                                zodat u sneller kunt controleren waar een afwijking ontstaat.
+                            </p>
+                        </div>
+                        <div class="sr-section__body">
+                            <div class="sr-flow">
+                                <article class="sr-flow-card">
+                                    <span class="sr-step">1</span>
+                                    <h3>Bruto loon</h3>
+                                    <p>Basisloon plus belastbare toelagen en toepasselijke SR-componenten.</p>
+                                </article>
+                                <article class="sr-flow-card">
+                                    <span class="sr-step">2</span>
+                                    <h3>Forfaitaire aftrek</h3>
+                                    <p><t t-esc="'{:.0f}'.format(v.get('SR_FORFAITAIRE_PCT', 0.04) * 100)"/>% van bruto, maximaal SRD <t t-esc="'{:,.0f}'.format(v.get('SR_FORFAITAIRE_MAX_JAAR', 4800))"/> per jaar.</p>
+                                </article>
+                                <article class="sr-flow-card">
+                                    <span class="sr-step">3</span>
+                                    <h3>Belastingvrije voet</h3>
+                                    <p>SRD <t t-esc="'{:,.0f}'.format(v.get('SR_BELASTINGVRIJ_JAAR', 108000))"/> per jaar, oftewel SRD <t t-esc="'{:,.0f}'.format(v.get('SR_BELASTINGVRIJ_JAAR', 108000) / 12)"/> per maand.</p>
+                                </article>
+                                <article class="sr-flow-card">
+                                    <span class="sr-step">4</span>
+                                    <h3>Belastbaar inkomen</h3>
+                                    <p>Bruto minus forfaitaire aftrek minus belastingvrije voet.</p>
+                                </article>
+                                <article class="sr-flow-card">
+                                    <span class="sr-step">5</span>
+                                    <h3>Loonbelasting Art. 14</h3>
+                                    <p>Progressieve berekening over de actieve schijven: <t t-esc="lb_rate_summary or '-'"/>.</p>
+                                </article>
+                                <article class="sr-flow-card">
+                                    <span class="sr-step">6</span>
+                                    <h3>AOV bijdrage</h3>
+                                    <p><t t-esc="'{:.0f}'.format(v.get('SR_AOV_TARIEF', 0.04) * 100)"/>% over bruto minus franchise SRD <t t-esc="'{:,.0f}'.format(v.get('SR_AOV_FRANCHISE_MAAND', 400))"/> voor maandloon; FN kent geen franchise.</p>
+                                </article>
+                                <article class="sr-flow-card">
+                                    <span class="sr-step">7</span>
+                                    <h3>Netto loon</h3>
+                                    <p>Bruto minus LB minus AOV minus inhoudingen plus vrijgestelde componenten.</p>
+                                </article>
+                            </div>
+
+                            <div class="sr-callout sr-callout--neutral">
+                                <strong>Belangrijke nuance:</strong> de heffingskorting is beschikbaar voor audit en parametrisering, maar wordt in deze Art. 14 engine niet actief toegepast.
+                            </div>
+
+                            <div class="sr-table-wrap">
+                                <table class="sr-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Schijf</th>
+                                            <th>Van</th>
+                                            <th>Tot</th>
+                                            <th>Tarief</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <t t-foreach="lb_brackets" t-as="bracket">
+                                            <tr>
+                                                <td><strong><t t-esc="bracket.get('index')"/></strong></td>
+                                                <td>
+                                                    <t t-if="bracket.get('lower', 0) &lt;= 0">SRD 0</t>
+                                                    <t t-else="">SRD <t t-esc="'{:,.0f}'.format(bracket.get('lower', 0))"/></t>
+                                                </td>
+                                                <td>
+                                                    <t t-if="bracket.get('upper') is None">∞</t>
+                                                    <t t-else="">SRD <t t-esc="'{:,.0f}'.format(bracket.get('upper', 0))"/></t>
+                                                </td>
+                                                <td><strong><t t-esc="'{:.0f}'.format(bracket.get('rate', 0) * 100)"/>%</strong></td>
+                                            </tr>
+                                        </t>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="sr-section" id="sect-bijzonder">
+                        <div class="sr-section__header">
+                            <div class="sr-section__eyebrow">09. Bijzondere beloningen</div>
+                            <h2>Overwerk, bonus en vrijstellingen vragen een eigen aanpak</h2>
+                            <p class="sr-section__intro">
+                                Niet elk extra bedrag hoort in het gewone loon. Deze componenten hebben een eigen fiscaal regime en moeten daarom
+                                met het juiste inputtype en de juiste categorie verwerkt worden.
+                            </p>
+                        </div>
+                        <div class="sr-section__body">
+                            <div class="sr-grid sr-grid--2">
+                                <article class="sr-info-card">
+                                    <div class="sr-icon"><i class="fa fa-clock-o"/></div>
+                                    <h3>Overwerk (Art. 17c)</h3>
+                                    <ul class="sr-checklist">
+                                        <li>Wordt apart belast en niet via de gewone Art. 14 ladder.</li>
+                                        <li>Tariefopbouw: 5%, 15% en 25% over de respectieve delen.</li>
+                                        <li>Gebruik hiervoor een SR overwerk-input in <strong>Other Inputs</strong>.</li>
+                                        <li>Controleer na berekening dat de overwerkregel los zichtbaar is.</li>
+                                    </ul>
+                                </article>
+                                <article class="sr-info-card">
+                                    <div class="sr-icon"><i class="fa fa-star"/></div>
+                                    <h3>Bijzondere beloning (Art. 17)</h3>
+                                    <ul class="sr-checklist">
+                                        <li>Wordt belast via het marginale tarief op jaarbasis.</li>
+                                        <li>De module berekent eerst de LB op jaarloon + bonus.</li>
+                                        <li>Daarna trekt zij de reguliere LB af; het verschil is de belasting over de bonus.</li>
+                                        <li>Gebruik hiervoor een specifiek SR input type, niet een generieke belastbare toelage.</li>
+                                    </ul>
+                                </article>
+                            </div>
+
+                            <div class="sr-table-wrap">
+                                <table class="sr-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Type</th>
+                                            <th>Artikel</th>
+                                            <th>Werking</th>
+                                            <th>Aanbevolen invoer</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>Vakantietoelage</td>
+                                            <td>Art. 10i</td>
+                                            <td>Vrijstelling tot <strong>min(2× basisloon, SRD 19.500)</strong> per jaar.</td>
+                                            <td>SR vakantietoelage inputtype in <strong>Other Inputs</strong>.</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Gratificatie / bonus</td>
+                                            <td>Art. 10j</td>
+                                            <td>Vrijstelling tot <strong>min(basisloon, SRD 19.500)</strong> per jaar, pro-rata bij onvolledig dienstjaar.</td>
+                                            <td>SR gratificatie of bonus inputtype.</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Kinderbijslag</td>
+                                            <td>Art. 10h</td>
+                                            <td>Max SRD <t t-esc="'{:,.0f}'.format(v.get('SR_KINDBIJ_MAX_KIND_MAAND', 250))"/> per kind, max SRD <t t-esc="'{:,.0f}'.format(v.get('SR_KINDBIJ_MAX_MAAND', 1000))"/> totaal per maand en max 4 kinderen.</td>
+                                            <td>Contractgegevens in <strong>Fiscale Data</strong>, niet als losse vrije regel.</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Uitkering ineens</td>
+                                            <td>Art. 17a</td>
+                                            <td>Afzonderlijke behandeling volgens het ingestelde SR inputtype.</td>
+                                            <td>Specifiek SR inputtype voor uitkering ineens.</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="sr-section" id="sect-faq">
+                        <div class="sr-section__header">
+                            <div class="sr-section__eyebrow">10. Probleemoplossing &amp; FAQ</div>
+                            <h2>Diagnoseer eerst de bron, niet alleen het resultaat</h2>
+                            <p class="sr-section__intro">
+                                De meeste afwijkingen zijn terug te voeren op een van vier bronnen: contractdata, categoriekeuze,
+                                parameterwaarden of een ontbrekende invoer op de loonstrook. Gebruik onderstaande matrix als eerste diagnose.
+                            </p>
+                        </div>
+                        <div class="sr-section__body">
+                            <div class="sr-table-wrap">
+                                <table class="sr-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Situatie</th>
+                                            <th>Wat controleren</th>
+                                            <th>Aanbevolen actie</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>De loonstrook toont geen Suriname regels</td>
+                                            <td>Contract heeft mogelijk niet het juiste <strong>Salary Structure Type</strong> of staat niet op <strong>Running</strong>.</td>
+                                            <td>Open het contract en corrigeer de structuur of status in <strong>Suriname Payroll</strong>.</td>
+                                        </tr>
+                                        <tr>
+                                            <td>De loonbelasting lijkt te hoog</td>
+                                            <td>Controleer belastingvrije voet, forfaitaire aftrek en of toelagen per ongeluk als <strong>Belastbaar</strong> staan.</td>
+                                            <td>Vergelijk de loonstrook met <strong>Controle &amp; Preview</strong> en review de categorie per regel.</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Een FN-loonstrook valideert niet</td>
+                                            <td>Controleer of het contract echt op <strong>FN</strong> staat en of het tijdvak een ondersteunde 2026-periode is.</td>
+                                            <td>Gebruik een correcte FN-periode en maak geen vrij 14-daags datumbereik.</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Overwerk of bonus wordt niet correct belast</td>
+                                            <td>Vaak is het verkeerde inputtype of een generieke categorie gebruikt.</td>
+                                            <td>Voeg het bedrag opnieuw toe in <strong>Other Inputs</strong> met het juiste SR inputtype.</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Een parameterwijziging lijkt geen effect te hebben</td>
+                                            <td>Mogelijk is de wijziging in een technisch scherm gedaan of ontbreekt een juiste ingangsdatum.</td>
+                                            <td>Controleer of de live waarde in <strong>SR Payroll Instellingen</strong> staat en maak daarna een proefloonstrook.</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="sr-faq-grid">
+                                <article class="sr-faq-card">
+                                    <h3><i class="fa fa-question-circle text-info"/> Kan ik een loonstrook opnieuw berekenen?</h3>
+                                    <p>Ja. Zolang de loonstrook in status <strong>Concept</strong> staat kunt u opnieuw op <strong>Bereken Loonstrook</strong> klikken.</p>
+                                </article>
+                                <article class="sr-faq-card">
+                                    <h3><i class="fa fa-question-circle text-info"/> Waar zie ik de berekening in detail?</h3>
+                                    <p>Gebruik <strong>Controle &amp; Preview</strong> op het contract of <strong>HTML Preview</strong> op de loonstrook voor de stapsgewijze uitsplitsing.</p>
+                                </article>
+                                <article class="sr-faq-card">
+                                    <h3><i class="fa fa-question-circle text-info"/> Hoe pas ik belastingtarieven aan?</h3>
+                                    <p>Voor live payroll gebruikt u <strong>SR Payroll Instellingen</strong>. Extra toekomstige schijven bereidt u alleen technisch voor via referentieparameters.</p>
+                                </article>
+                                <article class="sr-faq-card">
+                                    <h3><i class="fa fa-question-circle text-info"/> Wanneer moet ik support of beheer inschakelen?</h3>
+                                    <p>Als contractdata correct zijn maar de uitkomst nog afwijkt, of wanneer een wettelijke wijziging nieuwe schijven, vrijstellingen of inputtypes vereist.</p>
+                                </article>
+                            </div>
+
+                            <div class="sr-callout sr-callout--danger">
+                                <strong>Escalatiepunt:</strong> wijzig geen categorieen of parameters op goed geluk om een loonstrook passend te maken.
+                                Corrigeer altijd eerst de brondata of laat een beheerder de fiscale instelling beoordelen.
+                            </div>
+                        </div>
+                    </section>
+
+                    <div class="sr-footer">
+                        <p>
+                            <strong>Module:</strong> l10n_sr_hr_payroll<br/>
+                            <strong>Scope:</strong> Suriname salarisverwerking conform de Wet Loonbelasting<br/>
+                            <strong>Beste startpunten:</strong> Payroll → Suriname → Loonstroken SR, Contract → Suriname Payroll, Payroll → Configuratie → Suriname → SR Payroll Instellingen<br/>
+                            <strong>Snapshot:</strong> deze help-pagina toont de actuele parameterweergave uit de huidige payrollconfiguratie.
+                        </p>
                     </div>
-
-                    <div class="border-bottom pb-3 mb-3">
-                        <h6 class="fw-bold"><i class="fa fa-question text-info"/> Wat als een werknemer 14-daags betaald wordt?</h6>
-                                <p>Stel het <strong>Belastingtype</strong> in op <strong>FN</strong> in <strong>Suriname Payroll → Fiscale Data</strong>.
-                           Alle berekeningen (belastingvrije voet, forfaitaire aftrek, etc.) worden automatisch
-                           omgerekend naar het juiste tijdvak.</p>
-                    </div>
-
-                    <div class="border-bottom pb-3 mb-3">
-                        <h6 class="fw-bold"><i class="fa fa-question text-info"/> Waar kan ik de berekening in detail bekijken?</h6>
-                        <p>Op het <strong>contract</strong> onder <strong>Suriname Payroll → Controle &amp; Preview</strong> vindt u het <em>Berekeningsdetail</em>
-                                    met een stapsgewijze uitsplitsing. Op de <strong>loonstrook</strong> kunt u "HTML Preview"
-                           klikken voor een gedetailleerd overzicht.</p>
-                    </div>
-
-                    <div class="pb-3 mb-3">
-                        <h6 class="fw-bold"><i class="fa fa-question text-info"/> Hoe voeg ik eenmalige inputregels toe?</h6>
-                        <p>Op de loonstrook zelf vindt u de tab <strong>"Other Inputs"</strong>. Daar kunt u eenmalige bedragen
-                           toevoegen zoals een bonus, extra overwerk, of bijzondere beloning. Kies het juiste
-                           <em>Input Type</em> (bijv. "Bijzondere Beloning (Art. 17)").</p>
-                    </div>
-
-                </div>
+                </main>
             </div>
-
-            <!-- ═══ FOOTER ═══════════════════════════════════════ -->
-            <div class="text-center text-muted mt-5 mb-3">
-                <hr/>
-                <p><small>
-                    <i class="fa fa-info-circle"/> Module: <strong>l10n_sr_hr_payroll</strong> — Suriname Salarisverwerking<br/>
-                    Gebaseerd op de Wet Loonbelasting van Suriname<br/>
-                    Voor vragen: neem contact op met de systeembeheerder
-                </small></p>
-            </div>
-
         </div>
 
-        <!-- Terug naar boven knop -->
-        <a href="#" class="btn btn-info btn-lg rounded-circle sr-back-btn shadow" title="Terug naar boven">
+        <a href="#" class="sr-back-btn" title="Terug naar boven">
             <i class="fa fa-arrow-up"/>
         </a>
     </body>

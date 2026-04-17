@@ -2,6 +2,7 @@
 
 import re
 from datetime import date
+from decimal import Decimal
 
 from odoo import http
 from odoo.http import request
@@ -10,6 +11,8 @@ from ..models import sr_artikel14_calculator as calc
 
 
 _LB_PARAM_RE = re.compile(r'^SR_(SCHIJF_(\d+)_GRENS|TARIEF_(\d+))$')
+_PERCENT_PARAM_HINTS = ('TARIEF', '_PCT')
+_CURRENCY_PARAM_HINTS = ('GRENS', 'MAX', 'VRIJ', 'FRANCHISE')
 
 
 def _lb_param_sort_key(code):
@@ -28,6 +31,35 @@ def _lb_param_label(code):
     if match.group(2):
         return f'Schijf {int(match.group(2))} grens'
     return f'Tarief {int(match.group(3))}'
+
+
+def _coerce_float(value):
+    if isinstance(value, (int, float, Decimal)):
+        return float(value)
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _format_param_value(code, value):
+    if value is None:
+        return 'N/B'
+
+    numeric_value = _coerce_float(value)
+    if numeric_value is None:
+        return str(value)
+
+    if code and any(token in code for token in _PERCENT_PARAM_HINTS):
+        return f'{numeric_value * 100:.2f}%'
+
+    if code and any(token in code for token in _CURRENCY_PARAM_HINTS):
+        return f'SRD {numeric_value:,.2f}'
+
+    if numeric_value.is_integer():
+        return f'{numeric_value:,.0f}'
+
+    return f'{numeric_value:,.2f}'
 
 
 class SrPayrollHelpController(http.Controller):
@@ -77,9 +109,17 @@ class SrPayrollHelpController(http.Controller):
                 env, code, today, default=None, raise_if_not_found=False,
             )
             if val is None:
-                params[code] = {'label': label, 'value': 'N/B'}
+                params[code] = {
+                    'label': label,
+                    'value': 'N/B',
+                    'display_value': 'N/B',
+                }
             else:
-                params[code] = {'label': label, 'value': val}
+                params[code] = {
+                    'label': label,
+                    'value': val,
+                    'display_value': _format_param_value(code, val),
+                }
 
         lb_calc_params = calc.fetch_params_from_rule_parameter(env, today)
         lb_brackets = lb_calc_params.get('brackets', [])
@@ -89,4 +129,7 @@ class SrPayrollHelpController(http.Controller):
             'v': {code: params[code]['value'] for code in params if params[code]['value'] != 'N/B'},
             'lb_brackets': lb_brackets,
             'lb_rate_summary': ' / '.join(f"{row['rate'] * 100:.0f}%" for row in lb_brackets),
+            'param_count': len(params),
+            'bracket_count': len(lb_brackets),
+            'today_display': today.strftime('%d-%m-%Y'),
         })
