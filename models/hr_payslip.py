@@ -1,6 +1,6 @@
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
-from datetime import date as dt_date
+from datetime import date as dt_date, datetime, time, timedelta
 
 from odoo import api, fields, models
 from odoo.exceptions import UserError
@@ -63,9 +63,62 @@ class HrPayslip(models.Model):
         _sr_calc_cache.clear()
         for slip in self:
             slip._sr_validate_fn_period_2026()
+            slip._sr_sync_overtime_inputs_from_work_entries()
         res = super().compute_sheet()
         _sr_calc_cache.clear()
         return res
+
+    def _sr_get_hourly_rate(self):
+        self.ensure_one()
+        wage = self.contract_id.wage or 0.0
+        if not wage:
+            return 0.0
+        return wage / (80.0 if self._sr_get_periodes() == 26 else 173.333333)
+
+    def _sr_sync_overtime_inputs_from_work_entries(self):
+        self.ensure_one()
+
+        generated_inputs = self.input_line_ids.filtered('sr_generated_from_work_entry')
+        if generated_inputs:
+            generated_inputs.unlink()
+
+        sr_struct = self.env.ref('l10n_sr_hr_payroll.sr_payroll_structure', raise_if_not_found=False)
+        overtime_type = self.env.ref('l10n_sr_hr_payroll.sr_input_overwerk', raise_if_not_found=False)
+        if self.struct_id != sr_struct or not overtime_type or not self.contract_id or not self.date_from or not self.date_to:
+            return
+
+        period_start = datetime.combine(self.date_from, time.min)
+        period_stop = datetime.combine(self.date_to + timedelta(days=1), time.min)
+        hourly_rate = self._sr_get_hourly_rate()
+        if hourly_rate <= 0:
+            return
+
+        work_entries = self.env['hr.work.entry'].search([
+            ('contract_id', '=', self.contract_id.id),
+            ('date_start', '<', period_stop),
+            ('date_stop', '>', period_start),
+            ('state', '=', 'validated'),
+            ('work_entry_type_id.sr_is_overtime', '=', True),
+        ], order='date_start, id')
+
+        for entry in work_entries:
+            effective_start = max(entry.date_start, period_start)
+            effective_stop = min(entry.date_stop, period_stop)
+            hours = max(0.0, (effective_stop - effective_start).total_seconds() / 3600.0)
+            if hours <= 0:
+                continue
+            multiplier = entry.work_entry_type_id.sr_overtime_multiplier or 1.0
+            amount = hours * hourly_rate * multiplier
+            if amount <= 0:
+                continue
+            self.env['hr.payslip.input'].create({
+                'payslip_id': self.id,
+                'name': f'{entry.work_entry_type_id.name} ({hours:.2f}u)',
+                'input_type_id': overtime_type.id,
+                'amount': amount,
+                'sr_generated_from_work_entry': True,
+                'sr_work_entry_id': entry.id,
+            })
 
     def _sr_get_periodes(self):
         """Bepaalt het aantal periodes per jaar: 12 (maandloon) of 26 (fortnight)."""
@@ -250,6 +303,7 @@ class HrPayslip(models.Model):
 
         contract = self.contract_id
         periodes = self._sr_get_periodes()
+        fn_period = self._sr_get_fn_period_2026() if periodes == 26 else False
 
         # ── Loonstrookregels ophalen ──────────────────────────────────────────
         # sum(mapped('total')) is veilig als meerdere regels met dezelfde code bestaan

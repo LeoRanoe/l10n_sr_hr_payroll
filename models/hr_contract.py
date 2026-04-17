@@ -116,7 +116,7 @@ class HrContract(models.Model):
             periodes = 26 if contract.sr_salary_type == 'fn' else 12
 
             belastbaar_toelagen = contract._sr_resolve_regels('belastbaar')
-            vrijgesteld_toelagen = contract._sr_resolve_regels('vrijgesteld')
+            vrijgesteld_toelagen = contract._sr_resolve_other_vrijgestelde_regels()
             inhoudingen = contract._sr_resolve_regels('inhouding')
             aftrek_bv = contract._sr_resolve_regels('aftrek_belastingvrij')
 
@@ -199,6 +199,13 @@ class HrContract(models.Model):
             if r.sr_categorie == categorie
         )
 
+    def _sr_resolve_other_vrijgestelde_regels(self):
+        """Totale vrijgestelde contractregels exclusief kinderbijslag (Art. 10h)."""
+        return sum(
+            self._sr_resolve_line_amount(r) for r in self.sr_vaste_regels
+            if r.sr_categorie == 'vrijgesteld' and not r._is_sr_kindbijslag_line()
+        )
+
     def _sr_kinderbijslag_split(self, max_kind_maand=None, max_maand=None):
         """
         Splitst kinderbijslag in belastbaar en vrijgesteld deel (Art. 10h).
@@ -218,10 +225,10 @@ class HrContract(models.Model):
             max_maand = self.env['hr.rule.parameter']._get_parameter_from_code(
                 'SR_KINDBIJ_MAX_MAAND', Date.today(), raise_if_not_found=False,
             ) or 500.0
-        # Kinderbijslag regels (herkenbaar aan type code KINDBIJ)
+        # Kinderbijslag regels via type KINDBIJ of genormaliseerde naam.
         kb_lines = [
             r for r in self.sr_vaste_regels
-            if r.type_id and r.type_id.code == 'KINDBIJ'
+            if r._is_sr_kindbijslag_line()
         ]
         total_kb = sum(self._sr_resolve_line_amount(r) for r in kb_lines) if kb_lines else 0.0
 

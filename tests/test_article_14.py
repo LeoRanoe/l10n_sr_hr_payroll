@@ -5,17 +5,17 @@ Unittests voor de Suriname Loonbelasting module (l10n_sr_hr_payroll).
 Testgevallen zijn gebaseerd op de voorbeeldberekeningen uit de
 Wet Loonbelasting 2026 (Artikel 14) context.
 
-Voorbeeldsalaris uit de context:
-  Bruto maandloon       : SRD  20.255,60
-  Loonbelasting (LB)    : SRD   2.025,13
-  AOV bijdrage          : SRD     794,22
-  Netto loon            : SRD  17.436,25  (benadering)
+De broncontext bevat intern tegenstrijdige verwijzingen naar
+heffingskorting, maar de formele Art. 14 formules trekken die niet af.
+De runtime en regressietests volgen daarom de expliciete formuleblokken.
 """
 
 from datetime import date
 
 from odoo.tests import common, tagged
 from odoo.tools import float_compare
+
+from odoo.addons.l10n_sr_hr_payroll.models import sr_artikel14_calculator as calc
 
 
 def _fn_period_2026_7():
@@ -63,14 +63,19 @@ class TestArtikel14Berekening(common.TransactionCase):
 
     def _create_contract(self, wage, salary_type='monthly',
                          toelagen=0.0, kinderbijslag=0.0, pensioenpremie=0.0,
-                         employee=None):
+                         employee=None, aantal_kinderen=None):
         """Hulpfunctie om een testcontract aan te maken."""
         emp = employee or self.employee
         vaste_regels = []
         if toelagen:
             vaste_regels.append((0, 0, {'name': 'Belastbare Toelagen', 'sr_categorie': 'belastbaar', 'amount': toelagen}))
         if kinderbijslag:
-            vaste_regels.append((0, 0, {'name': 'Kinderbijslag', 'sr_categorie': 'vrijgesteld', 'amount': kinderbijslag}))
+            vaste_regels.append((0, 0, {
+                'name': 'Kinderbijslag',
+                'type_id': self.env.ref('l10n_sr_hr_payroll.sr_line_type_kinderbijslag').id,
+                'sr_categorie': 'vrijgesteld',
+                'amount': kinderbijslag,
+            }))
         if pensioenpremie:
             vaste_regels.append((0, 0, {'name': 'Pensioenpremie', 'sr_categorie': 'inhouding', 'amount': pensioenpremie}))
         return self.env['hr.contract'].create({
@@ -80,6 +85,7 @@ class TestArtikel14Berekening(common.TransactionCase):
             'structure_type_id': self.structure_type.id,
             'wage': wage,
             'sr_salary_type': salary_type,
+            'sr_aantal_kinderen': aantal_kinderen if aantal_kinderen is not None else (4 if kinderbijslag else 0),
             'sr_vaste_regels': vaste_regels,
             'date_start': date(2026, 1, 1),
             'state': 'open',
@@ -103,6 +109,30 @@ class TestArtikel14Berekening(common.TransactionCase):
         """Geef het totaalbedrag van een salarisregel op basis van code."""
         line = payslip.line_ids.filtered(lambda l: l.code == code)
         return line.total if line else 0.0
+
+    def test_context_rekenvoorbeeld_volgt_formule_zonder_heffingskorting(self):
+        """Het bronvoorbeeld volgt de expliciete Art. 14 formule zonder HK-afslag."""
+        params = calc.fetch_params_from_rule_parameter(self.env, date(2026, 4, 30))
+
+        salaris = 20255.60
+        kinderbijslag = 500.00
+        belastb_toelagen = 1300.00
+        vr_geneesk_beh = 16.67
+        fisc_aftrek_kb = 212.50
+
+        bruto_per_maand = (
+            salaris + kinderbijslag + belastb_toelagen + vr_geneesk_beh - fisc_aftrek_kb
+        )
+        result = calc.calculate_lb(bruto_per_maand, 12, params)
+
+        self.assertAlmostEqual(bruto_per_maand, 21859.77, places=2)
+        self.assertAlmostEqual(result['forfaitaire_jaar'], 4800.00, places=2)
+        self.assertAlmostEqual(result['belastbaar_jaar'], 149517.24, places=2)
+        self.assertAlmostEqual(result['lb_per_periode'], 2634.71, places=2)
+        self.assertAlmostEqual(result['aov_per_periode'], 858.39, places=2)
+
+        # De bron noemt HK elders, maar de formele LB-formule vermindert die niet.
+        self.assertAlmostEqual(result['lb_per_periode'], result['lb_jaar'] / 12, places=2)
 
     # ──────────────────────────────────────────────────────────────────────
     # Test 1: Maandloon onder de belastingvrije grens

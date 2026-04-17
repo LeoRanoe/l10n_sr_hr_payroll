@@ -57,13 +57,18 @@ class TestIntegratieVolledigeCyclus(common.TransactionCase):
 
     def _maak_contract(self, wage, salary_type='monthly',
                        toelagen=0.0, kinderbijslag=0.0, pensioenpremie=0.0,
-                       employee=None, date_start=None):
+                       employee=None, date_start=None, aantal_kinderen=None):
         emp = employee or self.employee
         vaste_regels = []
         if toelagen:
             vaste_regels.append((0, 0, {'name': 'Belastbare Toelagen', 'sr_categorie': 'belastbaar', 'amount': toelagen}))
         if kinderbijslag:
-            vaste_regels.append((0, 0, {'name': 'Kinderbijslag', 'sr_categorie': 'vrijgesteld', 'amount': kinderbijslag}))
+            vaste_regels.append((0, 0, {
+                'name': 'Kinderbijslag',
+                'type_id': self.env.ref('l10n_sr_hr_payroll.sr_line_type_kinderbijslag').id,
+                'sr_categorie': 'vrijgesteld',
+                'amount': kinderbijslag,
+            }))
         if pensioenpremie:
             vaste_regels.append((0, 0, {'name': 'Pensioenpremie', 'sr_categorie': 'inhouding', 'amount': pensioenpremie}))
         return self.env['hr.contract'].create({
@@ -73,6 +78,7 @@ class TestIntegratieVolledigeCyclus(common.TransactionCase):
             'structure_type_id': self.structure_type.id,
             'wage': wage,
             'sr_salary_type': salary_type,
+            'sr_aantal_kinderen': aantal_kinderen if aantal_kinderen is not None else (4 if kinderbijslag else 0),
             'sr_vaste_regels': vaste_regels,
             'date_start': date_start or date(2026, 1, 1),
             'state': 'open',
@@ -419,12 +425,18 @@ class TestIntegratieContractPreview(common.TransactionCase):
         cls.structure_type = cls.structure.type_id
 
     def _maak_contract(self, wage, salary_type='monthly',
-                       toelagen=0.0, kinderbijslag=0.0, pensioenpremie=0.0):
+                       toelagen=0.0, kinderbijslag=0.0, pensioenpremie=0.0,
+                       aantal_kinderen=None):
         vaste_regels = []
         if toelagen:
             vaste_regels.append((0, 0, {'name': 'Belastbare Toelagen', 'sr_categorie': 'belastbaar', 'amount': toelagen}))
         if kinderbijslag:
-            vaste_regels.append((0, 0, {'name': 'Kinderbijslag', 'sr_categorie': 'vrijgesteld', 'amount': kinderbijslag}))
+            vaste_regels.append((0, 0, {
+                'name': 'Kinderbijslag',
+                'type_id': self.env.ref('l10n_sr_hr_payroll.sr_line_type_kinderbijslag').id,
+                'sr_categorie': 'vrijgesteld',
+                'amount': kinderbijslag,
+            }))
         if pensioenpremie:
             vaste_regels.append((0, 0, {'name': 'Pensioenpremie', 'sr_categorie': 'inhouding', 'amount': pensioenpremie}))
         return self.env['hr.contract'].create({
@@ -434,6 +446,7 @@ class TestIntegratieContractPreview(common.TransactionCase):
             'structure_type_id': self.structure_type.id,
             'wage': wage,
             'sr_salary_type': salary_type,
+            'sr_aantal_kinderen': aantal_kinderen if aantal_kinderen is not None else (4 if kinderbijslag else 0),
             'sr_vaste_regels': vaste_regels,
             'date_start': date(2026, 1, 1),
             'state': 'draft',

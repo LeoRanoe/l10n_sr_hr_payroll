@@ -213,7 +213,7 @@ class TestSrVasteRegels(common.TransactionCase):
         """Een vrijgestelde toelage mag SR_ALW NIET verhogen (geen LB grondslag)."""
         contract_zonder = self._create_contract(wage=20000.0)
         contract_met = self._create_contract(wage=20000.0, employee=self.employee_b, vaste_regels=[
-            (0, 0, {'name': 'Kinderbijslag', 'sr_categorie': 'vrijgesteld', 'amount': 800.0}),
+            (0, 0, {'name': 'Transport', 'sr_categorie': 'vrijgesteld', 'amount': 800.0}),
         ])
 
         alw_zonder = self._line_total(self._compute_payslip(contract_zonder), 'SR_ALW')
@@ -242,7 +242,7 @@ class TestSrVasteRegels(common.TransactionCase):
     def test_vrijgesteld_verschijnt_in_kindbij(self):
         """Een vrijgestelde toelage moet in SR_KINDBIJ (vrijgesteld totaal) verschijnen."""
         contract = self._create_contract(wage=20000.0, vaste_regels=[
-            (0, 0, {'name': 'Kinderbijslag', 'sr_categorie': 'vrijgesteld', 'amount': 500.0}),
+            (0, 0, {'name': 'Transport', 'sr_categorie': 'vrijgesteld', 'amount': 500.0}),
         ])
         payslip = self._compute_payslip(contract)
         kindbij = self._line_total(payslip, 'SR_KINDBIJ')
@@ -252,7 +252,7 @@ class TestSrVasteRegels(common.TransactionCase):
     def test_vrijgesteld_preview_bruto(self):
         """sr_preview_bruto = wage + vrijgestelde toelagen (ook meegerekend in bruto)."""
         contract = self._create_contract(wage=15000.0, vaste_regels=[
-            (0, 0, {'name': 'Kinderbijslag', 'sr_categorie': 'vrijgesteld', 'amount': 600.0}),
+            (0, 0, {'name': 'Transport', 'sr_categorie': 'vrijgesteld', 'amount': 600.0}),
         ])
         self.assertAlmostEqual(contract.sr_preview_bruto, 15600.0, delta=0.01)
 
@@ -317,7 +317,7 @@ class TestSrVasteRegels(common.TransactionCase):
     def test_meerdere_vrijgestelde_lijnen_opgeteld(self):
         """Twee vrijgestelde regels moeten samen in SR_KINDBIJ verschijnen."""
         contract = self._create_contract(wage=20000.0, vaste_regels=[
-            (0, 0, {'name': 'Kinderbijslag', 'sr_categorie': 'vrijgesteld', 'amount': 400.0}),
+            (0, 0, {'name': 'Maaltijd', 'sr_categorie': 'vrijgesteld', 'amount': 400.0}),
             (0, 0, {'name': 'Transport', 'sr_categorie': 'vrijgesteld', 'amount': 200.0}),
         ])
         payslip = self._compute_payslip(contract)
