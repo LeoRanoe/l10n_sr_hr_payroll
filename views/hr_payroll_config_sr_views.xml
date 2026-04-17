@@ -4,13 +4,14 @@
     =========================================
     Biedt een centraal menu voor alle Suriname-specifieke payroll instellingen:
       - Loon Code Types (hr.contract.sr.line.type)
-      - SR Belastingparameters (gefilterde hr.rule.parameter)
+            - SR Payroll Referentieparameters (gefilterde hr.rule.parameter)
       - SR Payslip Input Types (hr.payslip.input.type met sr_categorie)
 
     Menu structuur:
       Payroll → Configuratie → Suriname
         ├── Loon Code Types
-        ├── SR Belastingparameters
+                ├── SR Payroll Instellingen
+                ├── SR Payroll Referentieparameters
         └── SR Payslip Input Types
 -->
 <odoo>
@@ -64,7 +65,7 @@
     </record>
 
     <!-- ═══════════════════════════════════════════════════════════════
-         VIEWS — SR Belastingparameters (gefilterde hr.rule.parameter)
+                 VIEWS — SR Payroll Referentieparameters (gefilterde hr.rule.parameter)
 
          VERSCHIL MET Configuratie → Salary → Rule Parameters:
            Salary > Rule Parameters toont ALLE parameters van alle landen.
@@ -76,7 +77,7 @@
         <field name="name">hr.rule.parameter.sr.list</field>
         <field name="model">hr.rule.parameter</field>
         <field name="arch" type="xml">
-            <list string="SR Belastingparameters — Wet Loonbelasting" create="0">
+            <list string="SR Payroll Referentieparameters — Wet Loonbelasting" create="0">
                 <field name="name" string="Parameter (met wetsbasis en eenheid)"/>
                 <field name="code" string="Code" optional="show"/>
                 <field name="country_id" optional="hide"/>
@@ -89,7 +90,7 @@
         <field name="name">hr.rule.parameter.sr.search</field>
         <field name="model">hr.rule.parameter</field>
         <field name="arch" type="xml">
-            <search string="Zoek SR Belastingparameters">
+            <search string="Zoek SR Payroll Referentieparameters">
                 <field name="name" string="Omschrijving"/>
                 <field name="code" string="Code (bijv. SR_TARIEF_1)"/>
                 <separator/>
@@ -149,20 +150,21 @@
     </record>
 
     <record id="action_sr_rule_parameters" model="ir.actions.act_window">
-        <field name="name">SR Belastingparameters (Wet Loonbelasting)</field>
+        <field name="name">SR Payroll Referentieparameters</field>
         <field name="res_model">hr.rule.parameter</field>
         <field name="view_mode">list,form</field>
         <field name="view_id" ref="sr_rule_parameter_view_list"/>
         <field name="search_view_id" ref="sr_rule_parameter_view_search"/>
         <field name="domain" eval="[('code', 'like', 'SR_%')]"/>
         <field name="help" type="html">
-            <p class="o_view_nocontent_smiling_face">Geen SR parameters gevonden.</p>
-            <h3>Wat zijn SR Belastingparameters?</h3>
+            <p class="o_view_nocontent_smiling_face">Geen SR referentieparameters gevonden.</p>
+            <h3>Wat zijn SR Payroll Referentieparameters?</h3>
             <p>
-                Dit zijn alle wettelijke getallen waarmee de loonbelastingberekeningen werken,
-                gebaseerd op de <strong>Wet Loonbelasting Suriname (S.B. 1981 no. 181,
-                gewijzigd S.B. 2024 no. 2)</strong>. Ze worden herkend aan
-                de prefix <code>SR_</code>.
+                De <strong>actuele payrollinstellingen</strong> beheert u via
+                <strong>Payroll → Configuratie → Suriname → SR Payroll Instellingen</strong>.
+                Dit scherm toont de onderliggende <code>SR_*</code>-referentiecodes in
+                <code>hr.rule.parameter</code> voor historische inspectie, fallback en
+                technische uitbreidingen.
             </p>
             <h4>Parametergroepen (gebruik de filterknop &#x25BC; bovenaan)</h4>
             <ul>
@@ -170,7 +172,7 @@
                 <li><strong>AOV</strong>: tarief (%) en de franchise/drempel (SRD/maand) onder het Algemeen Pensioenfonds.</li>
                 <li><strong>Overwerk Art. 17c</strong>: eigen schijfgrenzen (per tijdvak) en tarieven voor overwerkvergoedingen.</li>
                 <li><strong>Uitkering Ineens Art. 17a</strong>: eigen schijfgrenzen en tarieven voor jubileum/uitkering ineens.</li>
-                <li><strong>Bijz. Beloningen Art. 10i/j</strong> — <strong>SR_BIJZ_VRIJSTELLING_MAX</strong>: maximale vrijstelling voor vakantietoelage en gratificatie (SRD/jaar). <em>Pas dit aan bij wetswijziging.</em></li>
+                <li><strong>Bijz. Beloningen Art. 10i/j</strong> — <strong>SR_BIJZ_VRIJSTELLING_MAX</strong>: maximale vrijstelling voor vakantietoelage en gratificatie (SRD/jaar). <em>Actuele waarde beheren via SR Payroll Instellingen.</em></li>
                 <li><strong>Kinderbijslag Art. 10h</strong>: vrijstellingsgrenzen per kind en totaal per maand.</li>
             </ul>
             <h4>&#9888; Eenheid van tariefvelden</h4>
@@ -180,20 +182,20 @@
                 Bedragen (voeten, grenzen, maxima) zijn in <strong>SRD</strong>.
                 De kolom &quot;Waarde (vandaag)&quot; toont automatisch de huidige waarde.
             </p>
-            <h4>Waarde aanpassen bij wetswijziging</h4>
+            <h4>Waarden beheren</h4>
             <p>
-                Klik op een parameter &#x2192; ga naar het tabblad <em>Parameterwaarden</em>
-                &#x2192; klik <em>+ Toevoegen</em> &#x2192; vul de
-                <strong>nieuwe ingangsdatum</strong> en <strong>nieuwe waarde</strong> in.
-                Historische waarden blijven bewaard voor afgesloten loonperiodes.
-                <strong>Verwijder nooit bestaande waarden.</strong>
+                Gebruik voor dagelijkse wijzigingen en actuele wettelijke bedragen
+                <strong>SR Payroll Instellingen</strong>. Dit scherm is bedoeld voor controle
+                van onderliggende codes, historische parameterregels en technische uitbreidingen
+                zoals extra Art. 14 schijven.
             </p>
             <h4>Verschil met Configuratie &#x2192; Salary &#x2192; Rule Parameters?</h4>
             <p>
                 <em>Salary &#x2192; Rule Parameters</em> toont parameters van
                 <strong>alle landen en modules</strong>. Dit scherm toont
-                <strong>alleen de Surinaamse parameters</strong> (gefilterd op <code>SR_</code>).
-                Het is dezelfde data — alleen overzichtelijker voor dagelijks gebruik.
+                <strong>alleen de Surinaamse referentiecodes</strong> (gefilterd op <code>SR_</code>).
+                De payrollberekening leest eerst <strong>SR Payroll Instellingen</strong>
+                en valt daarna terug op deze referentieparameters.
             </p>
         </field>
     </record>
@@ -217,17 +219,16 @@
                 <li><strong>Belastbaar</strong> — Telt mee in GROSS + Art. 14 LB + AOV grondslag.</li>
                 <li><strong>Belastingvrij</strong> — Geen LB/AOV (Art. 10 WLB vergoedingen).</li>
                 <li><strong>Overwerk</strong> — Art. 17c: eigen schijven 5%/15%/25%.</li>
-                <li><strong>Vakantietoelage</strong> — Art. 10i: vrijstelling = min(maandloon, <em>SR_BIJZ_VRIJSTELLING_MAX</em>/jaar). Bedrag aanpassen via <strong>SR Rule Parameters</strong>.</li>
+                <li><strong>Vakantietoelage</strong> — Art. 10i: vrijstelling = min(maandloon, <em>SR_BIJZ_VRIJSTELLING_MAX</em>/jaar). Bedrag aanpassen via <strong>SR Payroll Instellingen</strong>.</li>
                 <li><strong>Gratificatie/Bonus</strong> — Art. 10j: zelfde vrijstelling als vakantie, pro-rata bij onvolledig dienstjaar. Zie <strong>SR_BIJZ_VRIJSTELLING_MAX</strong>.</li>
                 <li><strong>Bijzondere Beloning</strong> — Art. 17: geen vaste vrijstelling, marginaal tarief methode.</li>
             </ul>
             <div class="alert alert-info">
                 <strong>&#9432; Vrijstellingsbedrag aanpassen?</strong><br/>
-                Ga naar <strong>Configuratie → Suriname → SR Belastingparameters</strong>
-                en zoek op <code>SR_BIJZ_VRIJSTELLING_MAX</code>.
-                Klik op de parameter → tabblad <em>Parameterwaarden</em> → <em>+ Toevoegen</em>
-                → vul de <strong>nieuwe ingangsdatum</strong> en <strong>nieuwe waarde in SRD</strong> in.
-                De berekening gebruikt automatisch het nieuwe bedrag vanaf die datum.
+                Ga naar <strong>Configuratie → Suriname → SR Payroll Instellingen</strong>
+                en pas <strong>Bijzondere Beloning Max</strong> aan.
+                De onderliggende referentiecode blijft <code>SR_BIJZ_VRIJSTELLING_MAX</code>
+                voor historische en technische inspectie.
             </div>
             <h4>Verschil met Loon Code Types en Salary &#x2192; Other Input Types?</h4>
             <p>
@@ -263,7 +264,7 @@
 
     <menuitem
         id="menu_sr_parameters"
-        name="SR Belastingparameters"
+        name="SR Payroll Referentieparameters"
         parent="menu_sr_config_root"
         action="action_sr_rule_parameters"
         sequence="20"/>

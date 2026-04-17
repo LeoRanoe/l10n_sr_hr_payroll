@@ -62,7 +62,7 @@
             <field name="code">KINDBIJ</field>
             <field name="sr_categorie">vrijgesteld</field>
             <field name="sequence">10</field>
-            <field name="description">Kinderbijslag per kind per periode. Art. 10h WLB — vrijgesteld tot max SRD 125/kind/maand (max SRD 500/maand). Het meerdere is belastbaar en telt mee in de Art. 14 grondslag. Stel 'Aantal Kinderen' in op het contract.</field>
+            <field name="description">Kinderbijslag per kind per periode. Art. 10h WLB — vrijgesteld tot max SRD 250/kind/maand (max SRD 1.000/maand). Het meerdere is belastbaar en telt mee in de Art. 14 grondslag. Stel 'Aantal Kinderen' in op het contract.</field>
         </record>
 
         <record id="sr_line_type_transport" model="hr.contract.sr.line.type">

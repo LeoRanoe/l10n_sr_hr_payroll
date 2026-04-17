@@ -499,3 +499,47 @@ Definitief besluit: No-Go.
 ## Slotconclusie
 
 De module is technisch sterk als handmatig aangestuurde payroll-engine op basis van `Loonbelasting context.md`, maar nog niet sterk genoeg als productieklare, geintegreerde payroll-oplossing met betrouwbare invoerdiscipline en juridisch ondubbelzinnige bronbasis.
+
+## Final Certification Report
+
+Datum finale pass: 2026-04-17
+
+Status: Conditional Go
+
+Deze finale pass bevat directe code-remediatie plus een verse addon-validatie na de laatste wijzigingen.
+
+Finale validatie:
+
+- `get_errors` op de addonmap: schoon
+- Odoo addon-suite: `0 failed, 0 error(s) of 95 tests when loading database 'Salarisverwerking-Module'`
+
+### Final Critical Findings
+
+1. Opgelost: de Art. 14/AOV rekenkern serializeert geldbedragen nu expliciet via `Decimal` met `ROUND_HALF_UP`, zodat float-drift en banker's rounding niet meer doorlekken naar preview, breakdown en cache-gedrag.
+2. Opgelost: de breakdown-weergave gebruikt nu consistente lokale SRD-formattering en toont bij Art. 12 het echte `forfaitaire_max` in plaats van per ongeluk de actuele aftrek als wettelijk maximum.
+3. Opgelost: SR-loonstroken worden nu hard geblokkeerd als ze voor contractstart vallen, na contracteinde doorlopen, of meerdere contractperioden voor dezelfde werknemer overspannen. Daarmee is het resterende maandloon/Fortnight integriteitslek gesloten.
+4. Opgelost: automatisch gegenereerde overwerk-inputs en Art. 14 cache-keys worden nu deterministisch afgerond, waardoor subtiele verschillen door Python `round(..., 2)` en float-multiplicatie zijn weggenomen.
+
+### Minor Improvements
+
+1. `views/hr_contract_views.xml` bevat nog geen expliciet FN-periodeveld. Functioneel is dit acceptabel omdat de backend het tijdvak afleidt uit `date_from` en `date_to`, maar de discoverability in de UI is beperkt.
+2. `views/hr_contract_views.xml` zet nog geen domein op `sr_vaste_regels.type_id`. Dit is UX-schuld, geen fiscale blocker.
+3. `reports/report_payslip_sr.xml` bevat nog veel template-formatting. Door de backend-fix komt er nu wel afgeronde input binnen, maar een latere centralisatie van display-formatting zou onderhoud eenvoudiger maken.
+4. Er is nog geen `HttpCase` of browser smoke test. De backend-validatie is sterk; de UI-validatie blijft operationeel handmatig.
+
+### XML/Python Review Per Kernbestand
+
+1. `models/sr_artikel14_calculator.py` — Go. Half-up afronding, consistente SRD-formattering en correcte Art. 12-labeling zijn nu afgedwongen in de centrale rekenkern.
+2. `models/hr_payslip.py` — Go. Contractperiode-integriteit is nu hard gevalideerd; overwerkbedragen en Art. 14 cache-keys zijn deterministisch. De ongebruikelijke FN-indicatorcodes zijn bewust niet aangepast, omdat ze overeenkomen met `Salarisverwerking Module/Loonbelasting context.md`.
+3. `views/hr_contract_views.xml` — Geen blocker. Het huidige scherm mist een FN-periodeveld en type-domain, maar geen van beide veroorzaakt nog een foutieve fiscale uitkomst.
+4. `data/hr_rule_parameter_data.xml` — Bevestigd. `SR_BELASTINGVRIJ_JAAR = 108000.0` bestaat en is operationeel als parameterrecord beschikbaar.
+5. `views/hr_payroll_config_sr_views.xml` — Bevestigd. De beheerroute voor bewerkbare `SR_*` parameters via het tabblad `Parameterwaarden` is correct aanwezig.
+6. `data/hr_rule_parameter_data.xml` plus code-review — Bevestigd. Er bestaat momenteel geen actieve `SRD 750` heffingskortingparameter of runtime-logica die zo'n korting toepast. De huidige implementatie rekent zonder actieve heffingskorting.
+7. `views/sr_help_template.xml` — Go. Terminologie en functionele uitleg zijn in deze finale pass consistent met de huidige module.
+8. `reports/report_payslip_sr.xml` — Acceptabel voor release. Geen blocking rounding defect meer gereproduceerd na de backend-fix; verdere template-opschoning blijft wenselijk maar niet vereist.
+
+### Final Judgment
+
+Technisch oordeel: Go voor demo en gecontroleerde release.
+
+Compliance/governance oordeel: Conditional Go. De resterende open post zit niet meer in de uitvoerbare code, maar in bron-governance: `Loonbelasting context.md` en `wetloon-belasting.md` vragen nog steeds een formele eigenaar en besluitspoor als deze addon als compliance-definitieve fiscale referentie moet worden verdedigd.

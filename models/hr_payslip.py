@@ -1,6 +1,7 @@
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
 from datetime import date as dt_date, datetime, time, timedelta
+from decimal import Decimal, ROUND_HALF_UP
 
 from odoo import api, fields, models
 from odoo.exceptions import UserError
@@ -10,6 +11,8 @@ from . import sr_artikel14_calculator as calc
 # Module-level cache for Art. 14 calculations per compute cycle.
 # Keyed on (payslip_id, gross, aftrek_bv). Cleared before each compute_sheet.
 _sr_calc_cache = {}
+_SR_MONEY_QUANT = Decimal('0.01')
+_SR_HOURLY_RATE_QUANT = Decimal('0.000001')
 
 SR_FN_2026_PERIODS = (
     {'indicator': '202601', 'label': '2026FN1', 'date_from': dt_date(2026, 1, 1), 'date_to': dt_date(2026, 1, 14)},
@@ -62,18 +65,80 @@ class HrPayslip(models.Model):
         global _sr_calc_cache
         _sr_calc_cache.clear()
         for slip in self:
+            slip._sr_validate_contract_period_integrity()
             slip._sr_validate_fn_period_2026()
             slip._sr_sync_overtime_inputs_from_work_entries()
         res = super().compute_sheet()
         _sr_calc_cache.clear()
         return res
 
+    def action_payslip_done(self):
+        for slip in self:
+            slip._sr_validate_contract_period_integrity()
+        return super().action_payslip_done()
+
+    def _rule_parameter(self, code):
+        self.ensure_one()
+        config_key = calc.get_config_parameter_key(code)
+        if config_key:
+            value = self.env['ir.config_parameter'].sudo().get_param(config_key)
+            if value not in (None, False, ''):
+                try:
+                    return float(value)
+                except (TypeError, ValueError):
+                    pass
+            default = calc.get_config_parameter_default(code)
+            if default is not None:
+                return default
+        return super()._rule_parameter(code)
+
+    def _sr_money_quantize(self, value, quant=_SR_MONEY_QUANT):
+        self.ensure_one()
+        if value in (None, False, ''):
+            return Decimal('0').quantize(quant, rounding=ROUND_HALF_UP)
+        return Decimal(str(value)).quantize(quant, rounding=ROUND_HALF_UP)
+
+    def _sr_validate_contract_period_integrity(self):
+        self.ensure_one()
+        sr_struct = self.env.ref('l10n_sr_hr_payroll.sr_payroll_structure', raise_if_not_found=False)
+        if self.struct_id != sr_struct or not self.contract_id or not self.employee_id or not self.date_from or not self.date_to:
+            return
+
+        contract = self.contract_id
+        if contract.date_start and self.date_from < contract.date_start:
+            raise UserError(
+                'SR-loonstroken mogen niet voor de startdatum van het gekozen contract vallen. '
+                'Maak aparte loonstroken per contractsegment.'
+            )
+        if contract.date_end and self.date_to > contract.date_end:
+            raise UserError(
+                'SR-loonstroken mogen niet doorlopen na de einddatum van het gekozen contract. '
+                'Maak aparte loonstroken per contractsegment.'
+            )
+
+        overlapping_contracts = self.env['hr.contract'].search([
+            ('employee_id', '=', self.employee_id.id),
+            ('id', '!=', contract.id),
+            ('date_start', '<=', self.date_to),
+            '|', ('date_end', '=', False), ('date_end', '>=', self.date_from),
+            ('state', '!=', 'cancel'),
+        ])
+        if overlapping_contracts:
+            contract_names = ', '.join(overlapping_contracts.mapped('name'))
+            raise UserError(
+                'Deze SR-loonstrook overlapt meerdere contracten voor dezelfde werknemer '
+                f'({contract_names}). Maak aparte loonstroken per contractperiode zodat '
+                'maandloon/Fortnight en vaste regels niet door elkaar lopen.'
+            )
+
     def _sr_get_hourly_rate(self):
         self.ensure_one()
         wage = self.contract_id.wage or 0.0
         if not wage:
             return 0.0
-        return wage / (80.0 if self._sr_get_periodes() == 26 else 173.333333)
+        divisor = Decimal('80') if self._sr_get_periodes() == 26 else Decimal('173.333333')
+        hourly_rate = Decimal(str(wage)) / divisor
+        return float(hourly_rate.quantize(_SR_HOURLY_RATE_QUANT, rounding=ROUND_HALF_UP))
 
     def _sr_sync_overtime_inputs_from_work_entries(self):
         self.ensure_one()
@@ -108,7 +173,7 @@ class HrPayslip(models.Model):
             if hours <= 0:
                 continue
             multiplier = entry.work_entry_type_id.sr_overtime_multiplier or 1.0
-            amount = hours * hourly_rate * multiplier
+            amount = float(self._sr_money_quantize(Decimal(str(hours)) * Decimal(str(hourly_rate)) * Decimal(str(multiplier))))
             if amount <= 0:
                 continue
             self.env['hr.payslip.input'].create({
@@ -162,7 +227,11 @@ class HrPayslip(models.Model):
         """
         self.ensure_one()
         global _sr_calc_cache
-        cache_key = (self.id, round(gross_per_periode, 2), round(aftrek_bv, 2))
+        cache_key = (
+            self.id,
+            str(self._sr_money_quantize(gross_per_periode)),
+            str(self._sr_money_quantize(aftrek_bv)),
+        )
         if cache_key in _sr_calc_cache:
             return _sr_calc_cache[cache_key]
         params = calc.fetch_params_from_payslip(self)
@@ -318,6 +387,7 @@ class HrPayslip(models.Model):
         kb_vrijgesteld = _line_total('SR_KB_VRIJ')
         input_belastbaar = _line_total('SR_INPUT_BELASTB')
         input_vrijgesteld = _line_total('SR_INPUT_VRIJ')
+        heffingskorting = _line_total('SR_HK')
         pensioen = abs(_line_total('SR_PENSIOEN'))
         input_aftrek = abs(_line_total('SR_INPUT_AFTREK'))
         aftrek_bv = abs(_line_total('SR_AFTREK_BV'))
@@ -341,8 +411,10 @@ class HrPayslip(models.Model):
         aov_overwerk = abs(_line_total('SR_AOV_OVERWERK'))
 
         # ── Calculator voor Art. 14 stap-detail ──────────────────────────────
-        # Gebruik de werkelijke GROSS grondslag van de payslip
-        gross = _line_total('GROSS')
+        # Herleid de wettelijke Art. 14 grondslag uit de expliciete belastbare
+        # looncomponenten. Historische SR_HK-regels kunnen het GROSS/NET totaal
+        # op bestaande slips verhogen, maar horen niet in de LB/AOV-grondslag.
+        gross = basic + toelagen + kb_belastbaar + input_belastbaar
         params = calc.fetch_params_from_payslip(self)
         r = calc.calculate_lb(gross, periodes, params, aftrek_bv_per_periode=aftrek_bv)
 
@@ -358,10 +430,10 @@ class HrPayslip(models.Model):
             + input_belastbaar + input_vrijgesteld
             + overwerk + vakantie + gratificatie + bijz_beloning + uitkering_ineens
         )
-        netto = bruto_totaal - totaal_inhoudingen - aftrek_bv
+        netto = bruto_totaal + heffingskorting - totaal_inhoudingen - aftrek_bv
 
         contract_inhoudingen = []
-        for line in contract.sr_vaste_regels.filtered(lambda record: record.sr_categorie == 'inhouding'):
+        for line in contract.sr_vaste_regels.filtered(lambda record: record._sr_effective_category() == 'inhouding'):
             amount = contract._sr_resolve_line_amount(line)
             if amount > 0:
                 contract_inhoudingen.append({'name': line.name, 'amount': amount})
@@ -387,6 +459,7 @@ class HrPayslip(models.Model):
             'kb_belastbaar': kb_belastbaar,
             'kb_vrijgesteld': kb_vrijgesteld,
             'vrijgesteld_contract': vrijgesteld_contract,
+            'heffingskorting': heffingskorting,
             'overwerk': overwerk,
             'vakantie': vakantie,
             'gratificatie': gratificatie,

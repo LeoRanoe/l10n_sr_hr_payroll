@@ -35,7 +35,8 @@ class HrContractSrLineType(models.Model):
             'Loonbelastingcategorie voor dit type:\n\n'
             '• Belastbaar: telt mee in de Art. 14 grondslag\n'
             '• Belastingvrij: Art. 10 WLB vrijstelling\n'
-            '• Inhouding: netto aftrek'
+            '• Aftrek Belastingvrij: Art. 10f, verlaagt LB + AOV grondslag\n'
+            '• Inhouding: netto aftrek zonder effect op LB/AOV'
         ),
     )
     description = fields.Text(

@@ -26,8 +26,8 @@ class HrContract(models.Model):
         default=0,
         help=(
             'Aantal kinderen waarvoor kinderbijslag wordt betaald.\n'
-            'Gebruikt voor de Art. 10h splitsing: max SRD 125/kind/maand, '
-            'max SRD 500/maand is belastingvrij. Het meerdere is belastbaar.'
+            'Gebruikt voor de Art. 10h splitsing: max SRD 250/kind/maand, '
+            'max SRD 1.000/maand is belastingvrij. Het meerdere is belastbaar.'
         ),
     )
 
@@ -40,7 +40,8 @@ class HrContract(models.Model):
             'Vaste bedragen die elke loonperiode verwerkt worden.\n\n'
             'Voeg hier toe:\n'
             '• Toeslagen (olie, kleding, representatie, ...) → Belastbaar of Belastingvrij\n'
-            '• Inhoudingen (pensioenpremie, ziektekostenpremie, ...) → Inhouding\n\n'
+            '• Pensioenpremie en Art. 10f inhoudingen → Aftrek Belastingvrij\n'
+            '• Overige netto-inhoudingen (ziektekosten, lening, vakbond) → Inhouding\n\n'
             'Voor eenmalige of variabele bedragen (overwerk, vakantietoelage, bonus): '
             'gebruik de Payslip inputs bij het aanmaken van de loonstrook.'
         ),
@@ -96,6 +97,7 @@ class HrContract(models.Model):
         'wage',
         'sr_salary_type',
         'sr_aantal_kinderen',
+        'sr_vaste_regels.type_id',
         'sr_vaste_regels.amount',
         'sr_vaste_regels.sr_categorie',
         'sr_vaste_regels.amount_type',
@@ -179,7 +181,7 @@ class HrContract(models.Model):
             if line.percentage_base == 'bruto_belastbaar':
                 base = (self.wage or 0.0) + sum(
                     l.amount or 0.0 for l in self.sr_vaste_regels
-                    if l.sr_categorie == 'belastbaar'
+                    if l._sr_effective_category() == 'belastbaar'
                     and l.amount_type != 'percentage'
                     and l.id != line.id
                 )
@@ -196,14 +198,14 @@ class HrContract(models.Model):
         """
         return sum(
             self._sr_resolve_line_amount(r) for r in self.sr_vaste_regels
-            if r.sr_categorie == categorie
+            if r._sr_effective_category() == categorie
         )
 
     def _sr_resolve_other_vrijgestelde_regels(self):
         """Totale vrijgestelde contractregels exclusief kinderbijslag (Art. 10h)."""
         return sum(
             self._sr_resolve_line_amount(r) for r in self.sr_vaste_regels
-            if r.sr_categorie == 'vrijgesteld' and not r._is_sr_kindbijslag_line()
+            if r._sr_effective_category() == 'vrijgesteld' and not r._is_sr_kindbijslag_line()
         )
 
     def _sr_kinderbijslag_split(self, max_kind_maand=None, max_maand=None):
@@ -211,20 +213,23 @@ class HrContract(models.Model):
         Splitst kinderbijslag in belastbaar en vrijgesteld deel (Art. 10h).
 
         Wanneer max_kind_maand of max_maand None is, wordt de waarde
-        automatisch opgehaald uit hr.rule.parameter.
+        automatisch opgehaald uit System Parameters met fallback naar
+        hr.rule.parameter.
 
         :param max_kind_maand: Maximum vrijstelling per kind per maand (SRD)
         :param max_maand: Maximum vrijstelling per maand (SRD)
         :returns: dict met 'belastbaar' en 'vrijgesteld'
         """
         if max_kind_maand is None:
-            max_kind_maand = self.env['hr.rule.parameter']._get_parameter_from_code(
-                'SR_KINDBIJ_MAX_KIND_MAAND', Date.today(), raise_if_not_found=False,
-            ) or 125.0
+            max_kind_maand = calc.get_sr_parameter_value(
+                self.env, 'SR_KINDBIJ_MAX_KIND_MAAND', Date.today(),
+                default=250.0, raise_if_not_found=False,
+            )
         if max_maand is None:
-            max_maand = self.env['hr.rule.parameter']._get_parameter_from_code(
-                'SR_KINDBIJ_MAX_MAAND', Date.today(), raise_if_not_found=False,
-            ) or 500.0
+            max_maand = calc.get_sr_parameter_value(
+                self.env, 'SR_KINDBIJ_MAX_MAAND', Date.today(),
+                default=1000.0, raise_if_not_found=False,
+            )
         # Kinderbijslag regels via type KINDBIJ of genormaliseerde naam.
         kb_lines = [
             r for r in self.sr_vaste_regels
@@ -268,8 +273,8 @@ class HrContract(models.Model):
             # Allow admin to delete validated entries and regenerate
             existing = self.env['hr.work.entry'].search([
                 ('contract_id', 'in', self.ids),
-                ('date_start', '>=', date_start),
-                ('date_stop', '<=', date_stop),
+                ('date_start', '<=', date_stop),
+                ('date_stop', '>=', date_start),
             ])
             if existing:
                 # Delete with admin context to bypass validation restrictions

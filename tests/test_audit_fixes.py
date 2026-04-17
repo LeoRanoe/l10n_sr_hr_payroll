@@ -2,8 +2,11 @@
 
 from datetime import date, datetime
 
+from odoo.exceptions import UserError
 from odoo.exceptions import ValidationError
 from odoo.tests import common, tagged
+
+from ..models import sr_artikel14_calculator as calc
 
 
 @tagged('post_install', 'post_install_l10n', '-at_install')
@@ -141,3 +144,115 @@ class TestAuditFixes(common.TransactionCase):
         self.assertAlmostEqual(generated_inputs.amount, 300.0, places=2)
         self.assertEqual(generated_inputs.sr_work_entry_id, work_entry)
         self.assertAlmostEqual(self._line_total(payslip, 'SR_OVERWERK'), 300.0, places=2)
+
+    def test_regeneration_wizard_detects_overlapping_validated_entry(self):
+        contract = self._make_contract()
+        work_entry = self.env['hr.work.entry'].create({
+            'name': 'Boundary Shift',
+            'employee_id': contract.employee_id.id,
+            'contract_id': contract.id,
+            'work_entry_type_id': self.env.ref('hr_work_entry.work_entry_type_attendance').id,
+            'date_start': datetime(2026, 4, 30, 22, 0, 0),
+            'date_stop': datetime(2026, 5, 1, 2, 0, 0),
+        })
+        work_entry.action_validate()
+
+        wizard = self.env['hr.work.entry.regeneration.wizard'].create({
+            'date_from': date(2026, 5, 1),
+            'date_to': date(2026, 5, 31),
+            'employee_ids': [(6, 0, [contract.employee_id.id])],
+        })
+
+        self.assertIn(work_entry, wizard.validated_work_entry_ids)
+
+    def test_force_regeneration_removes_overlapping_validated_entry(self):
+        contract = self._make_contract()
+        work_entry = self.env['hr.work.entry'].create({
+            'name': 'Boundary Shift To Delete',
+            'employee_id': contract.employee_id.id,
+            'contract_id': contract.id,
+            'work_entry_type_id': self.env.ref('hr_work_entry.work_entry_type_attendance').id,
+            'date_start': datetime(2026, 4, 30, 22, 0, 0),
+            'date_stop': datetime(2026, 5, 1, 2, 0, 0),
+        })
+        work_entry.action_validate()
+
+        contract.generate_work_entries(date(2026, 5, 1), date(2026, 5, 31), force=True)
+
+        self.assertFalse(work_entry.exists())
+
+    def test_breakdown_uses_half_up_local_money_format(self):
+        params = calc.fetch_params_from_rule_parameter(self.env, date(2026, 5, 1))
+        result = calc.calculate_lb(1234.555, 12, params)
+        html = calc.generate_breakdown_html(
+            result=result,
+            wage=1234.555,
+            periodes=12,
+            salary_type='monthly',
+        )
+
+        self.assertEqual(result['bruto_per_periode'], 1234.56)
+        self.assertIn('SRD 1.234,56', html)
+        self.assertNotIn('1.234.56', html)
+
+    def test_sr_payslip_rejects_period_spanning_contract_change(self):
+        self._make_contract(
+            salary_type='monthly',
+            sr_vaste_regels=[(0, 0, {
+                'name': 'Transport',
+                'sr_categorie': 'vrijgesteld',
+                'amount': 250.0,
+            })],
+        ).write({
+            'date_end': date(2026, 5, 15),
+            'state': 'close',
+        })
+        new_contract = self.env['hr.contract'].create({
+            'name': 'Audit Fix Contract FN',
+            'employee_id': self.employee.id,
+            'company_id': self.company.id,
+            'structure_type_id': self.structure_type.id,
+            'wage': 20000.0,
+            'sr_salary_type': 'fn',
+            'date_start': date(2026, 5, 16),
+            'state': 'open',
+        })
+        payslip = self.env['hr.payslip'].create({
+            'name': 'Spanning Contractwissel',
+            'employee_id': new_contract.employee_id.id,
+            'contract_id': new_contract.id,
+            'struct_id': self.structure.id,
+            'date_from': date(2026, 5, 1),
+            'date_to': date(2026, 5, 31),
+            'company_id': self.company.id,
+        })
+
+        with self.assertRaises(UserError):
+            payslip.compute_sheet()
+
+    def test_settings_execute_persists_and_updates_akb_split(self):
+        settings = self.env['res.config.settings'].create({})
+        settings.write({
+            'akb_per_kind': 100.0,
+            'akb_max_bedrag': 300.0,
+            'bijz_beloning_max': 19500.0,
+        })
+        settings.set_values()
+
+        params = self.env['ir.config_parameter'].sudo()
+        params.clear_caches()
+        self.assertEqual(float(params.get_param('sr_payroll.akb_per_kind')), 100.0)
+        self.assertEqual(float(params.get_param('sr_payroll.akb_max_bedrag')), 300.0)
+
+        contract = self._make_contract(
+            sr_aantal_kinderen=4,
+            sr_vaste_regels=[(0, 0, {
+                'name': 'Kinderbijslag',
+                'sr_categorie': 'vrijgesteld',
+                'amount': 1000.0,
+            })],
+        )
+
+        payslip = self._make_payslip(contract)
+        self.assertAlmostEqual(self._line_total(payslip, 'SR_KB_VRIJ'), 300.0, places=2)
+        self.assertAlmostEqual(self._line_total(payslip, 'SR_KB_BELAST'), 700.0, places=2)

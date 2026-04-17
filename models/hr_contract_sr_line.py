@@ -14,11 +14,23 @@ class HrContractSrLine(models.Model):
     zodat naam en categorie automatisch worden ingevuld:
       - Belastbaar  → telt mee in de Art. 14 loonbelastinggrondslag
       - Belastingvrij → Art. 10 WLB, geen loonbelasting/AOV
-      - Inhouding   → netto aftrek (pensioenpremie, ziektekostenpremie, etc.)
+            - Aftrek Belastingvrij → Art. 10f, verlaagt LB- en AOV-grondslag
+            - Inhouding   → netto aftrek zonder effect op LB/AOV
     """
     _name = 'hr.contract.sr.line'
     _description = 'Suriname Vaste Loon Regel'
     _order = 'sr_categorie, sequence, id'
+
+    def init(self):
+        self.env.cr.execute(
+            """
+            UPDATE hr_contract_sr_line AS line
+               SET sr_categorie = line_type.sr_categorie
+              FROM hr_contract_sr_line_type AS line_type
+             WHERE line.type_id = line_type.id
+               AND COALESCE(line.sr_categorie, '') != COALESCE(line_type.sr_categorie, '')
+            """
+        )
 
     contract_id = fields.Many2one(
         'hr.contract',
@@ -93,10 +105,16 @@ class HrContractSrLine(models.Model):
             'LB en AOV worden hierover berekend.\n\n'
             '• Belastingvrij: wordt uitbetaald maar telt niet mee in de '
             'loonbelastinggrondslag (Art. 10 WLB).\n\n'
+            '• Aftrek Belastingvrij: Art. 10f inhouding die zowel de '
+            'LB- als AOV-grondslag verlaagt en daarnaast op netto wordt ingehouden.\n\n'
             '• Inhouding: wordt ingehouden op het nettoloon. '
             'Geen invloed op loonbelasting of AOV.'
         ),
     )
+
+    def _sr_effective_category(self):
+        self.ensure_one()
+        return self.type_id.sr_categorie or self.sr_categorie
 
     @api.onchange('type_id')
     def _onchange_type_id(self):
@@ -104,6 +122,26 @@ class HrContractSrLine(models.Model):
         if self.type_id:
             self.name = self.type_id.name
             self.sr_categorie = self.type_id.sr_categorie
+
+    @api.model
+    def _sr_prepare_type_linked_vals(self, vals, existing=None):
+        vals = self._sr_prepare_kindbijslag_vals(vals)
+
+        type_id = vals.get('type_id')
+        if type_id is None and existing:
+            type_id = existing.type_id.id
+        if not type_id:
+            return vals
+
+        line_type = self.env['hr.contract.sr.line.type'].browse(type_id).exists()
+        if not line_type:
+            return vals
+
+        prepared = dict(vals)
+        prepared['sr_categorie'] = line_type.sr_categorie
+        if ('type_id' in prepared and 'name' not in prepared) or (existing is None and not prepared.get('name')):
+            prepared['name'] = line_type.name
+        return prepared
 
     def _is_sr_kindbijslag_line(self):
         self.ensure_one()
@@ -131,11 +169,18 @@ class HrContractSrLine(models.Model):
 
     @api.model_create_multi
     def create(self, vals_list):
-        vals_list = [self._sr_prepare_kindbijslag_vals(vals) for vals in vals_list]
+        vals_list = [self._sr_prepare_type_linked_vals(vals) for vals in vals_list]
         return super().create(vals_list)
 
     def write(self, vals):
-        return super().write(self._sr_prepare_kindbijslag_vals(vals))
+        if 'type_id' not in vals and 'sr_categorie' not in vals:
+            return super().write(vals)
+
+        result = True
+        for line in self:
+            line_vals = self._sr_prepare_type_linked_vals(vals, existing=line)
+            result = super(HrContractSrLine, line).write(line_vals) and result
+        return result
 
     @api.constrains('amount_type', 'percentage')
     def _check_percentage(self):
@@ -161,4 +206,13 @@ class HrContractSrLine(models.Model):
             if line.contract_id and line.contract_id.sr_aantal_kinderen <= 0:
                 raise ValidationError(
                     "Kinderbijslag vereist een positief 'Aantal Kinderen' op het contract."
+                )
+
+    @api.constrains('type_id', 'sr_categorie')
+    def _check_type_category_consistency(self):
+        for line in self:
+            if line.type_id and line.sr_categorie != line.type_id.sr_categorie:
+                raise ValidationError(
+                    'Het gekozen contracttype bepaalt de fiscale categorie. '
+                    'Pas het type aan of verwijder het type om de categorie handmatig te beheren.'
                 )

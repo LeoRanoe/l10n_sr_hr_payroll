@@ -281,13 +281,14 @@
                        Als de overheid deze wijzigt, hoeft u alleen de parameter aan te passen.</p>
 
                     <div class="alert alert-light border">
-                        <strong>Waar te vinden:</strong> <em>Payroll → Configuratie → Suriname → SR Belastingparameters</em>
+                        <strong>Waar te vinden:</strong> <em>Payroll → Configuratie → Suriname → SR Payroll Instellingen</em>
                     </div>
 
                     <div class="alert alert-info border mt-3">
                         <strong><i class="fa fa-sliders"/> Toekomstige schijven voorbereiden:</strong>
-                        U kunt extra Art. 14 schijven alvast beheerbaar maken via codes zoals
-                        <strong>SR_SCHIJF_4_GRENS</strong> en <strong>SR_TARIEF_5</strong>.
+                        U kunt extra Art. 14 schijven technisch voorbereiden via
+                        <em>Payroll → Configuratie → Suriname → SR Payroll Referentieparameters</em>
+                        met codes zoals <strong>SR_SCHIJF_4_GRENS</strong> en <strong>SR_TARIEF_5</strong>.
                         Zolang er nog geen waarde met ingangsdatum actief is, heeft dat geen effect op de huidige loonberekening.
                     </div>
 
@@ -447,7 +448,7 @@
                             <tr>
                                 <td>Kinderbijslag</td>
                                 <td>Art. 10h</td>
-                                <td>Max SRD <t t-esc="'{:,.0f}'.format(v.get('SR_KINDBIJ_MAX_KIND_MAAND', 125))"/> per kind, max SRD <t t-esc="'{:,.0f}'.format(v.get('SR_KINDBIJ_MAX_MAAND', 500))"/> totaal per maand</td>
+                                <td>Max SRD <t t-esc="'{:,.0f}'.format(v.get('SR_KINDBIJ_MAX_KIND_MAAND', 250))"/> per kind, max SRD <t t-esc="'{:,.0f}'.format(v.get('SR_KINDBIJ_MAX_MAAND', 1000))"/> totaal per maand</td>
                             </tr>
                         </tbody>
                     </table>
@@ -479,10 +480,10 @@
 
                     <div class="border-bottom pb-3 mb-3">
                         <h6 class="fw-bold"><i class="fa fa-question text-info"/> Hoe pas ik de belastingtarieven aan?</h6>
-                        <p>Ga naar <em>Payroll → Configuratie → Suriname → SR Belastingparameters</em>.
-                           Zoek de parameter (bijv. SR_TARIEF_1) en pas de waarde aan. <strong>Maak een nieuwe versieregel</strong>
-                              met de ingangsdatum zodat oude loonstroken hun originele tarief behouden. Als de wet een extra schijf toevoegt,
-                              maak of vul dan het volgende paar aan, bijvoorbeeld <strong>SR_SCHIJF_4_GRENS</strong> en <strong>SR_TARIEF_5</strong>.</p>
+                                <p>Ga naar <em>Payroll → Configuratie → Suriname → SR Payroll Instellingen</em>.
+                                    Pas daar de actuele waarden aan. Als de wet een extra schijf toevoegt,
+                                    beheer het volgende codepaar technisch via <em>SR Payroll Referentieparameters</em>,
+                                    bijvoorbeeld <strong>SR_SCHIJF_4_GRENS</strong> en <strong>SR_TARIEF_5</strong>.</p>
                     </div>
 
                     <div class="border-bottom pb-3 mb-3">

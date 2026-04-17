@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_res_config_settings_sr_payroll" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.inherit.sr.payroll</field>
+        <field name="model">res.config.settings</field>
+        <field name="priority" eval="65"/>
+        <field name="inherit_id" ref="hr_payroll.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form" position="inside">
+                <app data-string="Suriname Payroll" string="Suriname Payroll" name="l10n_sr_hr_payroll" groups="hr_payroll.group_hr_payroll_manager">
+                    <block title="Suriname Payroll Configuratie" id="sr_payroll_settings_block">
+                        <div class="text-muted mb-3">
+                            Deze waarden zijn gekoppeld aan <code>ir.config_parameter</code> en worden dus persistent in de database opgeslagen.
+                        </div>
+                        <notebook>
+                            <page string="Belasting">
+                                <group>
+                                    <group string="Artikel 12 t/m 14">
+                                        <field name="belastingvrij_jaar"/>
+                                        <field name="forfaitaire_pct"/>
+                                        <field name="forfaitaire_max_jaar"/>
+                                        <field name="schijf_1_grens"/>
+                                        <field name="schijf_2_grens"/>
+                                        <field name="schijf_3_grens"/>
+                                    </group>
+                                    <group string="Tarieven &amp; inhoudingen">
+                                        <field name="tarief_1"/>
+                                        <field name="tarief_2"/>
+                                        <field name="tarief_3"/>
+                                        <field name="tarief_4"/>
+                                        <field name="aov_tarief"/>
+                                        <field name="aov_franchise_maand"/>
+                                        <field name="bijz_beloning_max"/>
+                                        <field name="heffingskorting"/>
+                                    </group>
+                                </group>
+                            </page>
+                            <page string="AKB">
+                                <group>
+                                    <group string="Algemene Kinderbijslag">
+                                        <field name="akb_per_kind"/>
+                                        <field name="akb_max_bedrag"/>
+                                    </group>
+                                    <group string="Toelichting">
+                                        <div class="text-muted">
+                                            Maximaal 4 kinderen worden volledig vrijgesteld bij de standaardinstelling van SRD 250 per kind en SRD 1.000 per maand.
+                                        </div>
+                                    </group>
+                                </group>
+                            </page>
+                            <page string="Overwerk">
+                                <group>
+                                    <group string="Schijfgrenzen">
+                                        <field name="overwerk_schijf_1_grens"/>
+                                        <field name="overwerk_schijf_2_grens"/>
+                                    </group>
+                                    <group string="Tarieven">
+                                        <field name="overwerk_tarief_1"/>
+                                        <field name="overwerk_tarief_2"/>
+                                        <field name="overwerk_tarief_3"/>
+                                    </group>
+                                </group>
+                            </page>
+                        </notebook>
+                    </block>
+                </app>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="action_res_config_settings_sr_payroll" model="ir.actions.act_window">
+        <field name="name">SR Payroll Instellingen</field>
+        <field name="res_model">res.config.settings</field>
+        <field name="view_mode">form</field>
+        <field name="target">inline</field>
+        <field name="context">{'module': 'l10n_sr_hr_payroll', 'bin_size': False}</field>
+    </record>
+
+    <menuitem
+        id="menu_sr_settings"
+        name="SR Payroll Instellingen"
+        parent="l10n_sr_hr_payroll.menu_sr_config_root"
+        action="action_res_config_settings_sr_payroll"
+        sequence="15"/>
+</odoo>

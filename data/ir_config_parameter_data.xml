@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <record id="sr_payroll_config_belastingvrij_jaar" model="ir.config_parameter">
+            <field name="key">sr_payroll.belastingvrij_jaar</field>
+            <field name="value">108000.0</field>
+        </record>
+        <record id="sr_payroll_config_forfaitaire_pct" model="ir.config_parameter">
+            <field name="key">sr_payroll.forfaitaire_pct</field>
+            <field name="value">0.04</field>
+        </record>
+        <record id="sr_payroll_config_forfaitaire_max_jaar" model="ir.config_parameter">
+            <field name="key">sr_payroll.forfaitaire_max_jaar</field>
+            <field name="value">4800.0</field>
+        </record>
+        <record id="sr_payroll_config_schijf_1_grens" model="ir.config_parameter">
+            <field name="key">sr_payroll.schijf_1_grens</field>
+            <field name="value">42000.0</field>
+        </record>
+        <record id="sr_payroll_config_schijf_2_grens" model="ir.config_parameter">
+            <field name="key">sr_payroll.schijf_2_grens</field>
+            <field name="value">84000.0</field>
+        </record>
+        <record id="sr_payroll_config_schijf_3_grens" model="ir.config_parameter">
+            <field name="key">sr_payroll.schijf_3_grens</field>
+            <field name="value">126000.0</field>
+        </record>
+        <record id="sr_payroll_config_tarief_1" model="ir.config_parameter">
+            <field name="key">sr_payroll.tarief_1</field>
+            <field name="value">0.08</field>
+        </record>
+        <record id="sr_payroll_config_tarief_2" model="ir.config_parameter">
+            <field name="key">sr_payroll.tarief_2</field>
+            <field name="value">0.18</field>
+        </record>
+        <record id="sr_payroll_config_tarief_3" model="ir.config_parameter">
+            <field name="key">sr_payroll.tarief_3</field>
+            <field name="value">0.28</field>
+        </record>
+        <record id="sr_payroll_config_tarief_4" model="ir.config_parameter">
+            <field name="key">sr_payroll.tarief_4</field>
+            <field name="value">0.38</field>
+        </record>
+        <record id="sr_payroll_config_heffingskorting" model="ir.config_parameter">
+            <field name="key">sr_payroll.heffingskorting</field>
+            <field name="value">750.0</field>
+        </record>
+        <record id="sr_payroll_config_aov_tarief" model="ir.config_parameter">
+            <field name="key">sr_payroll.aov_tarief</field>
+            <field name="value">0.04</field>
+        </record>
+        <record id="sr_payroll_config_aov_franchise_maand" model="ir.config_parameter">
+            <field name="key">sr_payroll.aov_franchise_maand</field>
+            <field name="value">400.0</field>
+        </record>
+        <record id="sr_payroll_config_bijz_beloning_max" model="ir.config_parameter">
+            <field name="key">sr_payroll.bijz_beloning_max</field>
+            <field name="value">19500.0</field>
+        </record>
+        <record id="sr_payroll_config_akb_per_kind" model="ir.config_parameter">
+            <field name="key">sr_payroll.akb_per_kind</field>
+            <field name="value">250.0</field>
+        </record>
+        <record id="sr_payroll_config_akb_max_bedrag" model="ir.config_parameter">
+            <field name="key">sr_payroll.akb_max_bedrag</field>
+            <field name="value">1000.0</field>
+        </record>
+        <record id="sr_payroll_config_overwerk_schijf_1_grens" model="ir.config_parameter">
+            <field name="key">sr_payroll.overwerk_schijf_1_grens</field>
+            <field name="value">2500.0</field>
+        </record>
+        <record id="sr_payroll_config_overwerk_schijf_2_grens" model="ir.config_parameter">
+            <field name="key">sr_payroll.overwerk_schijf_2_grens</field>
+            <field name="value">7500.0</field>
+        </record>
+        <record id="sr_payroll_config_overwerk_tarief_1" model="ir.config_parameter">
+            <field name="key">sr_payroll.overwerk_tarief_1</field>
+            <field name="value">0.05</field>
+        </record>
+        <record id="sr_payroll_config_overwerk_tarief_2" model="ir.config_parameter">
+            <field name="key">sr_payroll.overwerk_tarief_2</field>
+            <field name="value">0.15</field>
+        </record>
+        <record id="sr_payroll_config_overwerk_tarief_3" model="ir.config_parameter">
+            <field name="key">sr_payroll.overwerk_tarief_3</field>
+            <field name="value">0.25</field>
+        </record>
+    </data>
+</odoo>

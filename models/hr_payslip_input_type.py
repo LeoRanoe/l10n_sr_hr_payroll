@@ -32,7 +32,7 @@ class HrPayslipInputType(models.Model):
             '• Overwerk: eigen belastingschijven 5%/15%/25% conform Art. 17c\n'
             '• Vakantietoelage: vrijstelling = min(2×basisloon, SR_BIJZ_VRIJSTELLING_MAX/jaar), rest belast via Art. 17\n'
             '• Gratificatie/Bonus: vrijstelling = min(basisloon, SR_BIJZ_VRIJSTELLING_MAX/jaar), rest belast via Art. 17\n'
-            '  → Het vrijstellingsbedrag is configureerbaar via Payroll > Configuratie > SR Rule Parameters (SR_BIJZ_VRIJSTELLING_MAX)\n'
+            '  → Het vrijstellingsbedrag is configureerbaar via Payroll > Configuratie > Suriname > SR Payroll Instellingen\n'
             '• Bijzondere Beloning: geen vaste vrijstelling, belast via marginaal tarief Art. 17\n'
             '• Uitkering Ineens / Jubileum: eigen tariefschijven 5%/15%/25%/35%/45% (Art. 17a), AOV = 4% van het bedrag'
         ),

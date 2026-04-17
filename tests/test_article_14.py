@@ -470,6 +470,16 @@ class TestArtikel14Schijven(common.TransactionCase):
         self.assertAlmostEqual(lb, verwacht, places=2,
                                msg='Exacte schijfgrens 3 berekening klopt niet')
 
+    def test_tax_bracket_html_toont_correcte_grenzen(self):
+        """De contractreferentie moet expliciete schijfranges en de open bovengrens tonen."""
+        params = calc.fetch_params_from_rule_parameter(self.env, date(2026, 4, 30))
+        html = calc.generate_tax_bracket_html(params)
+
+        self.assertIn('t/m SRD 42.000', html)
+        self.assertIn('SRD 42.001 – SRD 84.000', html)
+        self.assertIn('SRD 84.001 – SRD 126.000', html)
+        self.assertIn('Boven SRD 126.000', html)
+
 
 @tagged('post_install', 'post_install_l10n', '-at_install')
 class TestArtikel14AOV(common.TransactionCase):
@@ -640,13 +650,52 @@ class TestArtikel14Breakdown(common.TransactionCase):
             'lb_bijz', 'lb_17a', 'lb_overwerk',
             'aov_bijz', 'aov_17a', 'aov_overwerk',
             'franchise_periode', 'aov_grondslag', 'aov_tarief_pct', 'aov_per_periode',
-            'aftrek_bv', 'pensioen', 'contract_inhoudingen', 'input_inhoudingen',
+            'aftrek_bv', 'heffingskorting', 'pensioen', 'contract_inhoudingen', 'input_inhoudingen',
             'totaal_lb', 'totaal_aov',
             'totaal_inhoudingen', 'netto',
         ]
         for sleutel in verwachte_sleutels:
             self.assertIn(sleutel, bd,
                           f'Ontbrekende sleutel in breakdown: {sleutel}')
+
+    def test_breakdown_legacy_heffingskorting_volgt_payslip_netto(self):
+        """
+        Historische SR_HK-regels mogen de PDF-breakdown niet uit sync trekken.
+        De wettelijke grondslag blijft zonder HK, maar netto moet wel matchen
+        met de bestaande payslip-regels.
+        """
+        payslip = self._make_payslip(wage=25000.0)
+        hk_rule = self.env.ref('l10n_sr_hr_payroll.sr_rule_heffingskorting')
+        gross_line = payslip.line_ids.filtered(lambda l: l.code == 'GROSS')[:1]
+        net_line = payslip.line_ids.filtered(lambda l: l.code == 'NET')[:1]
+
+        self.env['hr.payslip.line'].create({
+            'name': 'Heffingskorting (legacy)',
+            'code': 'SR_HK',
+            'sequence': 55,
+            'category_id': hk_rule.category_id.id,
+            'salary_rule_id': hk_rule.id,
+            'slip_id': payslip.id,
+            'employee_id': payslip.employee_id.id,
+            'contract_id': payslip.contract_id.id,
+            'company_id': payslip.company_id.id,
+            'amount': 750.0,
+            'quantity': 1.0,
+            'rate': 100.0,
+            'total': 750.0,
+        })
+        gross_line.total += 750.0
+        net_line.total += 750.0
+
+        bd = payslip._get_sr_artikel14_breakdown()
+
+        self.assertAlmostEqual(bd['heffingskorting'], 750.0, delta=0.01)
+        self.assertAlmostEqual(bd['bruto_per_periode'], 25000.0, delta=0.01)
+        self.assertAlmostEqual(
+            bd['netto'],
+            sum(payslip.line_ids.filtered(lambda l: l.code == 'NET').mapped('total')),
+            delta=0.01,
+        )
 
     def test_breakdown_periodes_maandloon(self):
         """Maandloon → periodes = 12, is_fn = False."""

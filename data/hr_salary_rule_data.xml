@@ -77,7 +77,7 @@ result = contract._sr_resolve_regels('belastbaar')
 
         <!-- ─────────────────────────────────────────────────────────
              21 — SR_KB_BELAST: Kinderbijslag belastbaar deel (Art. 10h)
-             Bedrag boven de vrijstelling (max SRD 125/kind, 500/mnd).
+               Bedrag boven de vrijstelling (max SRD 250/kind, 1.000/mnd).
              Telt mee in GROSS → Art. 14 loonbelastinggrondslag.
              ───────────────────────────────────────────────────────── -->
         <record id="sr_rule_kb_belastbaar" model="hr.salary.rule">
@@ -246,7 +246,7 @@ result = -contract._sr_resolve_regels('inhouding')
             <field name="condition_python">
 # Vrijgestelde regels excl. kinderbijslag (KB wordt apart afgehandeld)
 result = any(
-    r.sr_categorie == 'vrijgesteld'
+    r._sr_effective_category() == 'vrijgesteld'
     and not r._is_sr_kindbijslag_line()
     for r in contract.sr_vaste_regels
 )
@@ -255,7 +255,7 @@ result = any(
             <field name="amount_python_compute">
 result = sum(
     contract._sr_resolve_line_amount(r) for r in contract.sr_vaste_regels
-    if r.sr_categorie == 'vrijgesteld'
+    if r._sr_effective_category() == 'vrijgesteld'
     and not r._is_sr_kindbijslag_line()
 )
             </field>

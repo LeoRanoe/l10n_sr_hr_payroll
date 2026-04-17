@@ -235,7 +235,7 @@
 
         <!-- ═══════════════════════════════════════════════════════════
              BIJZONDERE BELONINGEN VRIJSTELLING — Art. 10i & 10j WLB
-             Vakantietoelage + Gratificatie: max SRD 10.016 per jaar.
+             Vakantietoelage + Gratificatie: max SRD 19.500 per jaar.
              ═══════════════════════════════════════════════════════════ -->
         <record id="sr_param_bijz_vrijstelling_max" model="hr.rule.parameter">
             <field name="name">SR — Bijz. beloning vrijstelling maximum (Art. 10i/j)</field>
@@ -245,12 +245,23 @@
         <record id="sr_param_bijz_vrijstelling_max_2026" model="hr.rule.parameter.value">
             <field name="rule_parameter_id" ref="sr_param_bijz_vrijstelling_max"/>
             <field name="date_from" eval="datetime(2026, 1, 1).date()"/>
-            <field name="parameter_value">10016.0</field>
+            <field name="parameter_value">19500.0</field>
+        </record>
+
+        <record id="sr_param_heffingskorting" model="hr.rule.parameter">
+            <field name="name">SR — Heffingskorting (informatief; SRD per maand)</field>
+            <field name="code">SR_HEFFINGSKORTING</field>
+            <field name="country_id" ref="base.sr"/>
+        </record>
+        <record id="sr_param_heffingskorting_2026" model="hr.rule.parameter.value">
+            <field name="rule_parameter_id" ref="sr_param_heffingskorting"/>
+            <field name="date_from" eval="datetime(2026, 1, 1).date()"/>
+            <field name="parameter_value">750.0</field>
         </record>
 
         <!-- ═══════════════════════════════════════════════════════════
              KINDERBIJSLAG VRIJSTELLING — Art. 10h WLB
-             Max SRD 125 per kind per maand, max SRD 500 per maand.
+             Max SRD 250 per kind per maand, max SRD 1.000 per maand.
              ═══════════════════════════════════════════════════════════ -->
         <record id="sr_param_kindbij_max_kind_maand" model="hr.rule.parameter">
             <field name="name">SR — Kinderbijslag max per kind per maand (Art. 10h)</field>
@@ -260,7 +271,7 @@
         <record id="sr_param_kindbij_max_kind_maand_2026" model="hr.rule.parameter.value">
             <field name="rule_parameter_id" ref="sr_param_kindbij_max_kind_maand"/>
             <field name="date_from" eval="datetime(2026, 1, 1).date()"/>
-            <field name="parameter_value">125.0</field>
+            <field name="parameter_value">250.0</field>
         </record>
 
         <record id="sr_param_kindbij_max_maand" model="hr.rule.parameter">
@@ -271,7 +282,7 @@
         <record id="sr_param_kindbij_max_maand_2026" model="hr.rule.parameter.value">
             <field name="rule_parameter_id" ref="sr_param_kindbij_max_maand"/>
             <field name="date_from" eval="datetime(2026, 1, 1).date()"/>
-            <field name="parameter_value">500.0</field>
+            <field name="parameter_value">1000.0</field>
         </record>
 
         <!-- ═══════════════════════════════════════════════════════════
