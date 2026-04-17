@@ -10,7 +10,11 @@
                 <app data-string="Suriname Payroll" string="Suriname Payroll" name="l10n_sr_hr_payroll" groups="hr_payroll.group_hr_payroll_manager">
                     <block title="Suriname Payroll Configuratie" id="sr_payroll_settings_block">
                         <div class="text-muted mb-3">
-                            Deze waarden zijn gekoppeld aan <code>ir.config_parameter</code> en worden dus persistent in de database opgeslagen.
+                            Dit is het <strong>dagelijkse beheerscherm</strong> voor actuele SR payrollwaarden.
+                            Deze instellingen worden persistent in <code>ir.config_parameter</code> opgeslagen en direct door de payrollberekening gebruikt.
+                        </div>
+                        <div class="alert alert-info" role="alert">
+                            Gebruik dit scherm voor actuele bedragen en tarieven. Technische referentiecodes en historische parameterregels zijn alleen nodig voor implementatie, controle en toekomstige uitbreidingen.
                         </div>
                         <notebook>
                             <page string="Belasting">
@@ -31,9 +35,12 @@
                                         <field name="aov_tarief"/>
                                         <field name="aov_franchise_maand"/>
                                         <field name="bijz_beloning_max"/>
-                                        <field name="heffingskorting"/>
                                     </group>
                                 </group>
+                                <div class="alert alert-light border mt-3 mb-0" role="alert">
+                                    <strong>Heffingskorting:</strong> wordt momenteel <strong>niet actief toegepast</strong> in de wettelijke Art. 14-berekening.
+                                    De historische waarde blijft alleen beschikbaar voor audit en technische inspectie.
+                                </div>
                             </page>
                             <page string="AKB">
                                 <group>
@@ -61,6 +68,18 @@
                                     </group>
                                 </group>
                             </page>
+                            <page string="Technisch / Audit" groups="base.group_system">
+                                <group>
+                                    <group string="Historische / inactieve waarden">
+                                        <field name="heffingskorting"/>
+                                    </group>
+                                    <group string="Toelichting">
+                                        <div class="text-muted">
+                                            Deze tab is alleen voor systeembeheer. De heffingskorting wordt opgeslagen voor audit en legacy-analyse, maar heeft momenteel geen actieve invloed op de wettelijke loonbelastingberekening.
+                                        </div>
+                                    </group>
+                                </group>
+                            </page>
                         </notebook>
                     </block>
                 </app>
@@ -81,5 +100,5 @@
         name="SR Payroll Instellingen"
         parent="l10n_sr_hr_payroll.menu_sr_config_root"
         action="action_res_config_settings_sr_payroll"
-        sequence="15"/>
+        sequence="5"/>
 </odoo>
