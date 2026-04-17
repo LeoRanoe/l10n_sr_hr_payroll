@@ -105,10 +105,60 @@ class HrContractSrLine(models.Model):
             self.name = self.type_id.name
             self.sr_categorie = self.type_id.sr_categorie
 
+    def _is_sr_kindbijslag_line(self):
+        self.ensure_one()
+        if self.type_id and self.type_id.code == 'KINDBIJ':
+            return True
+        return (self.name or '').strip().casefold() == 'kinderbijslag'
+
+    @api.model
+    def _sr_prepare_kindbijslag_vals(self, vals):
+        name = (vals.get('name') or '').strip().casefold()
+        if vals.get('type_id') or name != 'kinderbijslag':
+            return vals
+        if vals.get('sr_categorie') not in (False, None, 'vrijgesteld'):
+            return vals
+        kindbijslag_type = self.env.ref(
+            'l10n_sr_hr_payroll.sr_line_type_kinderbijslag',
+            raise_if_not_found=False,
+        )
+        if not kindbijslag_type:
+            return vals
+        vals = dict(vals)
+        vals['type_id'] = kindbijslag_type.id
+        vals['sr_categorie'] = kindbijslag_type.sr_categorie
+        return vals
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        vals_list = [self._sr_prepare_kindbijslag_vals(vals) for vals in vals_list]
+        return super().create(vals_list)
+
+    def write(self, vals):
+        return super().write(self._sr_prepare_kindbijslag_vals(vals))
+
     @api.constrains('amount_type', 'percentage')
     def _check_percentage(self):
         for line in self:
-            if line.amount_type == 'percentage' and not line.percentage:
+            if line.amount_type == 'percentage' and line.percentage <= 0:
                 raise ValidationError(
                     "Percentage moet groter dan 0 zijn wanneer de berekeningswijze 'Percentage' is."
+                )
+
+    @api.constrains('amount', 'amount_type')
+    def _check_non_negative_amount(self):
+        for line in self:
+            if line.amount_type == 'fixed' and line.amount < 0:
+                raise ValidationError(
+                    'Negatieve vaste bedragen zijn niet toegestaan voor SR contractregels.'
+                )
+
+    @api.constrains('name', 'type_id', 'contract_id', 'sr_categorie')
+    def _check_kindbijslag_configuration(self):
+        for line in self:
+            if not line._is_sr_kindbijslag_line():
+                continue
+            if line.contract_id and line.contract_id.sr_aantal_kinderen <= 0:
+                raise ValidationError(
+                    "Kinderbijslag vereist een positief 'Aantal Kinderen' op het contract."
                 )

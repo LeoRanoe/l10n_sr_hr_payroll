@@ -118,7 +118,7 @@
                             <tr>
                                 <td class="text-center"><span class="badge bg-info">8</span></td>
                                 <td><strong>Print</strong> de loonstrook (PDF)</td>
-                                <td>Knop "Print SR Loonstrook" of "Preview"</td>
+                                <td>Knop "PDF Loonstrook" of "HTML Preview"</td>
                             </tr>
                         </tbody>
                     </table>
@@ -141,11 +141,11 @@
                             <tr>
                                 <td><strong>Verloningstype</strong></td>
                                 <td>Hoe vaak de werknemer betaald wordt</td>
-                                <td>Maandelijks, 14-daags, of Wekelijks</td>
+                                <td>Maandelijks of Fortnight (26 periodes/jaar)</td>
                             </tr>
                             <tr>
                                 <td><strong>Aantal Kinderen</strong></td>
-                                <td>Voor kinderbijslagberekening (Art. 10d WLB)</td>
+                                <td>Voor kinderbijslagberekening (Art. 10h WLB)</td>
                                 <td>0, 1, 2, 3, ...</td>
                             </tr>
                             <tr>
@@ -493,7 +493,7 @@
 
                     <div class="border-bottom pb-3 mb-3">
                         <h6 class="fw-bold"><i class="fa fa-question text-info"/> Wat als een werknemer 14-daags betaald wordt?</h6>
-                        <p>Stel het <strong>Verloningstype</strong> in op "14-daags" in de Suriname Loon tab.
+                                <p>Stel het <strong>Verloningstype</strong> in op "Fortnight" in de Suriname Loon tab.
                            Alle berekeningen (belastingvrije voet, forfaitaire aftrek, etc.) worden automatisch
                            omgerekend naar het juiste tijdvak.</p>
                     </div>
@@ -501,7 +501,7 @@
                     <div class="border-bottom pb-3 mb-3">
                         <h6 class="fw-bold"><i class="fa fa-question text-info"/> Waar kan ik de berekening in detail bekijken?</h6>
                         <p>Op het <strong>contract</strong> onder de Suriname Loon tab vindt u het <em>Berekeningsdetail</em>
-                           met een stapsgewijze uitsplitsing. Op de <strong>loonstrook</strong> kunt u "Preview Berekening"
+                                    met een stapsgewijze uitsplitsing. Op de <strong>loonstrook</strong> kunt u "HTML Preview"
                            klikken voor een gedetailleerd overzicht.</p>
                     </div>
 

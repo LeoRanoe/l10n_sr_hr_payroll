@@ -71,4 +71,18 @@
 
         </field>
     </record>
+
+    <record id="hr_work_entry_type_view_form_sr_overtime" model="ir.ui.view">
+        <field name="name">hr.work.entry.type.form.sr.overtime</field>
+        <field name="model">hr.work.entry.type</field>
+        <field name="inherit_id" ref="hr_work_entry.hr_work_entry_type_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//group[@name='main_group']" position="after">
+                <group string="Suriname Payroll" class="o_form_fw_labels">
+                    <field name="sr_is_overtime"/>
+                    <field name="sr_overtime_multiplier" invisible="not sr_is_overtime"/>
+                </group>
+            </xpath>
+        </field>
+    </record>
 </odoo>

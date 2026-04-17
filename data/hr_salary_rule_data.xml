@@ -247,7 +247,7 @@ result = -contract._sr_resolve_regels('inhouding')
 # Vrijgestelde regels excl. kinderbijslag (KB wordt apart afgehandeld)
 result = any(
     r.sr_categorie == 'vrijgesteld'
-    and (not r.type_id or r.type_id.code != 'KINDBIJ')
+    and not r._is_sr_kindbijslag_line()
     for r in contract.sr_vaste_regels
 )
             </field>
@@ -256,7 +256,7 @@ result = any(
 result = sum(
     contract._sr_resolve_line_amount(r) for r in contract.sr_vaste_regels
     if r.sr_categorie == 'vrijgesteld'
-    and (not r.type_id or r.type_id.code != 'KINDBIJ')
+    and not r._is_sr_kindbijslag_line()
 )
             </field>
         </record>
