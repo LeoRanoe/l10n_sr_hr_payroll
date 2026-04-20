@@ -46,27 +46,123 @@ Reserve-parameters voor toekomstige uitbreiding zijn al aanwezig, onder andere:
 
 Zonder actieve parameterwaarde beïnvloeden die placeholders de huidige berekening niet.
 
-## Installatie
+## Installatie en automatisering
 
-1. Plaats `l10n_sr_hr_payroll` in het Odoo addons-pad.
-2. Herstart de Odoo-server.
-3. Update de apps-lijst.
-4. Installeer of update de module.
+### Databasegedrag bij installatie
+
+Ja. Een installatie of update van `l10n_sr_hr_payroll` wijzigt de database.
+Dat is normaal voor Odoo-modules, omdat Odoo tijdens `-i` of `-u` onder andere:
+
+- tabellen en kolommen aanmaakt of bijwerkt voor Python-modellen
+- XML-data laadt of herschrijft voor loonregels, parameters, views en security
+- metadata bijwerkt in `ir.model.data`, `ir.ui.view`, `ir.config_parameter` en verwante tabellen
+
+Het besturingssysteem verandert dat gedrag niet. Op Windows en Linux krijg je dezelfde database-impact zolang je dezelfde Odoo-versie, dezelfde afhankelijkheden en dezelfde modulecode gebruikt.
+
+Voor geautomatiseerd testen is daarom de veiligste aanpak:
+
+1. gebruik een aparte testdatabase
+2. draai een schone `install` op een lege of nieuwe database
+3. draai daarnaast ook een `update` op een bestaande kopie als je upgradepaden wilt bewaken
+
+### Geautomatiseerde installatie
+
+Deze module bevat nu een cross-platform script:
+
+`scripts/install_module.py`
+
+Het script:
+
+- detecteert in deze workspace automatisch `server/odoo-bin` en `server/odoo.conf`
+- gebruikt op Windows automatisch de bundled `python/python.exe`
+- draait standaard headless met `--stop-after-init`, `--no-http` en `--without-demo=all`
+- ondersteunt zowel een schone installatie (`--action install`) als een update-run (`--action update`)
+- kan direct tests meedraaien met `--test-enable`
+
+Voorwaarden:
+
+1. `l10n_sr_hr_payroll` staat al in het Odoo `addons_path`
+2. de doel-database bestaat al, of jouw Odoo/PostgreSQL-configuratie mag die database aanmaken
+3. `hr_payroll` is beschikbaar in dezelfde Odoo-installatie
+
+#### Windows
+
+Schone installatierun op een testdatabase:
+
+```powershell
+Set-Location "C:\Program Files\Odoo 18.0e.20260407\sessions\addons\18.0\l10n_sr_hr_payroll"
+& "C:\Program Files\Odoo 18.0e.20260407\python\python.exe" .\scripts\install_module.py `
+	--database "sr_payroll_ci_clean" `
+	--action install `
+	--test-enable
+```
+
+Update-run op een bestaande database:
+
+```powershell
+Set-Location "C:\Program Files\Odoo 18.0e.20260407\sessions\addons\18.0\l10n_sr_hr_payroll"
+& "C:\Program Files\Odoo 18.0e.20260407\python\python.exe" .\scripts\install_module.py `
+	--database "Salarisverwerking-Module" `
+	--action update `
+	--test-enable
+```
+
+#### Linux
+
+Als je Linux-layout dezelfde structuur heeft als deze workspace, detecteert het script Odoo meestal automatisch. Als dat niet zo is, geef dan expliciet `--odoo-bin` en `--config` mee.
+
+Schone installatierun op een testdatabase:
+
+```bash
+cd /opt/odoo/sessions/addons/18.0/l10n_sr_hr_payroll
+python3 scripts/install_module.py \
+	--database sr_payroll_ci_clean \
+	--action install \
+	--test-enable \
+	--odoo-bin /opt/odoo/server/odoo-bin \
+	--config /opt/odoo/server/odoo.conf
+```
+
+Update-run op een bestaande database:
+
+```bash
+cd /opt/odoo/sessions/addons/18.0/l10n_sr_hr_payroll
+python3 scripts/install_module.py \
+	--database salarisverwerking_module \
+	--action update \
+	--test-enable \
+	--odoo-bin /opt/odoo/server/odoo-bin \
+	--config /opt/odoo/server/odoo.conf
+```
+
+#### Aanbevolen automatische testflow
+
+Als je grote wijzigingen maakt, is een enkele update-run niet genoeg. Gebruik in je VM of pipeline minimaal deze twee stappen:
+
+1. `install` op een schone database om fresh-install fouten te vinden
+2. `update` op een bestaande databasekopie om migratie- of upgradefouten te vinden
+
+Optionele extra Odoo-argumenten kun je doorgeven met herhaalde `--extra-arg` parameters.
 
 Voorbeeld:
 
 ```powershell
-Set-Location "C:\Program Files\Odoo 18.0e.20260407\server"
-.\odoo-bin -u l10n_sr_hr_payroll -d "Salarisverwerking-Module" --stop-after-init
+& "C:\Program Files\Odoo 18.0e.20260407\python\python.exe" .\scripts\install_module.py `
+	--database "sr_payroll_ci_clean" `
+	--action install `
+	--test-enable `
+	--extra-arg=--log-handler=:INFO
 ```
 
 ## Validatie
 
-De release-validatie voor deze module is uitgevoerd met:
+Voor deze module is de betrouwbaarste non-interactieve validatie een update of install met `--test-enable` en `--stop-after-init`.
+
+Handmatige referentie-opdracht vanaf de Odoo server-root:
 
 ```powershell
 Set-Location "C:\Program Files\Odoo 18.0e.20260407\server"
-.\odoo-bin -u l10n_sr_hr_payroll --test-enable -d "Salarisverwerking-Module" --stop-after-init --log-level=test --workers=0
+& "C:\Program Files\Odoo 18.0e.20260407\python\python.exe" .\odoo-bin -u l10n_sr_hr_payroll --test-enable -d "Salarisverwerking-Module" --stop-after-init --no-http --log-level=test
 ```
 
 ## Belangrijkste bestanden
