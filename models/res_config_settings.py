@@ -93,9 +93,10 @@ class ResConfigSettings(models.TransientModel):
         default=lambda self: self._sr_default_param('SR_AOV_FRANCHISE_MAAND'),
     )
     bijz_beloning_max = fields.Float(
-        string='Bijzondere beloning maximum (SRD / jaar)',
+        string='Vrijstelling vakantie/gratificatie per categorie (SRD / jaar)',
         config_parameter='sr_payroll.bijz_beloning_max',
         default=lambda self: self._sr_default_param('SR_BIJZ_VRIJSTELLING_MAX'),
+        help='Jaarmaximum per categorie voor de vrijstelling van vakantietoelage en gratificatie/bonus.',
     )
     akb_per_kind = fields.Float(
         string='AKB per kind (SRD / maand)',
@@ -161,7 +162,7 @@ class ResConfigSettings(models.TransientModel):
             'belastingvrij_jaar': 'Belastingvrije voet',
             'forfaitaire_max_jaar': 'Forfaitaire aftrek maximum',
             'aov_franchise_maand': 'AOV franchise',
-            'bijz_beloning_max': 'Bijzondere beloning maximum',
+            'bijz_beloning_max': 'Vrijstelling vakantie/gratificatie per categorie',
             'akb_per_kind': 'AKB per kind',
             'akb_max_bedrag': 'AKB maximum',
             'heffingskorting': 'Heffingskorting',
