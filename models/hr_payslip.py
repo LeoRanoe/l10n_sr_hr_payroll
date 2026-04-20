@@ -151,6 +151,8 @@ class HrPayslip(models.Model):
         overtime_type = self.env.ref('l10n_sr_hr_payroll.sr_input_overwerk', raise_if_not_found=False)
         if self.struct_id != sr_struct or not overtime_type or not self.contract_id or not self.date_from or not self.date_to:
             return
+        if getattr(self.contract_id, 'wage_type', 'monthly') != 'monthly':
+            return
 
         period_start = datetime.combine(self.date_from, time.min)
         period_stop = datetime.combine(self.date_to + timedelta(days=1), time.min)
