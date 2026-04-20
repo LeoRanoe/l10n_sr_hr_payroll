@@ -146,23 +146,29 @@ result = -float_round(payslip._sr_artikel14_lb(categories['GROSS'], aftrek_bv=af
         </record>
 
         <!-- ─────────────────────────────────────────────────────────
-             55 — SR_HK: Heffingskorting (VERWIJDERD / GEARCHIVEERD)
+             55 — SR_HK: Heffingskorting (aparte nettocredit)
              ─────────────────────────────────────────────────────────
-             Deze regel is niet meer actief. Het record wordt bewaard
-             zodat bestaande payslip-regels (hr.payslip.line) die ernaar
-             verwijzen niet gebroken worden door een foreign key fout.
+             Wordt na GROSS toegepast zodat de Art. 14 grondslag, de
+             schijven en AOV ongewijzigd blijven. Voor FN wordt de
+             maandwaarde pro-rata omgerekend naar 12/26.
              ───────────────────────────────────────────────────────── -->
         <record id="sr_rule_heffingskorting" model="hr.salary.rule">
             <field name="struct_id" ref="l10n_sr_hr_payroll.sr_payroll_structure"/>
-            <field name="category_id" ref="hr_payroll.ALW"/>
-            <field name="name">Heffingskorting (VERVALLEN)</field>
+            <field name="category_id" ref="l10n_sr_hr_payroll.sr_vrij_cat"/>
+            <field name="name">Heffingskorting</field>
             <field name="code">SR_HK</field>
             <field name="sequence">55</field>
-            <field name="active" eval="False"/>
+            <field name="active" eval="True"/>
             <field name="condition_select">python</field>
-            <field name="condition_python">result = False</field>
+            <field name="condition_python">
+heffingskorting = contract._sr_get_heffingskorting_per_periode(payslip._rule_parameter('SR_HEFFINGSKORTING'))
+result = heffingskorting > 0
+            </field>
             <field name="amount_select">code</field>
-            <field name="amount_python_compute">result = 0</field>
+            <field name="amount_python_compute">
+heffingskorting = contract._sr_get_heffingskorting_per_periode(payslip._rule_parameter('SR_HEFFINGSKORTING'))
+result = float_round(heffingskorting, precision_digits=2)
+            </field>
         </record>
 
         <!-- ─────────────────────────────────────────────────────────
@@ -264,7 +270,7 @@ result = sum(
         <!-- ─────────────────────────────────────────────────────────
              81 — SR_KB_VRIJ: Kinderbijslag vrijgesteld deel (Art. 10h)
              Het deel van de kinderbijslag binnen de vrijstelling:
-             max SRD 125/kind/maand, max SRD 500/maand.
+             max SRD 250/kind/maand, max SRD 1.000/maand.
              ───────────────────────────────────────────────────────── -->
         <record id="sr_rule_kb_vrijgesteld" model="hr.salary.rule">
             <field name="struct_id" ref="l10n_sr_hr_payroll.sr_payroll_structure"/>
@@ -272,6 +278,7 @@ result = sum(
             <field name="name">Kinderbijslag Vrijgesteld (Art. 10h)</field>
             <field name="code">SR_KB_VRIJ</field>
             <field name="sequence">81</field>
+            <field name="active" eval="True"/>
             <field name="condition_select">python</field>
             <field name="condition_python">
 max_kind = payslip._rule_parameter('SR_KINDBIJ_MAX_KIND_MAAND')

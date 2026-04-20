@@ -79,7 +79,7 @@ class ResConfigSettings(models.TransientModel):
         string='Heffingskorting (SRD)',
         config_parameter='sr_payroll.heffingskorting',
         default=lambda self: self._sr_default_param('SR_HEFFINGSKORTING'),
-        help='Wordt opgeslagen voor audit en toekomstige activering. De huidige SR_HK-regel is inactief.',
+        help='Actieve netto heffingskorting: SRD per maand voor maandloon, pro-rata omgerekend voor FN.',
     )
     aov_tarief = fields.Float(
         string='AOV tarief (decimaal)',

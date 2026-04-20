@@ -43,8 +43,8 @@
                                     Bij <strong>FN / Fortnight</strong> wordt in de payroll-engine automatisch geen franchise toegepast.
                                 </div>
                                 <div class="alert alert-light border mt-3 mb-0" role="alert">
-                                    <strong>Heffingskorting:</strong> wordt momenteel <strong>niet actief toegepast</strong> in de wettelijke Art. 14-berekening.
-                                    De historische waarde blijft alleen beschikbaar voor audit en technische inspectie.
+                                    <strong>Heffingskorting:</strong> wordt als <strong>aparte netto-credit</strong> toegepast.
+                                    Voor maandloon geldt de ingevoerde maandwaarde; voor <strong>FN / Fortnight</strong> rekent de payroll-engine deze pro-rata om naar 12/26 van de maandwaarde.
                                 </div>
                             </page>
                             <page string="AKB">
@@ -75,12 +75,12 @@
                             </page>
                             <page string="Technisch / Audit" groups="base.group_system">
                                 <group>
-                                    <group string="Historische / inactieve waarden">
+                                    <group string="Beheerde heffingskorting">
                                         <field name="heffingskorting" widget="monetary" options="{'currency_field': 'sr_currency_id'}"/>
                                     </group>
                                     <group string="Toelichting">
                                         <div class="text-muted">
-                                            Deze tab is alleen voor systeembeheer. De heffingskorting wordt opgeslagen voor audit en legacy-analyse, maar heeft momenteel geen actieve invloed op de wettelijke loonbelastingberekening.
+                                            Deze tab is alleen voor systeembeheer. De heffingskorting wordt als afzonderlijke nettocredit beheerd en verandert de Art. 14 LB-schijfbepaling zelf niet.
                                         </div>
                                     </group>
                                 </group>
