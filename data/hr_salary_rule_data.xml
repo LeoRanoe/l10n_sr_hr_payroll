@@ -670,7 +670,7 @@ else:
     gemiddelde = belastbaar_bijz_totaal / periodes
     gecorrigeerd = gross_per_tijdvak + gemiddelde
     lb_gecorr = payslip._sr_artikel14_lb(gecorrigeerd, aftrek_bv=aftrek_bv)
-    lb_bijz = max(0.0, lb_gecorr - lb_normaal)
+    lb_bijz = max(0.0, (lb_gecorr - lb_normaal) * periodes)
     result = -float_round(lb_bijz, precision_digits=2)
             </field>
         </record>
@@ -701,9 +701,8 @@ belastbaar_bijz_totaal = payslip._sr_bijz_belastbaar_totaal()
 if belastbaar_bijz_totaal &lt;= 0:
     result = 0.0
 else:
-    periodes = 12 if contract.sr_salary_type == 'monthly' else 26
     aov_tarief = payslip._rule_parameter('SR_AOV_TARIEF')
-    aov_bijz = (belastbaar_bijz_totaal / periodes) * aov_tarief
+    aov_bijz = belastbaar_bijz_totaal * aov_tarief
     result = -float_round(aov_bijz, precision_digits=2)
             </field>
         </record>

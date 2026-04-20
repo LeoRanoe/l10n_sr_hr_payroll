@@ -290,6 +290,52 @@ class TestAuditFixes(common.TransactionCase):
         self.assertAlmostEqual(self._line_total(payslip, 'SR_KB_VRIJ'), 300.0, places=2)
         self.assertAlmostEqual(self._line_total(payslip, 'SR_KB_BELAST'), 700.0, places=2)
 
+    def test_current_reference_parameter_write_updates_live_setting(self):
+        params = self.env['ir.config_parameter'].sudo()
+        params.set_param('sr_payroll.akb_max_bedrag', 1000.0)
+
+        parameter = self.env['hr.rule.parameter'].search([
+            ('code', '=', 'SR_KINDBIJ_MAX_MAAND')
+        ], limit=1)
+        current_version = parameter.parameter_version_ids.filtered(
+            lambda version: version.date_from and version.date_from <= date(2026, 4, 20)
+        ).sorted(lambda version: version.date_from)[-1]
+
+        current_version.write({'parameter_value': 300.0})
+
+        self.env.registry.clear_cache()
+        self.assertEqual(float(params.get_param('sr_payroll.akb_max_bedrag')), 300.0)
+        self.assertEqual(parameter.sr_current_value, '300.0')
+
+        contract = self._make_contract(
+            sr_aantal_kinderen=4,
+            sr_vaste_regels=[(0, 0, {
+                'name': 'Kinderbijslag',
+                'sr_categorie': 'vrijgesteld',
+                'amount': 1000.0,
+            })],
+        )
+        payslip = self._make_payslip(contract)
+        self.assertAlmostEqual(self._line_total(payslip, 'SR_KB_VRIJ'), 300.0, places=2)
+        self.assertAlmostEqual(self._line_total(payslip, 'SR_KB_BELAST'), 700.0, places=2)
+
+    def test_future_reference_parameter_write_does_not_override_today(self):
+        params = self.env['ir.config_parameter'].sudo()
+        params.set_param('sr_payroll.akb_max_bedrag', 1000.0)
+
+        parameter = self.env['hr.rule.parameter'].search([
+            ('code', '=', 'SR_KINDBIJ_MAX_MAAND')
+        ], limit=1)
+        self.env['hr.rule.parameter.value'].create({
+            'rule_parameter_id': parameter.id,
+            'date_from': date(2027, 1, 1),
+            'parameter_value': 1500.0,
+        })
+
+        self.env.registry.clear_cache()
+        self.assertEqual(float(params.get_param('sr_payroll.akb_max_bedrag')), 1000.0)
+        self.assertEqual(parameter.sr_current_value, '1000.0')
+
     def test_settings_default_values_match_2026_release(self):
         settings = self.env['res.config.settings'].create({})
 

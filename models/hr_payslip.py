@@ -283,14 +283,22 @@ class HrPayslip(models.Model):
             cap = cap * months / 12
         return cap
 
-    def _sr_bijz_usage_summary(self, remaining_cap=None, vrijstelling_max=None):
-        """Geeft vrijgesteld, belastbaar en resterende jaarcap terug voor Art. 17 inputs."""
+    def _sr_bijz_usage_summary(self, remaining_caps=None, vrijstelling_max=None):
+        """Geeft vrijgesteld, belastbaar en resterende jaarcaps terug voor Art. 17 inputs."""
         self.ensure_one()
         contract = self.contract_id
         if vrijstelling_max is None:
             vrijstelling_max = self._rule_parameter('SR_BIJZ_VRIJSTELLING_MAX')
-        if remaining_cap is None:
-            remaining_cap = vrijstelling_max
+        if remaining_caps is None:
+            remaining_caps = {
+                'vakantie': vrijstelling_max,
+                'gratificatie': vrijstelling_max,
+            }
+        else:
+            remaining_caps = {
+                'vakantie': remaining_caps.get('vakantie', vrijstelling_max),
+                'gratificatie': remaining_caps.get('gratificatie', vrijstelling_max),
+            }
 
         wage_maand = (contract.wage or 0.0) * self._sr_get_periodes() / 12
         vrijgesteld_used = 0.0
@@ -303,21 +311,25 @@ class HrPayslip(models.Model):
                 continue
 
             if cat == 'vakantie':
-                vrijstelling = min(2 * wage_maand, remaining_cap)
+                vrijstelling = min(2 * wage_maand, remaining_caps['vakantie'])
             elif cat == 'gratificatie':
-                vrijstelling = min(self._sr_bijz_gratificatie_cap(vrijstelling_max), remaining_cap)
+                vrijstelling = min(
+                    self._sr_bijz_gratificatie_cap(vrijstelling_max),
+                    remaining_caps['gratificatie'],
+                )
             else:
                 vrijstelling = 0.0
 
             actual_vrijstelling = min(vrijstelling, bruto)
-            remaining_cap = max(0.0, remaining_cap - actual_vrijstelling)
+            if cat in remaining_caps:
+                remaining_caps[cat] = max(0.0, remaining_caps[cat] - actual_vrijstelling)
             vrijgesteld_used += actual_vrijstelling
             belastbaar_totaal += max(0.0, bruto - actual_vrijstelling)
 
         return {
             'vrijgesteld': vrijgesteld_used,
             'belastbaar': belastbaar_totaal,
-            'remaining_cap': remaining_cap,
+            'remaining_caps': remaining_caps,
         }
 
     def _sr_bijz_belastbaar_totaal(self):
@@ -335,7 +347,10 @@ class HrPayslip(models.Model):
 
         # ── Year-to-date cap lookup ─────────────────────────────────────
         year_start = self.date_from.replace(month=1, day=1) if self.date_from else False
-        remaining_cap = vrijstelling_max
+        remaining_caps = {
+            'vakantie': vrijstelling_max,
+            'gratificatie': vrijstelling_max,
+        }
         if year_start:
             prev_slips = self.env['hr.payslip'].search([
                 ('employee_id', '=', self.employee_id.id),
@@ -346,13 +361,13 @@ class HrPayslip(models.Model):
             ], order='date_from, id')
             for ps in prev_slips:
                 usage = ps._sr_bijz_usage_summary(
-                    remaining_cap=remaining_cap,
+                    remaining_caps=remaining_caps,
                     vrijstelling_max=vrijstelling_max,
                 )
-                remaining_cap = usage['remaining_cap']
+                remaining_caps = usage['remaining_caps']
 
         current_usage = self._sr_bijz_usage_summary(
-            remaining_cap=remaining_cap,
+            remaining_caps=remaining_caps,
             vrijstelling_max=vrijstelling_max,
         )
         return current_usage['belastbaar']

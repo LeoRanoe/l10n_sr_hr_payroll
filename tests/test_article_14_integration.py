@@ -291,10 +291,31 @@ class TestIntegratieVolledigeCyclus(common.TransactionCase):
             msg='Gecombineerde Art. 17 grondslag klopt niet',
         )
         self.assertAlmostEqual(
-            aov_bijz, -19.0, places=2,
+            aov_bijz, -228.0, places=2,
             msg='AOV op gecombineerde bijzondere beloningen klopt niet',
         )
-        self.assertLess(lb_bijz, 0.0, 'LB bijzondere beloningen moet een inhouding zijn')
+        self.assertAlmostEqual(
+            lb_bijz, -2166.0, places=2,
+            msg='LB op gecombineerde bijzondere beloningen moet over het totale Art. 17 bedrag lopen',
+        )
+
+    def test_vakantie_en_gratificatie_gebruiken_aparte_jaarcaps(self):
+        """Vakantie en gratificatie mogen elkaars Art. 10i/10j vrijstelling niet verbruiken."""
+        contract = self._maak_contract(wage=20000.0)
+        payslip = self._maak_loonstrook(
+            contract,
+            date_from=date(2026, 12, 1),
+            date_to=date(2026, 12, 31),
+            inputs=[
+                self._maak_input('l10n_sr_hr_payroll.sr_input_vakantietoelage', 19500.0),
+                self._maak_input('l10n_sr_hr_payroll.sr_input_gratificatie', 19500.0),
+            ],
+        )
+
+        self.assertAlmostEqual(
+            payslip._sr_bijz_belastbaar_totaal(), 0.0, places=2,
+            msg='Vakantietoelage en gratificatie moeten elk hun eigen jaarvrijstelling behouden',
+        )
 
     def test_bijzondere_beloningen_ytd_cap_volgt_historische_contractstaat(self):
         """YTD vrijstellingsgebruik moet vorige slips met hun eigen loon/contract lezen."""
@@ -327,6 +348,33 @@ class TestIntegratieVolledigeCyclus(common.TransactionCase):
         self.assertAlmostEqual(
             huidige_slip._sr_bijz_belastbaar_totaal(), 0.0, places=2,
             msg='YTD-cap moet de historische vrijstelling uit vorige slips correct meenemen',
+        )
+
+    def test_historiese_vakantie_cap_verbruikt_gratificatie_cap_niet(self):
+        """Een eerdere vakantieslip mag de latere gratificatievrijstelling niet blokkeren."""
+        vorig_contract = self._maak_contract(
+            wage=20000.0,
+            employee=self.employee,
+            date_start=date(2026, 1, 1),
+        )
+        vorige_slip = self._maak_loonstrook(
+            vorig_contract,
+            date_from=date(2026, 3, 1),
+            date_to=date(2026, 3, 31),
+            inputs=[self._maak_input('l10n_sr_hr_payroll.sr_input_vakantietoelage', 19500.0)],
+        )
+        vorige_slip.write({'state': 'done'})
+
+        huidige_slip = self._maak_loonstrook(
+            vorig_contract,
+            date_from=date(2026, 12, 1),
+            date_to=date(2026, 12, 31),
+            inputs=[self._maak_input('l10n_sr_hr_payroll.sr_input_gratificatie', 19500.0)],
+        )
+
+        self.assertAlmostEqual(
+            huidige_slip._sr_bijz_belastbaar_totaal(), 0.0, places=2,
+            msg='Historische vakantietoelage mag de gratificatievrijstelling van hetzelfde jaar niet opmaken',
         )
 
     def test_uitkering_ineens_artikel_17a_regels(self):
