@@ -197,15 +197,19 @@ class TestArtikel14Berekening(common.TransactionCase):
         # AOV moet negatief zijn
         self.assertLess(aov, 0.0, 'AOV bijdrage moet negatief zijn (inhouding)')
 
-        # Nettoloon = bruto + LB + AOV (geen heffingskorting)
-        self.assertAlmostEqual(net, gross + lb + aov, places=2,
+        hk = self._get_line_total(payslip, 'SR_HK')
+
+        # Nettoloon = bruto + LB + AOV + heffingskorting
+        self.assertAlmostEqual(hk, 750.0, places=2,
+                       msg='Heffingskorting moet exact SRD 750 per maand zijn')
+        self.assertAlmostEqual(net, gross + lb + aov + hk, places=2,
                                msg='Nettoloon berekening klopt niet')
 
         self.assertAlmostEqual(abs(lb), 2025.13, places=2,
                        msg='LB voor het referentiesalaris wijkt af van het 2026 rekenvoorbeeld')
         self.assertAlmostEqual(abs(aov), 794.22, places=2,
                        msg='AOV voor het referentiesalaris wijkt af van het 2026 rekenvoorbeeld')
-        self.assertAlmostEqual(net, 17436.25, places=2,
+        self.assertAlmostEqual(net, 18186.25, places=2,
                        msg='Nettoloon voor het referentiesalaris moet tot op de cent kloppen')
 
         # Nettoloon moet lager zijn dan brutoloon
@@ -665,34 +669,12 @@ class TestArtikel14Breakdown(common.TransactionCase):
             self.assertIn(sleutel, bd,
                           f'Ontbrekende sleutel in breakdown: {sleutel}')
 
-    def test_breakdown_legacy_heffingskorting_volgt_payslip_netto(self):
+    def test_breakdown_actieve_heffingskorting_volgt_payslip_netto(self):
         """
-        Historische SR_HK-regels mogen de PDF-breakdown niet uit sync trekken.
-        De wettelijke grondslag blijft zonder HK, maar netto moet wel matchen
-        met de bestaande payslip-regels.
+        De actieve SR_HK-regel moet als afzonderlijke nettocredit zichtbaar zijn,
+        terwijl de wettelijke grondslag zonder HK blijft.
         """
         payslip = self._make_payslip(wage=25000.0)
-        hk_rule = self.env.ref('l10n_sr_hr_payroll.sr_rule_heffingskorting')
-        gross_line = payslip.line_ids.filtered(lambda l: l.code == 'GROSS')[:1]
-        net_line = payslip.line_ids.filtered(lambda l: l.code == 'NET')[:1]
-
-        self.env['hr.payslip.line'].create({
-            'name': 'Heffingskorting (legacy)',
-            'code': 'SR_HK',
-            'sequence': 55,
-            'category_id': hk_rule.category_id.id,
-            'salary_rule_id': hk_rule.id,
-            'slip_id': payslip.id,
-            'employee_id': payslip.employee_id.id,
-            'contract_id': payslip.contract_id.id,
-            'company_id': payslip.company_id.id,
-            'amount': 750.0,
-            'quantity': 1.0,
-            'rate': 100.0,
-            'total': 750.0,
-        })
-        gross_line.total += 750.0
-        net_line.total += 750.0
 
         bd = payslip._get_sr_artikel14_breakdown()
 
@@ -739,7 +721,7 @@ class TestArtikel14Breakdown(common.TransactionCase):
         self.assertEqual(bd['franchise_periode'], 0.0,
                          'Fortnight heeft geen AOV franchise')
         self.assertEqual(bd['fn_period_label'], '2026FN10')
-        self.assertEqual(bd['fn_period_indicator'], '202510')
+        self.assertEqual(bd['fn_period_indicator'], '202610')
 
     def test_breakdown_lb_stemt_overeen_met_salarisregel(self):
         """

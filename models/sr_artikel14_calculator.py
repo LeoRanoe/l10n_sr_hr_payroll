@@ -365,7 +365,7 @@ def calculate_lb(bruto_per_periode, periodes, params, aftrek_bv_per_periode=0.0)
 
     lb_jaar = sum(row['tax'] for row in bracket_rows)
 
-    # LB per periode — conform context formules (geen heffingskorting)
+    # LB per periode — heffingskorting wordt separaat als nettocredit verwerkt
     lb_per_periode = lb_jaar / periodes_dec
 
     # AOV — ook over gecorrigeerd bruto (Art. 10f aftrek)
@@ -413,7 +413,8 @@ def calculate_lb(bruto_per_periode, periodes, params, aftrek_bv_per_periode=0.0)
 def generate_breakdown_html(result, wage, periodes, salary_type, kb_split=None,
                             vrijgesteld=0.0, inhoudingen=0.0,
                             belastbaar_toelagen=0.0,
-                            bruto_totaal=None, netto_totaal=None):
+                            bruto_totaal=None, netto_totaal=None,
+                            heffingskorting=0.0):
     """
     Genereert een stap-voor-stap berekeningsoverzicht (debug panel) als HTML.
 
@@ -480,6 +481,7 @@ def generate_breakdown_html(result, wage, periodes, salary_type, kb_split=None,
 
     netto = netto_totaal if netto_totaal is not None else (
         bruto_display
+        + heffingskorting
         - r['lb_per_periode']
         - r['aov_per_periode']
         - inhoudingen
@@ -572,6 +574,8 @@ def generate_breakdown_html(result, wage, periodes, salary_type, kb_split=None,
     rows.append(row('<strong>= Bruto per periode</strong>', '', m(bruto_display), '#f0f9ff'))
     rows.append(row('− LB (Art. 14)', '', m(r['lb_per_periode'], '-')))
     rows.append(row('− AOV (4%)', '', m(r['aov_per_periode'], '-')))
+    if heffingskorting > 0:
+        rows.append(row('+ Heffingskorting', '', m(heffingskorting, '+')))
     if inhoudingen > 0:
         rows.append(row('− Inhoudingen (netto)', '', m(inhoudingen, '-')))
     if r.get('aftrek_bv_per_periode', 0.0) > 0:

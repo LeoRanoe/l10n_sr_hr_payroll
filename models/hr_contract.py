@@ -120,6 +120,7 @@ class HrContract(models.Model):
 
         for contract in self:
             periodes = 26 if contract.sr_salary_type == 'fn' else 12
+            heffingskorting = contract._sr_get_heffingskorting_per_periode()
 
             belastbaar_toelagen = contract._sr_resolve_regels('belastbaar')
             vrijgesteld_toelagen = contract._sr_resolve_other_vrijgestelde_regels()
@@ -145,6 +146,7 @@ class HrContract(models.Model):
             contract.sr_preview_aov_periode = result['aov_per_periode']
             contract.sr_preview_netto = (
                 bruto_totaal
+                + heffingskorting
                 - result['lb_per_periode']
                 - result['aov_per_periode']
                 - inhoudingen
@@ -161,6 +163,7 @@ class HrContract(models.Model):
                 belastbaar_toelagen=belastbaar_toelagen,
                 bruto_totaal=bruto_totaal,
                 netto_totaal=contract.sr_preview_netto,
+                heffingskorting=heffingskorting,
             )
 
     @api.onchange('sr_aantal_kinderen')
@@ -221,6 +224,22 @@ class HrContract(models.Model):
             contract.sr_tax_bracket_html = html
 
     # ── Helper methoden voor berekeningen ──────────────────────────────
+
+    def _sr_get_heffingskorting_per_periode(self, heffingskorting_maand=None):
+        """Geeft de netto heffingskorting terug voor maandloon of FN."""
+        self.ensure_one()
+        if heffingskorting_maand is None:
+            heffingskorting_maand = calc.get_sr_parameter_value(
+                self.env, 'SR_HEFFINGSKORTING', Date.today(),
+                default=750.0, raise_if_not_found=False,
+            )
+        if not heffingskorting_maand:
+            return 0.0
+
+        periodes = 26 if self.sr_salary_type == 'fn' else 12
+        if periodes == 12:
+            return calc.round_money(heffingskorting_maand)
+        return calc.round_money(heffingskorting_maand * 12.0 / 26.0)
 
     def _sr_resolve_line_amount(self, line):
         """
