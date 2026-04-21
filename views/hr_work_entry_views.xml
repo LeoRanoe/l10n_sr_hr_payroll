@@ -69,6 +69,42 @@
                     confirm="Weet u zeker dat u deze gevalideerde work entry terug naar Concept wilt zetten? Loonstroken die al zijn verwerkt voor deze periode kunnen hierdoor incorrect worden."/>
             </xpath>
 
+            <!-- Suriname overwerk &amp; audit sectie in het formulier -->
+            <xpath expr="//field[@name='duration']" position="after">
+                <separator string="Suriname Overwerk &amp; Registratie"/>
+                <group name="sr_overtime_group" string="Overwerk Buckets">
+                    <group>
+                        <field name="sr_overtime_150"
+                               readonly="state == 'validated' and not sr_is_admin"/>
+                        <field name="sr_overtime_200"
+                               readonly="state == 'validated' and not sr_is_admin"/>
+                    </group>
+                    <group>
+                        <field name="sr_manual_override"
+                               readonly="state == 'validated' and not sr_is_admin"/>
+                        <field name="sr_entry_source"
+                               readonly="state == 'validated' and not sr_is_admin"/>
+                        <field name="sr_import_batch"
+                               readonly="state == 'validated' and not sr_is_admin"
+                               invisible="sr_entry_source != 'import'"/>
+                    </group>
+                </group>
+            </xpath>
+
+        </field>
+    </record>
+
+    <!-- ── Tree/List view uitbreiding: overwerk-kolommen ──────────────── -->
+    <record id="hr_work_entry_view_list_sr_overtime" model="ir.ui.view">
+        <field name="name">hr.work.entry.list.sr.overtime</field>
+        <field name="model">hr.work.entry</field>
+        <field name="inherit_id" ref="hr_work_entry.hr_work_entry_view_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='duration']" position="after">
+                <field name="sr_overtime_150" optional="show" string="OT 150% (u)"/>
+                <field name="sr_overtime_200" optional="show" string="OT 200% (u)"/>
+                <field name="sr_entry_source" optional="hide"/>
+            </xpath>
         </field>
     </record>
 

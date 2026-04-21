@@ -141,6 +141,19 @@ class HrPayslip(models.Model):
         return float(hourly_rate.quantize(_SR_HOURLY_RATE_QUANT, rounding=ROUND_HALF_UP))
 
     def _sr_sync_overtime_inputs_from_work_entries(self):
+        """
+        Synchroniseer overwerk payslip-inputs vanuit gevalideerde work entries.
+
+        Nieuwe aanpak (v3.1+):
+          - Leest sr_overtime_150 en sr_overtime_200 buckets van elke work entry
+          - Maakt aparte inputs aan voor SR_IN_OVERWERK_150 en SR_IN_OVERWERK_200
+          - Multipliers (1,5× en 2,0×) worden gelezen uit ir.config_parameter
+          - Medewerkers zonder overwerkrecht (sr_has_overtime_right=False) worden overgeslagen
+
+        Backward-compat pad:
+          - Entries met sr_is_overtime=True maar zonder gevulde buckets worden
+            verwerkt via het originele sr_overtime_multiplier-mechanisme.
+        """
         self.ensure_one()
 
         generated_inputs = self.input_line_ids.filtered('sr_generated_from_work_entry')
@@ -148,44 +161,110 @@ class HrPayslip(models.Model):
             generated_inputs.unlink()
 
         sr_struct = self.env.ref('l10n_sr_hr_payroll.sr_payroll_structure', raise_if_not_found=False)
-        overtime_type = self.env.ref('l10n_sr_hr_payroll.sr_input_overwerk', raise_if_not_found=False)
-        if self.struct_id != sr_struct or not overtime_type or not self.contract_id or not self.date_from or not self.date_to:
-            return
-        if getattr(self.contract_id, 'wage_type', 'monthly') != 'monthly':
+        if self.struct_id != sr_struct or not self.contract_id or not self.date_from or not self.date_to:
             return
 
-        period_start = datetime.combine(self.date_from, time.min)
-        period_stop = datetime.combine(self.date_to + timedelta(days=1), time.min)
+        # Medewerkers zonder overwerkrecht krijgen geen variabele overwerkinput
+        if not self.contract_id.sr_has_overtime_right:
+            return
+
         hourly_rate = self._sr_get_hourly_rate()
         if hourly_rate <= 0:
             return
 
+        period_start = datetime.combine(self.date_from, time.min)
+        period_stop = datetime.combine(self.date_to + timedelta(days=1), time.min)
+
+        # Zoek alle gevalideerde work entries in de loonperiode
         work_entries = self.env['hr.work.entry'].search([
             ('contract_id', '=', self.contract_id.id),
             ('date_start', '<', period_stop),
             ('date_stop', '>', period_start),
             ('state', '=', 'validated'),
-            ('work_entry_type_id.sr_is_overtime', '=', True),
         ], order='date_start, id')
 
+        # Lees multiplier-factors uit configuratie
+        config = self.env['ir.config_parameter'].sudo()
+        factor_150 = float(config.get_param('sr_payroll.overwerk_factor_150', '1.5'))
+        factor_200 = float(config.get_param('sr_payroll.overwerk_factor_200', '2.0'))
+
+        # Sommeer bucket-uren over alle entries; legacy entries apart bijhouden
+        total_ot_150 = Decimal('0')
+        total_ot_200 = Decimal('0')
+        legacy_entries = []
+
         for entry in work_entries:
-            effective_start = max(entry.date_start, period_start)
-            effective_stop = min(entry.date_stop, period_stop)
-            hours = max(0.0, (effective_stop - effective_start).total_seconds() / 3600.0)
-            if hours <= 0:
-                continue
-            multiplier = entry.work_entry_type_id.sr_overtime_multiplier or 1.0
-            amount = float(self._sr_money_quantize(Decimal(str(hours)) * Decimal(str(hourly_rate)) * Decimal(str(multiplier))))
-            if amount <= 0:
-                continue
-            self.env['hr.payslip.input'].create({
-                'payslip_id': self.id,
-                'name': f'{entry.work_entry_type_id.name} ({hours:.2f}u)',
-                'input_type_id': overtime_type.id,
-                'amount': amount,
-                'sr_generated_from_work_entry': True,
-                'sr_work_entry_id': entry.id,
-            })
+            has_buckets = (entry.sr_overtime_150 or 0.0) > 0 or (entry.sr_overtime_200 or 0.0) > 0
+            if has_buckets:
+                total_ot_150 += Decimal(str(entry.sr_overtime_150 or 0.0))
+                total_ot_200 += Decimal(str(entry.sr_overtime_200 or 0.0))
+            elif entry.work_entry_type_id.sr_is_overtime:
+                # Backward-compat: entry met overtijdtype maar zonder gevulde buckets
+                legacy_entries.append(entry)
+
+        # ── Nieuwe bucket-aanpak ──────────────────────────────────────────
+        if total_ot_150 > 0:
+            ot_type_150 = self.env.ref(
+                'l10n_sr_hr_payroll.sr_input_overwerk_150', raise_if_not_found=False
+            )
+            if ot_type_150:
+                amount = float(self._sr_money_quantize(
+                    total_ot_150 * Decimal(str(hourly_rate)) * Decimal(str(factor_150))
+                ))
+                if amount > 0:
+                    hrs = float(total_ot_150)
+                    self.env['hr.payslip.input'].create({
+                        'payslip_id': self.id,
+                        'name': f'Overwerk 150% ({hrs:.2f}u \u00d7 SRD {hourly_rate:.4f}/u \u00d7 {factor_150})',
+                        'input_type_id': ot_type_150.id,
+                        'amount': amount,
+                        'sr_generated_from_work_entry': True,
+                    })
+
+        if total_ot_200 > 0:
+            ot_type_200 = self.env.ref(
+                'l10n_sr_hr_payroll.sr_input_overwerk_200', raise_if_not_found=False
+            )
+            if ot_type_200:
+                amount = float(self._sr_money_quantize(
+                    total_ot_200 * Decimal(str(hourly_rate)) * Decimal(str(factor_200))
+                ))
+                if amount > 0:
+                    hrs = float(total_ot_200)
+                    self.env['hr.payslip.input'].create({
+                        'payslip_id': self.id,
+                        'name': f'Overwerk 200% ({hrs:.2f}u \u00d7 SRD {hourly_rate:.4f}/u \u00d7 {factor_200})',
+                        'input_type_id': ot_type_200.id,
+                        'amount': amount,
+                        'sr_generated_from_work_entry': True,
+                    })
+
+        # ── Backward-compat: legacy overtime entries (geen buckets) ────────
+        if legacy_entries:
+            overtime_type = self.env.ref(
+                'l10n_sr_hr_payroll.sr_input_overwerk', raise_if_not_found=False
+            )
+            if overtime_type:
+                for entry in legacy_entries:
+                    effective_start = max(entry.date_start, period_start)
+                    effective_stop = min(entry.date_stop, period_stop)
+                    hours = max(0.0, (effective_stop - effective_start).total_seconds() / 3600.0)
+                    if hours <= 0:
+                        continue
+                    multiplier = entry.work_entry_type_id.sr_overtime_multiplier or 1.0
+                    amount = float(self._sr_money_quantize(
+                        Decimal(str(hours)) * Decimal(str(hourly_rate)) * Decimal(str(multiplier))
+                    ))
+                    if amount <= 0:
+                        continue
+                    self.env['hr.payslip.input'].create({
+                        'payslip_id': self.id,
+                        'name': f'{entry.work_entry_type_id.name} ({hours:.2f}u)',
+                        'input_type_id': overtime_type.id,
+                        'amount': amount,
+                        'sr_generated_from_work_entry': True,
+                        'sr_work_entry_id': entry.id,
+                    })
 
     def _sr_get_periodes(self):
         """Bepaalt het aantal periodes per jaar: 12 (maandloon) of 26 (fortnight)."""

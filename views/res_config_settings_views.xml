@@ -72,6 +72,20 @@
                                         <field name="overwerk_tarief_3"/>
                                     </group>
                                 </group>
+                                <group>
+                                    <group string="Vermenigvuldigers">
+                                        <field name="overwerk_factor_150"/>
+                                        <field name="overwerk_factor_200"/>
+                                    </group>
+                                    <group>
+                                        <div class="text-muted">
+                                            De vermenigvuldigers bepalen het bruto overwerkbedrag per uur:
+                                            uurloon × factor.<br/>
+                                            <strong>150%</strong> geldt voor werkdagen (Ma–Za).<br/>
+                                            <strong>200%</strong> geldt voor zondag of een wettelijke feestdag.
+                                        </div>
+                                    </group>
+                                </group>
                             </page>
                             <page string="Technisch / Audit" groups="base.group_system">
                                 <group>
