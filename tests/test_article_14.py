@@ -652,6 +652,7 @@ class TestArtikel14Breakdown(common.TransactionCase):
         verwachte_sleutels = [
             'periodes', 'is_fn', 'fn_period_label', 'fn_period_indicator',
             'payslip_layout', 'payslip_layout_label',
+            'period_title', 'employee_reference', 'employment_start_date', 'bank_account_number', 'bank_name', 'hourly_wage',
             'basic', 'toelagen', 'kinderbijslag',
             'bruto_per_periode', 'bruto_totaal', 'bruto_jaarloon',
             'belastingvrij_jaar', 'forfaitaire_pct', 'forfaitaire_jaar',
@@ -664,6 +665,9 @@ class TestArtikel14Breakdown(common.TransactionCase):
             'franchise_periode', 'aov_grondslag', 'aov_tarief_pct', 'aov_per_periode',
             'aftrek_bv', 'heffingskorting', 'pensioen', 'contract_inhoudingen', 'input_inhoudingen',
             'earnings_lines', 'deductions_lines', 'summary_cards',
+            'payslip_line_rows', 'belasting_line_rows',
+            'display_debit_total', 'display_credit_total', 'display_net_total',
+            'belasting_paid_total', 'belasting_tax_total', 'belasting_aov_total',
             'totaal_lb', 'totaal_aov',
             'totaal_inhoudingen', 'netto',
         ]
@@ -677,9 +681,11 @@ class TestArtikel14Breakdown(common.TransactionCase):
         bd = payslip._get_sr_artikel14_breakdown()
 
         self.assertEqual(bd['payslip_layout'], 'employee_simple')
-        self.assertEqual(bd['payslip_layout_label'], 'Werknemer Overzichtelijk')
+        self.assertEqual(bd['payslip_layout_label'], 'Debet / Credit')
         self.assertTrue(any(line['name'] == 'Salaris' for line in bd['earnings_lines']))
         self.assertTrue(any(card['label'] == 'Netto loon' for card in bd['summary_cards']))
+        self.assertTrue(any(row['name'] == 'SALARIS' for row in bd['payslip_line_rows']))
+        self.assertIsInstance(bd['display_debit_total'], float)
 
     def test_payslip_layout_default_volgt_config_parameter(self):
         """Nieuwe loonstroken moeten de geconfigureerde standaardlayout overnemen."""
