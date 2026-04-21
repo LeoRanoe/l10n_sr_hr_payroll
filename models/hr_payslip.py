@@ -15,8 +15,8 @@ _SR_MONEY_QUANT = Decimal('0.01')
 _SR_HOURLY_RATE_QUANT = Decimal('0.000001')
 _SR_PAYSLIP_LAYOUT_DEFAULT = 'employee_simple'
 _SR_PAYSLIP_LAYOUTS = [
-    ('employee_simple', 'Werknemer Overzichtelijk'),
-    ('compact', 'Compact'),
+    ('employee_simple', 'Debet / Credit'),
+    ('compact', 'Belasting Overzicht'),
     ('detailed', 'Uitgebreid (Artikel 14 detail)'),
 ]
 
@@ -619,14 +619,101 @@ class HrPayslip(models.Model):
         if heffingskorting > 0:
             summary_cards.insert(1, {'label': 'Heffingskorting', 'amount': heffingskorting, 'tone': 'positive'})
 
+        employee = self.employee_id
+        bank_account = employee.bank_account_id
+        employment_start_date = getattr(employee, 'first_contract_date', False) or contract.date_start
+        employee_reference = employee.identification_id or str(employee.id)
+        bank_account_number = bank_account.acc_number or bank_account.sanitized_acc_number or False
+        bank_name = bank_account.bank_id.name if bank_account and bank_account.bank_id else False
+        period_title = self.date_to.strftime('%b %Y').upper() if self.date_to else ''
+        if fn_period:
+            period_title = f'{period_title} {fn_period["label"]}'
+
+        line_label_map = {
+            'BASIC': 'SALARIS',
+            'SR_ALW': 'TOELAGEN',
+            'SR_KB_VRIJ': 'KINDERBIJSLAG',
+            'SR_KB_BELAST': 'KINDERBIJSLAG BELAST',
+            'SR_KINDBIJ': 'VRIJGESTELDE VERGOEDINGEN',
+            'SR_INPUT_BELASTB': 'BELASTBARE INPUT',
+            'SR_INPUT_VRIJ': 'VRIJGESTELDE INPUT',
+            'SR_OVERWERK': 'OVERWERK',
+            'SR_VAKANTIE': 'VAKANTIETOELAGE',
+            'SR_GRAT': 'GRATIFICATIE',
+            'SR_BIJZ': 'BIJZONDERE BELONING',
+            'SR_UITK_INEENS': 'UITKERING INEENS',
+            'SR_LB': 'LOONBELASTING',
+            'SR_LB_BIJZ': 'LOONBELASTING BIJZ.',
+            'SR_LB_17A': 'LOONBELASTING 17A',
+            'SR_LB_OVERWERK': 'LOONBELASTING OVERWERK',
+            'SR_AOV': 'PREMIE AOV',
+            'SR_AOV_BIJZ': 'PREMIE AOV BIJZ.',
+            'SR_AOV_17A': 'PREMIE AOV 17A',
+            'SR_AOV_OVERWERK': 'PREMIE AOV OVERWERK',
+            'SR_PENSIOEN': 'PENSIOENFONDS',
+            'SR_INPUT_AFTREK': 'INHOUDING PAYSLIP',
+            'SR_AFTREK_BV': 'AFTREK BEDRIJFSVOORHEFFING',
+            'SR_HK': 'HEFFINGSKORTING',
+        }
+
+        payslip_line_rows = []
+        belasting_line_rows = []
+        display_line_codes_to_skip = {'GROSS', 'NET'}
+        for line in self.line_ids.sorted(lambda record: (record.sequence, record.code or '', record.id)):
+            total = line.total or 0.0
+            if line.code in display_line_codes_to_skip or not line.appears_on_payslip or abs(total) < 0.005:
+                continue
+
+            quantity = line.quantity or 0.0
+            quantity_display = ''
+            if abs(quantity - 1.0) > 0.0001 and abs(quantity) > 0.0001:
+                quantity_display = '{:,.2f}'.format(quantity).rstrip('0').rstrip('.')
+
+            line_name = (line_label_map.get(line.code) or line.name or line.salary_rule_id.name or line.code or '').upper()
+            debit = total if total > 0 else 0.0
+            credit = abs(total) if total < 0 else 0.0
+            net_line = debit - credit
+            payslip_line_rows.append({
+                'code': line.code,
+                'name': line_name,
+                'quantity': quantity,
+                'quantity_display': quantity_display,
+                'debit': debit,
+                'credit': credit,
+                'net': net_line,
+            })
+
+            if line.code != 'SR_HK':
+                belasting_line_rows.append({
+                    'code': line.code,
+                    'name': line_name,
+                    'quantity_display': quantity_display,
+                    'verloond_bedrag': total if not line.code.startswith('SR_LB') and not line.code.startswith('SR_AOV') else 0.0,
+                    'loonbelasting': abs(total) if line.code.startswith('SR_LB') else 0.0,
+                    'premie_aov': abs(total) if line.code.startswith('SR_AOV') else 0.0,
+                })
+
+        display_debit_total = sum(row['debit'] for row in payslip_line_rows)
+        display_credit_total = sum(row['credit'] for row in payslip_line_rows)
+        display_net_total = display_debit_total - display_credit_total
+        belasting_paid_total = sum(row['verloond_bedrag'] for row in belasting_line_rows)
+        belasting_tax_total = sum(row['loonbelasting'] for row in belasting_line_rows)
+        belasting_aov_total = sum(row['premie_aov'] for row in belasting_line_rows)
+
         return {
             # Basis
             'periodes': periodes,
             'is_fn': periodes == 26,
             'payslip_layout': self.sr_payslip_layout or _SR_PAYSLIP_LAYOUT_DEFAULT,
             'payslip_layout_label': self._sr_get_layout_label(),
+            'period_title': period_title,
             'fn_period_indicator': fn_period['indicator'] if fn_period else False,
             'fn_period_label': fn_period['label'] if fn_period else False,
+            'employee_reference': employee_reference,
+            'employment_start_date': employment_start_date,
+            'bank_account_number': bank_account_number,
+            'bank_name': bank_name,
+            'hourly_wage': getattr(contract, 'sr_hourly_wage', 0.0),
             'basic': basic,
             'toelagen': toelagen,
             'kinderbijslag': kinderbijslag,
@@ -690,6 +777,14 @@ class HrPayslip(models.Model):
             'earnings_lines': earnings_lines,
             'deductions_lines': deductions_lines,
             'summary_cards': summary_cards,
+            'payslip_line_rows': payslip_line_rows,
+            'belasting_line_rows': belasting_line_rows,
+            'display_debit_total': display_debit_total,
+            'display_credit_total': display_credit_total,
+            'display_net_total': display_net_total,
+            'belasting_paid_total': belasting_paid_total,
+            'belasting_tax_total': belasting_tax_total,
+            'belasting_aov_total': belasting_aov_total,
             'totaal_lb': totaal_lb,
             'totaal_aov': totaal_aov,
             'totaal_inhoudingen': totaal_inhoudingen,

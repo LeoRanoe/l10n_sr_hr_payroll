@@ -100,8 +100,8 @@
                                     </group>
                                 </group>
                                 <div class="alert alert-secondary mt-3 mb-0" role="alert">
-                                    <strong>Werknemer Overzichtelijk</strong> toont een rustige loonstrook met bruto, inhoudingen en netto.<br/>
-                                    <strong>Compact</strong> gebruikt een kortere één-pagina layout voor snelle controle.<br/>
+                                    <strong>Debet / Credit</strong> volgt een klassieke salarisstrook met personeelskop en kolommen voor aantal, debet, credit en netto.<br/>
+                                    <strong>Belasting Overzicht</strong> toont de bedragen in belastingkolommen zoals verloond bedrag, loonbelasting en premie AOV.<br/>
                                     <strong>Uitgebreid</strong> behoudt de volledige Artikel 14 en AOV detailberekening.
                                 </div>
                             </page>
