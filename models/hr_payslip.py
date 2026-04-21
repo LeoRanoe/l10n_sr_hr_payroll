@@ -13,6 +13,12 @@ from . import sr_artikel14_calculator as calc
 _sr_calc_cache = {}
 _SR_MONEY_QUANT = Decimal('0.01')
 _SR_HOURLY_RATE_QUANT = Decimal('0.000001')
+_SR_PAYSLIP_LAYOUT_DEFAULT = 'employee_simple'
+_SR_PAYSLIP_LAYOUTS = [
+    ('employee_simple', 'Werknemer Overzichtelijk'),
+    ('compact', 'Compact'),
+    ('detailed', 'Uitgebreid (Artikel 14 detail)'),
+]
 
 SR_FN_2026_PERIODS = (
     {'indicator': '202601', 'label': '2026FN1', 'date_from': dt_date(2026, 1, 1), 'date_to': dt_date(2026, 1, 14)},
@@ -53,6 +59,22 @@ class HrPayslip(models.Model):
         store=True,
         compute_sudo=True,
     )
+    sr_payslip_layout = fields.Selection(
+        selection=_SR_PAYSLIP_LAYOUTS,
+        string='Loonstrook Layout',
+        default=lambda self: self._default_sr_payslip_layout(),
+        copy=False,
+        help='Kies welke loonstrooklayout gebruikt wordt voor deze SR-loonstrook.',
+    )
+
+    @api.model
+    def _default_sr_payslip_layout(self):
+        value = self.env['ir.config_parameter'].sudo().get_param(
+            'sr_payroll.default_payslip_layout',
+            default=_SR_PAYSLIP_LAYOUT_DEFAULT,
+        )
+        valid_values = {key for key, _label in _SR_PAYSLIP_LAYOUTS}
+        return value if value in valid_values else _SR_PAYSLIP_LAYOUT_DEFAULT
 
     @api.depends('struct_id')
     def _compute_sr_is_sr_struct(self):
@@ -91,6 +113,13 @@ class HrPayslip(models.Model):
             if default is not None:
                 return default
         return super()._rule_parameter(code)
+
+    def _sr_get_layout_label(self):
+        self.ensure_one()
+        return dict(_SR_PAYSLIP_LAYOUTS).get(
+            self.sr_payslip_layout or _SR_PAYSLIP_LAYOUT_DEFAULT,
+            dict(_SR_PAYSLIP_LAYOUTS)[_SR_PAYSLIP_LAYOUT_DEFAULT],
+        )
 
     def _sr_money_quantize(self, value, quant=_SR_MONEY_QUANT):
         self.ensure_one()
@@ -543,10 +572,59 @@ class HrPayslip(models.Model):
                 'amount': input_line.amount,
             })
 
+        earnings_lines = []
+
+        def _append_amount_line(target, label, amount, style='normal'):
+            if abs(amount or 0.0) < 0.005:
+                return
+            target.append({
+                'name': label,
+                'amount': abs(amount),
+                'style': style,
+            })
+
+        _append_amount_line(earnings_lines, 'Salaris', basic, 'primary')
+        _append_amount_line(earnings_lines, 'Toelagen', toelagen)
+        _append_amount_line(earnings_lines, 'Kinderbijslag', kinderbijslag, 'muted')
+        _append_amount_line(earnings_lines, 'Vrijgestelde vergoedingen', vrijgesteld_contract, 'muted')
+        _append_amount_line(earnings_lines, 'Belastbare payslip inputs', input_belastbaar)
+        _append_amount_line(earnings_lines, 'Vrijgestelde payslip inputs', input_vrijgesteld, 'muted')
+        _append_amount_line(earnings_lines, 'Overwerk', overwerk)
+        _append_amount_line(earnings_lines, 'Vakantiegeld', vakantie)
+        _append_amount_line(earnings_lines, 'Gratificatie', gratificatie)
+        _append_amount_line(earnings_lines, 'Bijzondere beloning', bijz_beloning)
+        _append_amount_line(earnings_lines, 'Uitkering ineens', uitkering_ineens)
+
+        deductions_lines = []
+        _append_amount_line(deductions_lines, 'Loonbelasting', lb_per_periode, 'tax')
+        _append_amount_line(deductions_lines, 'LB bijzondere beloningen', lb_bijz, 'tax')
+        _append_amount_line(deductions_lines, 'LB uitkering ineens', lb_17a, 'tax')
+        _append_amount_line(deductions_lines, 'LB overwerk', lb_overwerk, 'tax')
+        _append_amount_line(deductions_lines, 'AOV', aov_per_periode, 'tax')
+        _append_amount_line(deductions_lines, 'AOV bijzondere beloningen', aov_bijz, 'tax')
+        _append_amount_line(deductions_lines, 'AOV uitkering ineens', aov_17a, 'tax')
+        _append_amount_line(deductions_lines, 'AOV overwerk', aov_overwerk, 'tax')
+        _append_amount_line(deductions_lines, 'Pensioenfonds', pensioen)
+        _append_amount_line(deductions_lines, 'Aftrek bedrijfsvoorheffing', aftrek_bv)
+        for inhouding in contract_inhoudingen:
+            _append_amount_line(deductions_lines, inhouding['name'], inhouding['amount'])
+        for inhouding in input_inhoudingen:
+            _append_amount_line(deductions_lines, inhouding['name'], inhouding['amount'])
+
+        summary_cards = [
+            {'label': 'Bruto loon', 'amount': bruto_totaal, 'tone': 'neutral'},
+            {'label': 'Totale inhoudingen', 'amount': totaal_inhoudingen + aftrek_bv, 'tone': 'danger'},
+            {'label': 'Netto loon', 'amount': netto, 'tone': 'success'},
+        ]
+        if heffingskorting > 0:
+            summary_cards.insert(1, {'label': 'Heffingskorting', 'amount': heffingskorting, 'tone': 'positive'})
+
         return {
             # Basis
             'periodes': periodes,
             'is_fn': periodes == 26,
+            'payslip_layout': self.sr_payslip_layout or _SR_PAYSLIP_LAYOUT_DEFAULT,
+            'payslip_layout_label': self._sr_get_layout_label(),
             'fn_period_indicator': fn_period['indicator'] if fn_period else False,
             'fn_period_label': fn_period['label'] if fn_period else False,
             'basic': basic,
@@ -609,6 +687,9 @@ class HrPayslip(models.Model):
             'input_aftrek': input_aftrek,
             'contract_inhoudingen': contract_inhoudingen,
             'input_inhoudingen': input_inhoudingen,
+            'earnings_lines': earnings_lines,
+            'deductions_lines': deductions_lines,
+            'summary_cards': summary_cards,
             'totaal_lb': totaal_lb,
             'totaal_aov': totaal_aov,
             'totaal_inhoudingen': totaal_inhoudingen,
@@ -616,11 +697,11 @@ class HrPayslip(models.Model):
         }
 
     def action_print_sr_payslip(self):
-        """Print de Surinaamse Loonstrook als PDF (Artikel 14 WLB)."""
+        """Print de gekozen SR-loonstrooklayout als PDF."""
         self.ensure_one()
         return self.env.ref('l10n_sr_hr_payroll.action_report_payslip_sr').report_action(self)
 
     def action_preview_sr_payslip(self):
-        """Bekijk de Surinaamse Loonstrook als HTML preview."""
+        """Bekijk de gekozen SR-loonstrooklayout als HTML preview."""
         self.ensure_one()
         return self.env.ref('l10n_sr_hr_payroll.action_report_payslip_sr_preview').report_action(self)
