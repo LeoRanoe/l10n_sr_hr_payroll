@@ -87,6 +87,24 @@
                                     </group>
                                 </group>
                             </page>
+                            <page string="Loonstroken">
+                                <group>
+                                    <group string="Standaard weergave">
+                                        <field name="sr_default_payslip_layout"/>
+                                    </group>
+                                    <group string="Toelichting">
+                                        <div class="text-muted">
+                                            Nieuwe SR-loonstroken nemen deze layout standaard over.
+                                            Payroll kan de keuze nog per loonstrook aanpassen in het loonstrookformulier.
+                                        </div>
+                                    </group>
+                                </group>
+                                <div class="alert alert-secondary mt-3 mb-0" role="alert">
+                                    <strong>Werknemer Overzichtelijk</strong> toont een rustige loonstrook met bruto, inhoudingen en netto.<br/>
+                                    <strong>Compact</strong> gebruikt een kortere één-pagina layout voor snelle controle.<br/>
+                                    <strong>Uitgebreid</strong> behoudt de volledige Artikel 14 en AOV detailberekening.
+                                </div>
+                            </page>
                             <page string="Technisch / Audit" groups="base.group_system">
                                 <group>
                                     <group string="Beheerde heffingskorting">

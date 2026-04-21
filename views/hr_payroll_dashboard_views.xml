@@ -176,6 +176,13 @@
         <field name="model">hr.payslip</field>
         <field name="inherit_id" ref="hr_payroll.view_hr_payslip_form"/>
         <field name="arch" type="xml">
+            <xpath expr="//field[@name='struct_id']" position="after">
+                <field
+                    name="sr_payslip_layout"
+                    invisible="not sr_is_sr_struct"
+                    readonly="state in ['cancel', 'done', 'paid']"
+                    help="Kies per SR-loonstrook welke layout werknemers of payrollgebruikers te zien krijgen."/>
+            </xpath>
             <!-- Voeg Print + Preview knoppen toe aan de bestaande button_box -->
             <xpath expr="//div[@name='button_box']" position="inside">
                 <field name="sr_is_sr_struct" invisible="1"/>

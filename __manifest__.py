@@ -54,6 +54,7 @@ Berekeningen:
         'views/hr_payroll_help_views.xml',
         'views/sr_help_template.xml',
         'reports/report_payslip_sr.xml',
+        'reports/report_payslip_sr_layouts.xml',
     ],
     'demo': [],
     'license': 'LGPL-3',

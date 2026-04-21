@@ -116,8 +116,10 @@
                             <group string="Eenmalige &amp; Variabele Betalingen (via Loonstrook)" name="sr_payslip_info">
                                 <div colspan="2" class="alert alert-success small" role="status">
                                     <strong>&#9432; Hoe eigen loon codes aanmaken?</strong><br/>
-                                    Bedragen die niet elke periode hetzelfde zijn (overwerk, vakantietoelage,
-                                    bonus, gratificatie) beheer je via <strong>Loonstrook inputs</strong>:
+                                    Bedragen die niet elke periode hetzelfde zijn, zoals vakantietoelage,
+                                    bonus of gratificatie, beheer je via <strong>Loonstrook inputs</strong>.
+                                    <strong>Overwerk</strong> komt normaal automatisch uit <strong>Werkboekingen</strong>
+                                    wanneer het contract overwerkrecht heeft en het werkboekingstype als SR overwerk staat ingesteld:
                                     <ol class="mt-1 mb-0 ps-3">
                                         <li>Ga naar <strong>Configuratie → Salaris → Other Input Types</strong></li>
                                         <li>Maak een nieuwe loon code aan (bijv. "Olie Toeslag Variabel")</li>
@@ -126,7 +128,9 @@
                                     </ol>
                                     <div class="mt-2 pt-2 border-top">
                                         <strong>Vooringestelde codes:</strong>
-                                        SR_IN_OVERWERK (Overwerk Art. 17c) ·
+                                        SR_IN_OVERWERK_150 (Werkdag overwerk) ·
+                                        SR_IN_OVERWERK_200 (Zon/feestdag overwerk) ·
+                                        SR_IN_OVERWERK (Legacy/generiek) ·
                                         SR_IN_VAKANTIE (Vakantietoelage Art. 10i) ·
                                         SR_IN_GRAT (Gratificatie Art. 10j) ·
                                         SR_IN_BIJZ (Bijzondere Beloning Art. 17) ·

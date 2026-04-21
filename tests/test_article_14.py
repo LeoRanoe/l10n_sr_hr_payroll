@@ -651,6 +651,7 @@ class TestArtikel14Breakdown(common.TransactionCase):
 
         verwachte_sleutels = [
             'periodes', 'is_fn', 'fn_period_label', 'fn_period_indicator',
+            'payslip_layout', 'payslip_layout_label',
             'basic', 'toelagen', 'kinderbijslag',
             'bruto_per_periode', 'bruto_totaal', 'bruto_jaarloon',
             'belastingvrij_jaar', 'forfaitaire_pct', 'forfaitaire_jaar',
@@ -662,12 +663,39 @@ class TestArtikel14Breakdown(common.TransactionCase):
             'aov_bijz', 'aov_17a', 'aov_overwerk',
             'franchise_periode', 'aov_grondslag', 'aov_tarief_pct', 'aov_per_periode',
             'aftrek_bv', 'heffingskorting', 'pensioen', 'contract_inhoudingen', 'input_inhoudingen',
+            'earnings_lines', 'deductions_lines', 'summary_cards',
             'totaal_lb', 'totaal_aov',
             'totaal_inhoudingen', 'netto',
         ]
         for sleutel in verwachte_sleutels:
             self.assertIn(sleutel, bd,
                           f'Ontbrekende sleutel in breakdown: {sleutel}')
+
+    def test_breakdown_bevat_report_helper_lijsten(self):
+        """Report helpers moeten voldoende data geven voor eenvoudige layouts."""
+        payslip = self._make_payslip(wage=20000.0)
+        bd = payslip._get_sr_artikel14_breakdown()
+
+        self.assertEqual(bd['payslip_layout'], 'employee_simple')
+        self.assertEqual(bd['payslip_layout_label'], 'Werknemer Overzichtelijk')
+        self.assertTrue(any(line['name'] == 'Salaris' for line in bd['earnings_lines']))
+        self.assertTrue(any(card['label'] == 'Netto loon' for card in bd['summary_cards']))
+
+    def test_payslip_layout_default_volgt_config_parameter(self):
+        """Nieuwe loonstroken moeten de geconfigureerde standaardlayout overnemen."""
+        icp = self.env['ir.config_parameter'].sudo()
+        key = 'sr_payroll.default_payslip_layout'
+        old_value = icp.get_param(key)
+        try:
+            icp.set_param(key, 'compact')
+            payslip = self._make_payslip(wage=18000.0)
+            self.assertEqual(payslip.sr_payslip_layout, 'compact')
+        finally:
+            param = self.env['ir.config_parameter'].sudo().search([('key', '=', key)], limit=1)
+            if old_value in (None, False, ''):
+                param.unlink()
+            else:
+                icp.set_param(key, old_value)
 
     def test_breakdown_actieve_heffingskorting_volgt_payslip_netto(self):
         """
