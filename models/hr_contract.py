@@ -1,6 +1,7 @@
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
 from datetime import date as Date
+from decimal import Decimal, ROUND_HALF_UP
 
 from odoo import api, fields, models
 from odoo.exceptions import UserError, ValidationError
@@ -33,6 +34,25 @@ class HrContract(models.Model):
             'Gebruikt voor de Art. 10h splitsing: max SRD 250/kind/maand, '
             'max SRD 1.000/maand is belastingvrij. Het meerdere is belastbaar.'
         ),
+    )
+
+    sr_has_overtime_right = fields.Boolean(
+        string='Heeft Overwerkrecht',
+        default=True,
+        store=True,
+        help=(
+            'Overwerk kan worden uitbetaald als variabel bedrag op basis van geregistreerde uren.\n'
+            'Als uitgevinkt worden extra uren wel geregistreerd maar NIET als variabel overwerk uitbetaald.\n'
+            'Gebruik de Vaste Loon Regels voor een vaste periodieke overwerktoeslag.'
+        ),
+    )
+
+    sr_hourly_wage = fields.Float(
+        string='Uurloon (SRD)',
+        digits=(16, 4),
+        compute='_compute_sr_hourly_wage',
+        store=True,
+        help='Bruto uurloon: basisloon ÷ 173,33 (maandloon) of ÷ 80 (fortnight).',
     )
 
     # ── Flexibele vaste loon regels (debit / credit) ───────────────────────
@@ -222,6 +242,20 @@ class HrContract(models.Model):
         html = calc.generate_tax_bracket_html(params)
         for contract in self:
             contract.sr_tax_bracket_html = html
+
+    @api.depends('wage', 'sr_salary_type')
+    def _compute_sr_hourly_wage(self):
+        """Berekent het bruto uurloon: basisloon ÷ 173,33 (maandloon) of ÷ 80 (fortnight)."""
+        for contract in self:
+            wage = contract.wage or 0.0
+            if not wage:
+                contract.sr_hourly_wage = 0.0
+                continue
+            divisor = Decimal('80.0') if contract.sr_salary_type == 'fn' else Decimal('173.333333')
+            hourly = Decimal(str(wage)) / divisor
+            contract.sr_hourly_wage = float(
+                hourly.quantize(Decimal('0.0001'), rounding=ROUND_HALF_UP)
+            )
 
     # ── Helper methoden voor berekeningen ──────────────────────────────
 

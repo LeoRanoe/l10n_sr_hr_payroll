@@ -58,6 +58,26 @@
                                 </group>
                             </group>
 
+                            <group string="Overwerk" name="sr_overwerk">
+                                <group>
+                                    <field name="sr_has_overtime_right"/>
+                                    <field name="sr_hourly_wage" readonly="1"
+                                           help="Bruto uurloon berekend uit het basisloon (automatisch)."/>
+                                </group>
+                                <group>
+                                    <div class="alert alert-light border mb-0" invisible="sr_has_overtime_right">
+                                        <strong>Geen overwerkrecht:</strong> overwerkuren worden geregistreerd
+                                        maar er worden geen variabele overwerkinputs aangemaakt op de loonstrook.
+                                        Gebruik de <em>Vaste Loon Regels</em> hieronder voor een vaste toeslag.
+                                    </div>
+                                    <div class="alert alert-light border mb-0" invisible="not sr_has_overtime_right">
+                                        <strong>Met overwerkrecht:</strong> werk entries met een overwerk-type
+                                        worden automatisch geclassificeerd als 150% (werkdag) of 200% (zon/feestdag)
+                                        en als aparte inputs op de loonstrook gesynchroniseerd.
+                                    </div>
+                                </group>
+                            </group>
+
                             <separator string="Vaste Toelagen &amp; Inhoudingen per Periode"/>
                             <div class="text-muted small mb-2">
                                 Dit is de fiscale bron voor vaste toelagen en inhoudingen op het contract.

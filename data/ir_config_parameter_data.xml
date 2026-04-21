@@ -85,5 +85,13 @@
             <field name="key">sr_payroll.overwerk_tarief_3</field>
             <field name="value">0.25</field>
         </record>
+        <record id="sr_payroll_config_overwerk_factor_150" model="ir.config_parameter">
+            <field name="key">sr_payroll.overwerk_factor_150</field>
+            <field name="value">1.5</field>
+        </record>
+        <record id="sr_payroll_config_overwerk_factor_200" model="ir.config_parameter">
+            <field name="key">sr_payroll.overwerk_factor_200</field>
+            <field name="value">2.0</field>
+        </record>
     </data>
 </odoo>

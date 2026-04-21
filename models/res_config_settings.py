@@ -136,6 +136,20 @@ class ResConfigSettings(models.TransientModel):
         config_parameter='sr_payroll.overwerk_tarief_3',
         default=lambda self: self._sr_default_param('SR_OWK_TARIEF_3'),
     )
+    overwerk_factor_150 = fields.Float(
+        string='Overwerk factor 150% (vermenigvuldiger)',
+        digits=(16, 4),
+        config_parameter='sr_payroll.overwerk_factor_150',
+        default=1.5,
+        help='Vermenigvuldiger voor overwerk op werkdagen (Ma–Za). Standaard: 1,5.',
+    )
+    overwerk_factor_200 = fields.Float(
+        string='Overwerk factor 200% (vermenigvuldiger)',
+        digits=(16, 4),
+        config_parameter='sr_payroll.overwerk_factor_200',
+        default=2.0,
+        help='Vermenigvuldiger voor overwerk op zondag of wettelijke feestdagen. Standaard: 2,0.',
+    )
 
     def _sr_ensure_non_negative(self, field_name, label):
         for settings in self:
@@ -156,6 +170,8 @@ class ResConfigSettings(models.TransientModel):
         'schijf_3_grens',
         'overwerk_schijf_1_grens',
         'overwerk_schijf_2_grens',
+        'overwerk_factor_150',
+        'overwerk_factor_200',
     )
     def _check_non_negative_amounts(self):
         field_labels = {
@@ -171,6 +187,8 @@ class ResConfigSettings(models.TransientModel):
             'schijf_3_grens': 'Schijf 3 grens',
             'overwerk_schijf_1_grens': 'Overwerk schijf 1 grens',
             'overwerk_schijf_2_grens': 'Overwerk schijf 2 grens',
+            'overwerk_factor_150': 'Overwerk factor 150%',
+            'overwerk_factor_200': 'Overwerk factor 200%',
         }
         for field_name, label in field_labels.items():
             self._sr_ensure_non_negative(field_name, label)
