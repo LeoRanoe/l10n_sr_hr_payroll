@@ -31,15 +31,17 @@ class TestAuditFixes(common.TransactionCase):
         })
         cls.structure = cls.env.ref('l10n_sr_hr_payroll.sr_payroll_structure')
         cls.structure_type = cls.structure.type_id
+        cls.hourly_structure = cls.env.ref('l10n_sr_hr_payroll.sr_payroll_structure_hourly')
+        cls.hourly_structure_type = cls.env.ref('l10n_sr_hr_payroll.sr_payroll_structure_type_hourly')
         cls.kindbijslag_type = cls.env.ref('l10n_sr_hr_payroll.sr_line_type_kinderbijslag')
         cls.overwerk_input_type = cls.env.ref('l10n_sr_hr_payroll.sr_input_overwerk')
 
-    def _make_contract(self, wage=20000.0, salary_type='monthly', sr_aantal_kinderen=0, sr_vaste_regels=None):
+    def _make_contract(self, wage=20000.0, salary_type='monthly', sr_aantal_kinderen=0, sr_vaste_regels=None, structure_type=None):
         return self.env['hr.contract'].create({
             'name': 'Audit Fix Contract',
             'employee_id': self.employee.id,
             'company_id': self.company.id,
-            'structure_type_id': self.structure_type.id,
+            'structure_type_id': (structure_type or self.structure_type).id,
             'wage': wage,
             'sr_salary_type': salary_type,
             'sr_aantal_kinderen': sr_aantal_kinderen,
@@ -48,12 +50,12 @@ class TestAuditFixes(common.TransactionCase):
             'state': 'open',
         })
 
-    def _make_payslip(self, contract):
+    def _make_payslip(self, contract, structure=None):
         payslip = self.env['hr.payslip'].create({
             'name': 'Audit Fix Payslip',
             'employee_id': contract.employee_id.id,
             'contract_id': contract.id,
-            'struct_id': self.structure.id,
+            'struct_id': (structure or self.structure).id,
             'date_from': date(2026, 5, 1),
             'date_to': date(2026, 5, 31),
             'company_id': self.company.id,
@@ -168,6 +170,34 @@ class TestAuditFixes(common.TransactionCase):
         self.assertAlmostEqual(generated_inputs.amount, 300.0, places=2)
         self.assertEqual(generated_inputs.sr_work_entry_id, work_entry)
         self.assertAlmostEqual(self._line_total(payslip, 'SR_OVERWERK'), 300.0, places=2)
+
+    def test_hourly_contract_overtime_work_entry_does_not_generate_input(self):
+        contract = self._make_contract(
+            wage=17333.3333,
+            structure_type=self.hourly_structure_type,
+        )
+        overtime_type = self.env['hr.work.entry.type'].create({
+            'name': 'SR Overwerk 150% Hourly',
+            'code': 'SR_OT_150_HR',
+            'country_id': self.env.ref('base.sr').id,
+            'sr_is_overtime': True,
+            'sr_overtime_multiplier': 1.5,
+        })
+        work_entry = self.env['hr.work.entry'].create({
+            'name': 'Audit Fix Overwerk Hourly',
+            'employee_id': contract.employee_id.id,
+            'contract_id': contract.id,
+            'work_entry_type_id': overtime_type.id,
+            'date_start': datetime(2026, 5, 10, 18, 0, 0),
+            'date_stop': datetime(2026, 5, 10, 20, 0, 0),
+        })
+        self.assertTrue(work_entry.action_validate())
+
+        payslip = self._make_payslip(contract, structure=self.hourly_structure)
+
+        generated_inputs = payslip.input_line_ids.filtered('sr_generated_from_work_entry')
+        self.assertFalse(generated_inputs)
+        self.assertAlmostEqual(self._line_total(payslip, 'SR_OVERWERK'), 0.0, places=2)
 
     def test_regeneration_wizard_detects_overlapping_validated_entry(self):
         contract = self._make_contract()
@@ -289,6 +319,52 @@ class TestAuditFixes(common.TransactionCase):
         payslip = self._make_payslip(contract)
         self.assertAlmostEqual(self._line_total(payslip, 'SR_KB_VRIJ'), 300.0, places=2)
         self.assertAlmostEqual(self._line_total(payslip, 'SR_KB_BELAST'), 700.0, places=2)
+
+    def test_current_reference_parameter_write_updates_live_setting(self):
+        params = self.env['ir.config_parameter'].sudo()
+        params.set_param('sr_payroll.akb_max_bedrag', 1000.0)
+
+        parameter = self.env['hr.rule.parameter'].search([
+            ('code', '=', 'SR_KINDBIJ_MAX_MAAND')
+        ], limit=1)
+        current_version = parameter.parameter_version_ids.filtered(
+            lambda version: version.date_from and version.date_from <= date(2026, 4, 20)
+        ).sorted(lambda version: version.date_from)[-1]
+
+        current_version.write({'parameter_value': 300.0})
+
+        self.env.registry.clear_cache()
+        self.assertEqual(float(params.get_param('sr_payroll.akb_max_bedrag')), 300.0)
+        self.assertEqual(parameter.sr_current_value, '300.0')
+
+        contract = self._make_contract(
+            sr_aantal_kinderen=4,
+            sr_vaste_regels=[(0, 0, {
+                'name': 'Kinderbijslag',
+                'sr_categorie': 'vrijgesteld',
+                'amount': 1000.0,
+            })],
+        )
+        payslip = self._make_payslip(contract)
+        self.assertAlmostEqual(self._line_total(payslip, 'SR_KB_VRIJ'), 300.0, places=2)
+        self.assertAlmostEqual(self._line_total(payslip, 'SR_KB_BELAST'), 700.0, places=2)
+
+    def test_future_reference_parameter_write_does_not_override_today(self):
+        params = self.env['ir.config_parameter'].sudo()
+        params.set_param('sr_payroll.akb_max_bedrag', 1000.0)
+
+        parameter = self.env['hr.rule.parameter'].search([
+            ('code', '=', 'SR_KINDBIJ_MAX_MAAND')
+        ], limit=1)
+        self.env['hr.rule.parameter.value'].create({
+            'rule_parameter_id': parameter.id,
+            'date_from': date(2027, 1, 1),
+            'parameter_value': 1500.0,
+        })
+
+        self.env.registry.clear_cache()
+        self.assertEqual(float(params.get_param('sr_payroll.akb_max_bedrag')), 1000.0)
+        self.assertEqual(parameter.sr_current_value, '1000.0')
 
     def test_settings_default_values_match_2026_release(self):
         settings = self.env['res.config.settings'].create({})

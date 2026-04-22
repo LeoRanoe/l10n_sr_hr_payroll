@@ -35,30 +35,75 @@
 
                     <notebook>
                         <page string="Fiscale Data" name="sr_fiscale_data_tab">
-                            <group string="Loontype &amp; Wettelijke Basis" name="sr_verloning">
+                            <group string="Basisloon &amp; Verloning" name="sr_basis_verloning">
                                 <group>
+                                    <field name="wage" widget="monetary" options="{'currency_field': 'currency_id'}" required="1"/>
                                     <field name="sr_salary_type"
                                            widget="radio"
                                            string="Belastingtype"
                                            required="1"/>
-                                    <field name="sr_aantal_kinderen"
-                                           string="Aantal Kinderen (Art. 10h)"
-                                           help="Aantal kinderen voor kinderbijslag vrijstelling. Wettelijk gemaximeerd op 4 kinderen in de 2026 release."/>
+                                    <field name="sr_hourly_wage" readonly="1"
+                                           help="Bruto uurloon berekend uit het basisloon (automatisch)."/>
                                 </group>
                                 <group>
-                                    <div class="alert alert-light border mb-0" invisible="sr_salary_type != 'monthly'">
-                                        <strong>1 lb sal ovw:</strong> 12 periodes per jaar. De AOV franchise uit SR Payroll Instellingen wordt toegepast.
+                                    <div class="alert alert-danger border mb-0" role="alert" invisible="wage &gt; 0">
+                                        Een actief SR payroll-contract vereist een positief basisloon. Zonder loon worden uurloon, overwerk en LB/AOV geblokkeerd.
                                     </div>
-                                    <div class="alert alert-light border mb-0" invisible="sr_salary_type != 'fn'">
-                                        <strong>FN:</strong> 26 periodes per jaar. De payroll-engine past geen AOV franchise toe en valideert tegen de 2026 FN-kalender.
+                                    <div class="alert alert-light border mb-0" role="status" invisible="sr_salary_type != 'monthly'">
+                                        <strong>Maandloon:</strong> 12 periodes per jaar. Uurloon = basisloon ÷ 173,33. De AOV franchise uit SR Payroll Instellingen wordt toegepast.
                                     </div>
-                                    <div class="text-muted small pt-1">
-                                        AKB is in 2026 beperkt tot <strong>SRD 250 per kind</strong>, maximaal <strong>SRD 1.000</strong> en maximaal <strong>4 kinderen</strong>.
+                                    <div class="alert alert-light border mb-0" role="status" invisible="sr_salary_type != 'fn'">
+                                        <strong>FN:</strong> 26 periodes per jaar. Uurloon = basisloon ÷ 80. De payroll-engine past geen AOV franchise toe en valideert tegen de 2026 FN-kalender.
                                     </div>
                                 </group>
                             </group>
 
-                            <separator string="Vaste Toelagen &amp; Inhoudingen per Periode"/>
+                            <group string="Gezin &amp; AKB" name="sr_gezin_akb">
+                                <group>
+                                    <field name="sr_aantal_kinderen"
+                                           string="Aantal Kinderen (Art. 10h)"
+                                           help="Aantal kinderen voor kinderbijslag vrijstelling. Wettelijk gemaximeerd op 4 kinderen in de 2026 release."/>
+                                    <field name="sr_kinderbijslag_bedrag" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                                </group>
+                                <group>
+                                    <div class="text-muted small pt-1">
+                                        AKB is in 2026 beperkt tot <strong>SRD 250 per kind</strong>, maximaal <strong>SRD 1.000</strong> en maximaal <strong>4 kinderen</strong>. De vrijgestelde/belastbare splitsing wordt later automatisch op de loonstrook toegepast.
+                                    </div>
+                                </group>
+                            </group>
+
+                            <group string="Toelagen per Periode" name="sr_named_allowances">
+                                <group>
+                                    <field name="sr_vervoer_toelage" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                                    <field name="sr_representatie_toelage" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                                    <field name="sr_vrije_geneeskundige_behandeling" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                                </group>
+                                <group>
+                                    <div class="text-muted small pt-1">
+                                        Deze snelle contractvelden schrijven door naar de onderliggende <strong>Vaste Loon Regels</strong>. Gebruik de tabel hieronder voor overige toelagen, inhoudingen en percentages.
+                                    </div>
+                                </group>
+                            </group>
+
+                            <group string="Overwerk &amp; Werkboekingen" name="sr_overwerk">
+                                <group>
+                                    <field name="sr_has_overtime_right"/>
+                                </group>
+                                <group>
+                                    <div class="alert alert-light border mb-0" role="status" invisible="sr_has_overtime_right">
+                                        <strong>Geen overwerkrecht:</strong> overwerkuren worden geregistreerd
+                                        maar er worden geen variabele overwerkinputs aangemaakt op de loonstrook.
+                                        Gebruik de <em>Vaste Loon Regels</em> hieronder voor een vaste toeslag.
+                                    </div>
+                                    <div class="alert alert-light border mb-0" role="status" invisible="not sr_has_overtime_right">
+                                        <strong>Met overwerkrecht:</strong> werk entries met een overwerk-type
+                                        worden automatisch geclassificeerd als 150% (werkdag) of 200% (zon/feestdag)
+                                        en als aparte inputs op de loonstrook gesynchroniseerd.
+                                    </div>
+                                </group>
+                            </group>
+
+                            <separator string="Overige Vaste Toelagen &amp; Inhoudingen"/>
                             <div class="text-muted small mb-2">
                                 Dit is de fiscale bron voor vaste toelagen en inhoudingen op het contract.
                                 Kies per regel de categorie: <strong>Belastbaar</strong>, <strong>Belastingvrij</strong>,
@@ -96,8 +141,10 @@
                             <group string="Eenmalige &amp; Variabele Betalingen (via Loonstrook)" name="sr_payslip_info">
                                 <div colspan="2" class="alert alert-success small" role="status">
                                     <strong>&#9432; Hoe eigen loon codes aanmaken?</strong><br/>
-                                    Bedragen die niet elke periode hetzelfde zijn (overwerk, vakantietoelage,
-                                    bonus, gratificatie) beheer je via <strong>Loonstrook inputs</strong>:
+                                    Bedragen die niet elke periode hetzelfde zijn, zoals vakantietoelage,
+                                    bonus of gratificatie, beheer je via <strong>Loonstrook inputs</strong>.
+                                    <strong>Overwerk</strong> komt normaal automatisch uit <strong>Werkboekingen</strong>
+                                    wanneer het contract overwerkrecht heeft en het werkboekingstype als SR overwerk staat ingesteld:
                                     <ol class="mt-1 mb-0 ps-3">
                                         <li>Ga naar <strong>Configuratie → Salaris → Other Input Types</strong></li>
                                         <li>Maak een nieuwe loon code aan (bijv. "Olie Toeslag Variabel")</li>
@@ -106,7 +153,9 @@
                                     </ol>
                                     <div class="mt-2 pt-2 border-top">
                                         <strong>Vooringestelde codes:</strong>
-                                        SR_IN_OVERWERK (Overwerk Art. 17c) ·
+                                        SR_IN_OVERWERK_150 (Werkdag overwerk) ·
+                                        SR_IN_OVERWERK_200 (Zon/feestdag overwerk) ·
+                                        SR_IN_OVERWERK (Legacy/generiek) ·
                                         SR_IN_VAKANTIE (Vakantietoelage Art. 10i) ·
                                         SR_IN_GRAT (Gratificatie Art. 10j) ·
                                         SR_IN_BIJZ (Bijzondere Beloning Art. 17) ·

@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Suriname Payroll — Wettelijke Feestdagen 2026
+    =============================================
+    Officiële Surinaamse wettelijke feestdagen voor het jaar 2026.
+    Variabele religieuze feestdagen (maan-kalender) zijn schattingen
+    die bij definitieve bekendmaking bijgesteld kunnen worden.
+
+    Overwerk-classificatie:
+    - Feestdag of zondag → sr_overtime_200 (200% tarief)
+    - Overige werkdag    → sr_overtime_150 (150% tarief)
+-->
+<odoo>
+    <data noupdate="1">
+
+        <!-- Nieuwjaarsdag -->
+        <record id="sr_holiday_2026_01_01" model="sr.public.holiday">
+            <field name="name">Nieuwjaarsdag</field>
+            <field name="date">2026-01-01</field>
+        </record>
+
+        <!-- Chinese Nieuwjaar (Jaar van het Paard) -->
+        <record id="sr_holiday_2026_02_17" model="sr.public.holiday">
+            <field name="name">Chinese Nieuwjaar (Jaar van het Paard)</field>
+            <field name="date">2026-02-17</field>
+        </record>
+
+        <!-- Holi Phagwa (Hindoe Lentefeest) -->
+        <record id="sr_holiday_2026_03_03" model="sr.public.holiday">
+            <field name="name">Holi Phagwa</field>
+            <field name="date">2026-03-03</field>
+        </record>
+
+        <!-- Eid ul-Fitr (Suikerfeest) — variabel, schatting -->
+        <record id="sr_holiday_2026_03_31" model="sr.public.holiday">
+            <field name="name">Eid ul-Fitr (Suikerfeest)</field>
+            <field name="date">2026-03-31</field>
+        </record>
+
+        <!-- Goede Vrijdag (Pasen 2026: 5 april) -->
+        <record id="sr_holiday_2026_04_03" model="sr.public.holiday">
+            <field name="name">Goede Vrijdag</field>
+            <field name="date">2026-04-03</field>
+        </record>
+
+        <!-- Paasmaandag -->
+        <record id="sr_holiday_2026_04_06" model="sr.public.holiday">
+            <field name="name">Paasmaandag</field>
+            <field name="date">2026-04-06</field>
+        </record>
+
+        <!-- Dag van de Arbeid -->
+        <record id="sr_holiday_2026_05_01" model="sr.public.holiday">
+            <field name="name">Dag van de Arbeid</field>
+            <field name="date">2026-05-01</field>
+        </record>
+
+        <!-- Hemelvaartsdag (39 dagen na Pasen) -->
+        <record id="sr_holiday_2026_05_14" model="sr.public.holiday">
+            <field name="name">Hemelvaartsdag</field>
+            <field name="date">2026-05-14</field>
+        </record>
+
+        <!-- Pinkstermaandag (50 dagen na Pasen) -->
+        <record id="sr_holiday_2026_05_25" model="sr.public.holiday">
+            <field name="name">Pinkstermaandag</field>
+            <field name="date">2026-05-25</field>
+        </record>
+
+        <!-- Eid ul-Adha (Offerfeest) — variabel, schatting -->
+        <record id="sr_holiday_2026_06_06" model="sr.public.holiday">
+            <field name="name">Eid ul-Adha (Offerfeest)</field>
+            <field name="date">2026-06-06</field>
+        </record>
+
+        <!-- Keti Koti (Emancipatiedag) -->
+        <record id="sr_holiday_2026_07_01" model="sr.public.holiday">
+            <field name="name">Keti Koti (Emancipatiedag)</field>
+            <field name="date">2026-07-01</field>
+        </record>
+
+        <!-- Diwali (Lichtjesfeest) — variabel, schatting -->
+        <record id="sr_holiday_2026_11_08" model="sr.public.holiday">
+            <field name="name">Diwali (Lichtjesfeest)</field>
+            <field name="date">2026-11-08</field>
+        </record>
+
+        <!-- Onafhankelijkheidsdag -->
+        <record id="sr_holiday_2026_11_25" model="sr.public.holiday">
+            <field name="name">Onafhankelijkheidsdag</field>
+            <field name="date">2026-11-25</field>
+        </record>
+
+        <!-- Eerste Kerstdag -->
+        <record id="sr_holiday_2026_12_25" model="sr.public.holiday">
+            <field name="name">Eerste Kerstdag</field>
+            <field name="date">2026-12-25</field>
+        </record>
+
+        <!-- Tweede Kerstdag -->
+        <record id="sr_holiday_2026_12_26" model="sr.public.holiday">
+            <field name="name">Tweede Kerstdag</field>
+            <field name="date">2026-12-26</field>
+        </record>
+
+    </data>
+</odoo>

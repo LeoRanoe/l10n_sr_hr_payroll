@@ -14,5 +14,13 @@
             <field name="country_id" ref="base.sr"/>
             <field name="default_resource_calendar_id" ref="resource.resource_calendar_std"/>
         </record>
+
+        <record id="sr_payroll_structure_type_hourly" model="hr.payroll.structure.type">
+            <field name="name">Suriname — Uurloon</field>
+            <field name="wage_type">hourly</field>
+            <field name="default_schedule_pay">monthly</field>
+            <field name="country_id" ref="base.sr"/>
+            <field name="default_resource_calendar_id" ref="resource.resource_calendar_std"/>
+        </record>
     </data>
 </odoo>

@@ -16,9 +16,24 @@
             ]"/>
         </record>
 
+        <record id="sr_payroll_structure_hourly" model="hr.payroll.structure">
+            <field name="name">Suriname — Uurloon</field>
+            <field name="country_id" ref="base.sr"/>
+            <field name="type_id" ref="l10n_sr_hr_payroll.sr_payroll_structure_type_hourly"/>
+            <field name="payslip_name">Loonstrook</field>
+            <field name="unpaid_work_entry_type_ids" eval="[
+                (4, ref('hr_work_entry_contract.work_entry_type_unpaid_leave')),
+                (4, ref('hr_payroll.hr_work_entry_type_out_of_contract')),
+            ]"/>
+        </record>
+
         <!-- Koppel de structuur als default aan het structure type -->
         <record id="l10n_sr_hr_payroll.sr_payroll_structure_type" model="hr.payroll.structure.type">
             <field name="default_struct_id" ref="sr_payroll_structure"/>
+        </record>
+
+        <record id="l10n_sr_hr_payroll.sr_payroll_structure_type_hourly" model="hr.payroll.structure.type">
+            <field name="default_struct_id" ref="sr_payroll_structure_hourly"/>
         </record>
     </data>
 </odoo>
