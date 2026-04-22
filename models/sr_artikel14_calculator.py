@@ -142,6 +142,17 @@ def get_sr_parameter_value(env, code, ref_date, default=None, raise_if_not_found
     return value
 
 
+def _raise_configuration_error(code, context_label, original_error=None):
+    config_key = get_config_parameter_key(code)
+    message = f"SR Payroll configuratieparameter '{code}' ontbreekt of is ongeldig"
+    if config_key:
+        message += f" (verwachte sleutel: '{config_key}')"
+    if context_label:
+        message += f" voor {context_label}"
+    message += '. Controleer SR Payroll Instellingen of de referentieparameterhistorie.'
+    raise UserError(message) from original_error
+
+
 def _collect_dynamic_brackets(code_names, get_value):
     """
     Bouwt de reguliere Art. 14 schijven dynamisch op uit SR_SCHIJF_* en
@@ -269,14 +280,22 @@ def fetch_params_from_rule_parameter(env, ref_date):
     RuleParam = env['hr.rule.parameter']
     params = {}
     for code, key in PARAM_CODE_MAP.items():
-        params[key] = get_sr_parameter_value(
-            env, code, ref_date, raise_if_not_found=True,
-        )
+        try:
+            params[key] = get_sr_parameter_value(
+                env, code, ref_date, raise_if_not_found=True,
+            )
+        except UserError as error:
+            _raise_configuration_error(code, ref_date.isoformat(), error)
     code_names = RuleParam.search([('code', 'like', 'SR_')]).mapped('code')
-    params['brackets'] = _collect_dynamic_brackets(
-        code_names,
-        lambda code: get_sr_parameter_value(env, code, ref_date, raise_if_not_found=True),
-    )
+    try:
+        params['brackets'] = _collect_dynamic_brackets(
+            code_names,
+            lambda code: get_sr_parameter_value(env, code, ref_date, raise_if_not_found=True),
+        )
+    except UserError as error:
+        raise UserError(
+            f'SR Payroll schijfconfiguratie is ongeldig voor {ref_date.isoformat()}. {error}'
+        ) from error
     return _pad_legacy_bracket_fields(params)
 
 
@@ -289,12 +308,22 @@ def fetch_params_from_payslip(payslip):
     """
     params = {}
     for code, key in PARAM_CODE_MAP.items():
-        params[key] = payslip._rule_parameter(code)
+        try:
+            params[key] = payslip._rule_parameter(code)
+        except (UserError, KeyError, TypeError, ValueError) as error:
+            context_label = payslip.date_to.isoformat() if payslip.date_to else 'deze loonstrook'
+            _raise_configuration_error(code, context_label, error)
     code_names = payslip.env['hr.rule.parameter'].search([('code', 'like', 'SR_')]).mapped('code')
-    params['brackets'] = _collect_dynamic_brackets(
-        code_names,
-        payslip._rule_parameter,
-    )
+    try:
+        params['brackets'] = _collect_dynamic_brackets(
+            code_names,
+            payslip._rule_parameter,
+        )
+    except UserError as error:
+        context_label = payslip.date_to.isoformat() if payslip.date_to else 'deze loonstrook'
+        raise UserError(
+            f'SR Payroll schijfconfiguratie is ongeldig voor {context_label}. {error}'
+        ) from error
     return _pad_legacy_bracket_fields(params)
 
 
@@ -365,7 +394,7 @@ def calculate_lb(bruto_per_periode, periodes, params, aftrek_bv_per_periode=0.0)
 
     lb_jaar = sum(row['tax'] for row in bracket_rows)
 
-    # LB per periode — conform context formules (geen heffingskorting)
+    # LB per periode — heffingskorting wordt separaat als nettocredit verwerkt
     lb_per_periode = lb_jaar / periodes_dec
 
     # AOV — ook over gecorrigeerd bruto (Art. 10f aftrek)
@@ -413,7 +442,8 @@ def calculate_lb(bruto_per_periode, periodes, params, aftrek_bv_per_periode=0.0)
 def generate_breakdown_html(result, wage, periodes, salary_type, kb_split=None,
                             vrijgesteld=0.0, inhoudingen=0.0,
                             belastbaar_toelagen=0.0,
-                            bruto_totaal=None, netto_totaal=None):
+                            bruto_totaal=None, netto_totaal=None,
+                            heffingskorting=0.0):
     """
     Genereert een stap-voor-stap berekeningsoverzicht (debug panel) als HTML.
 
@@ -480,6 +510,7 @@ def generate_breakdown_html(result, wage, periodes, salary_type, kb_split=None,
 
     netto = netto_totaal if netto_totaal is not None else (
         bruto_display
+        + heffingskorting
         - r['lb_per_periode']
         - r['aov_per_periode']
         - inhoudingen
@@ -572,6 +603,8 @@ def generate_breakdown_html(result, wage, periodes, salary_type, kb_split=None,
     rows.append(row('<strong>= Bruto per periode</strong>', '', m(bruto_display), '#f0f9ff'))
     rows.append(row('− LB (Art. 14)', '', m(r['lb_per_periode'], '-')))
     rows.append(row('− AOV (4%)', '', m(r['aov_per_periode'], '-')))
+    if heffingskorting > 0:
+        rows.append(row('+ Heffingskorting', '', m(heffingskorting, '+')))
     if inhoudingen > 0:
         rows.append(row('− Inhoudingen (netto)', '', m(inhoudingen, '-')))
     if r.get('aftrek_bv_per_periode', 0.0) > 0:

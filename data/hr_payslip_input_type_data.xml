@@ -68,9 +68,26 @@
              AOV: 4% zonder franchise.
              ═══════════════════════════════════════════════════════════════ -->
 
+        <!-- Generiek (backward-compat) -->
         <record id="sr_input_overwerk" model="hr.payslip.input.type">
             <field name="name">Overwerk (Art. 17c)</field>
             <field name="code">SR_IN_OVERWERK</field>
+            <field name="sr_categorie">overwerk</field>
+            <field name="country_id" ref="base.sr"/>
+        </record>
+
+        <!-- Overwerk 150% — werkdagen (Ma–Za) -->
+        <record id="sr_input_overwerk_150" model="hr.payslip.input.type">
+            <field name="name">Overwerk 150% — Werkdag (Art. 17c)</field>
+            <field name="code">SR_IN_OVERWERK_150</field>
+            <field name="sr_categorie">overwerk</field>
+            <field name="country_id" ref="base.sr"/>
+        </record>
+
+        <!-- Overwerk 200% — zondag of wettelijke feestdag -->
+        <record id="sr_input_overwerk_200" model="hr.payslip.input.type">
+            <field name="name">Overwerk 200% — Zon/Feestdag (Art. 17c)</field>
+            <field name="code">SR_IN_OVERWERK_200</field>
             <field name="sr_categorie">overwerk</field>
             <field name="country_id" ref="base.sr"/>
         </record>

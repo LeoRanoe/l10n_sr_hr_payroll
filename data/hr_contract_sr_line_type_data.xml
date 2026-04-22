@@ -37,6 +37,14 @@
             <field name="description">Representatiekosten toelage per periode. Art. 14 WLB — belastbaar loonbestanddeel.</field>
         </record>
 
+        <record id="sr_line_type_geneeskunde" model="hr.contract.sr.line.type">
+            <field name="name">Vrije Geneeskundige Behandeling</field>
+            <field name="code">GENEESK</field>
+            <field name="sr_categorie">belastbaar</field>
+            <field name="sequence">35</field>
+            <field name="description">Vaste vrije geneeskundige behandeling per periode. Voor de 2026 payroll-engine wordt dit als belastbaar loonbestanddeel behandeld.</field>
+        </record>
+
         <record id="sr_line_type_telefoon" model="hr.contract.sr.line.type">
             <field name="name">Telefoonvergoeding</field>
             <field name="code">TELEFOON</field>

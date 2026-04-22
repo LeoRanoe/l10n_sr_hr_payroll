@@ -800,8 +800,8 @@
                         <ul class="sr-hero__list">
                             <li>Art. 14 loonbelasting, AOV, vrijstellingen en FN-validatie worden automatisch berekend.</li>
                             <li>De contracttab <strong>Suriname Payroll</strong> en <strong>SR Payroll Instellingen</strong> zijn de primaire gegevensbron.</li>
-                            <li>Eenmalige bedragen zoals overwerk, bonus en bijzondere beloning lopen via <strong>Other Inputs</strong> op de loonstrook.</li>
-                            <li>Work entries worden niet automatisch omgezet naar fiscale overwerk-inputs; die invoer blijft handmatig.</li>
+                            <li>Eenmalige bedragen zoals bonus, gratificatie en bijzondere beloning lopen via <strong>Other Inputs</strong> op de loonstrook.</li>
+                            <li>Overwerk kan automatisch uit <strong>Werkboekingen</strong> komen wanneer het contract overwerkrecht heeft en het werkboekingstype als SR overwerk staat gemarkeerd.</li>
                         </ul>
                     </div>
                 </div>
@@ -1041,8 +1041,10 @@
                             </div>
 
                             <div class="sr-callout sr-callout--warning">
-                                <strong>Let op:</strong> overwerk wordt in deze release niet automatisch uit work entries omgerekend naar fiscale looninvoer.
-                                Voeg overwerk daarom expliciet toe via <strong>Other Inputs</strong> met het correcte SR input type.
+                                <strong>Let op:</strong> overwerk komt normaal automatisch uit <strong>Werkboekingen</strong>
+                                als het contract <strong>Heeft Overwerkrecht</strong> aan heeft en het gekozen
+                                werkboekingstype als SR overwerk is ingericht. Gebruik <strong>Other Inputs</strong>
+                                alleen voor handmatige correcties, nabetalingen of uitzonderingen buiten de normale dagregistratie.
                             </div>
                         </div>
                     </section>
@@ -1492,8 +1494,10 @@
                                     <ul class="sr-checklist">
                                         <li>Wordt apart belast en niet via de gewone Art. 14 ladder.</li>
                                         <li>Tariefopbouw: 5%, 15% en 25% over de respectieve delen.</li>
-                                        <li>Gebruik hiervoor een SR overwerk-input in <strong>Other Inputs</strong>.</li>
-                                        <li>Controleer na berekening dat de overwerkregel los zichtbaar is.</li>
+                                        <li>Registreer dit bij voorkeur via <strong>Werkboekingen</strong> met een SR overwerktype.</li>
+                                        <li>Werkdaguren landen op <strong>150%</strong>, zondag of feestdag op <strong>200%</strong>.</li>
+                                        <li>Gebruik <strong>Other Inputs</strong> alleen voor handmatige correcties of uitzonderlijke nabetalingen.</li>
+                                        <li>Controleer na berekening dat de overwerkregel los zichtbaar is op de loonstrook.</li>
                                     </ul>
                                 </article>
                                 <article class="sr-info-card">

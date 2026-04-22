@@ -3,12 +3,12 @@
     <!--
         Suriname Payroll — Work Entry formulier uitbreiding
         =====================================================
-        Staat System Admins toe om gevalideerde work entries te bewerken
-        en terug te zetten naar 'concept' voor correcties.
+        Maakt conflictregels corrigeerbaar voor dagelijkse payroll-mutaties
+        en laat System Admins gevalideerde work entries bewerken of terugzetten.
 
-        Het standaard Odoo-formulier markeert alle velden readonly als
-        state != 'draft'. Voor beheerders (base.group_system) wordt
-        dit versoepeld zodat correcties mogelijk zijn.
+        Gebruiksvriendelijke regels:
+        - draft + conflict: direct corrigeerbaar
+        - validated: alleen corrigeerbaar voor System Admins
 
         Tevens: 'Terug naar Concept (Admin)' knop voor snelle reset
         van gevalideerde entries zonder de regeneration wizard.
@@ -22,6 +22,7 @@
             <!-- Voeg sr_is_admin toe als verborgen veld (nodig voor readonly-condities) -->
             <xpath expr="//field[@name='company_id']" position="after">
                 <field name="sr_is_admin" invisible="1"/>
+                <field name="sr_contract_allows_overtime" invisible="1"/>
             </xpath>
 
             <!-- Naam: ook bewerkbaar voor admin bij validated-status -->
@@ -31,7 +32,7 @@
 
             <!-- Medewerker: ook bewerkbaar voor admin buiten draft -->
             <xpath expr="//field[@name='employee_id']" position="attributes">
-                <attribute name="readonly">state != 'draft' and not sr_is_admin</attribute>
+                <attribute name="readonly">state == 'validated' and not sr_is_admin</attribute>
             </xpath>
 
             <!-- Work entry type: ook bewerkbaar voor admin bij validated -->
@@ -41,17 +42,17 @@
 
             <!-- Startdatum: ook bewerkbaar voor admin buiten draft -->
             <xpath expr="//field[@name='date_start']" position="attributes">
-                <attribute name="readonly">state != 'draft' and not sr_is_admin</attribute>
+                <attribute name="readonly">state == 'validated' and not sr_is_admin</attribute>
             </xpath>
 
             <!-- Einddatum: ook bewerkbaar voor admin buiten draft -->
             <xpath expr="//field[@name='date_stop']" position="attributes">
-                <attribute name="readonly">state != 'draft' and not sr_is_admin</attribute>
+                <attribute name="readonly">state == 'validated' and not sr_is_admin</attribute>
             </xpath>
 
             <!-- Duur: ook bewerkbaar voor admin buiten draft -->
             <xpath expr="//field[@name='duration']" position="attributes">
-                <attribute name="readonly">state != 'draft' and not sr_is_admin</attribute>
+                <attribute name="readonly">state == 'validated' and not sr_is_admin</attribute>
             </xpath>
 
             <!--
@@ -69,6 +70,113 @@
                     confirm="Weet u zeker dat u deze gevalideerde work entry terug naar Concept wilt zetten? Loonstroken die al zijn verwerkt voor deze periode kunnen hierdoor incorrect worden."/>
             </xpath>
 
+            <!-- Gebruiksvriendelijke hulptrigger voor correcties -->
+            <xpath expr="//sheet/group" position="after">
+                <div class="alert alert-info" role="alert"
+                     invisible="state == 'validated' and not sr_is_admin">
+                    Pas hierboven <strong>Begin</strong>, <strong>Einde</strong>,
+                    <strong>Duur</strong> of <strong>Werkboekingstype</strong> aan om
+                    conflicten te corrigeren. Alleen gevalideerde boekingen zijn vergrendeld
+                    voor niet-beheerders.
+                </div>
+
+                <div class="alert alert-warning" role="status"
+                     invisible="not sr_has_schedule_deviation">
+                    Deze werkboeking wijkt af van het contractrooster. Controleer de extra uren
+                    voordat de loonstrook wordt gegenereerd.
+                </div>
+
+                <div class="alert alert-secondary" role="status"
+                     invisible="sr_contract_allows_overtime or sr_extra_hours &lt;= 0">
+                    Extra uren zijn gedetecteerd, maar het contract staat geen overwerkuitbetaling toe.
+                    Deze uren blijven administratief zichtbaar en worden niet als belastbaar overwerk doorgestuurd.
+                </div>
+
+                <group name="sr_overtime_group" string="Overwerk &amp; Registratie" col="4">
+                    <group class="o_form_fw_labels">
+                        <field name="sr_contract_allows_overtime" readonly="1"/>
+                        <field name="sr_overtime_treatment" widget="badge" readonly="1"/>
+                        <field name="sr_planned_hours" widget="float_time" readonly="1"/>
+                        <field name="sr_extra_hours" widget="float_time" readonly="1"/>
+                        <field name="sr_overtime_150"
+                               widget="float_time"
+                               readonly="state == 'validated' and not sr_is_admin"/>
+                        <field name="sr_overtime_200"
+                               widget="float_time"
+                               readonly="state == 'validated' and not sr_is_admin"/>
+                        <field name="sr_manual_override"
+                               readonly="state == 'validated' and not sr_is_admin"/>
+                    </group>
+                    <group class="o_form_fw_labels">
+                        <field name="sr_has_schedule_deviation" readonly="1"/>
+                        <field name="sr_entry_source"
+                               readonly="state == 'validated' and not sr_is_admin"/>
+                        <field name="sr_import_batch"
+                               readonly="state == 'validated' and not sr_is_admin"
+                               placeholder="Bijv. CLOCK-2026-04-21"
+                               invisible="sr_entry_source != 'import'"/>
+                        <field name="sr_deviation_note" readonly="1" invisible="not sr_deviation_note"/>
+                    </group>
+                </group>
+            </xpath>
+
+        </field>
+    </record>
+
+    <!-- ── Tree/List view uitbreiding: overwerk-kolommen ──────────────── -->
+    <record id="hr_work_entry_view_list_sr_overtime" model="ir.ui.view">
+        <field name="name">hr.work.entry.list.sr.overtime</field>
+        <field name="model">hr.work.entry</field>
+        <field name="inherit_id" ref="hr_work_entry.hr_work_entry_view_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//list" position="attributes">
+                <attribute name="editable">bottom</attribute>
+                <attribute name="default_order">date_start desc</attribute>
+                <attribute name="decoration-warning">sr_has_schedule_deviation and sr_overtime_treatment not in ('manual', 'unpaid')</attribute>
+                <attribute name="decoration-danger">sr_overtime_treatment == 'unpaid'</attribute>
+                <attribute name="decoration-info">sr_manual_override</attribute>
+            </xpath>
+
+            <xpath expr="//field[@name='name']" position="before">
+                <field name="sr_is_admin" invisible="1"/>
+                <field name="sr_has_schedule_deviation" invisible="1"/>
+                <field name="sr_overtime_treatment" invisible="1"/>
+            </xpath>
+
+            <xpath expr="//field[@name='name']" position="attributes">
+                <attribute name="readonly">state == 'validated' and not sr_is_admin</attribute>
+            </xpath>
+
+            <xpath expr="//field[@name='work_entry_type_id']" position="attributes">
+                <attribute name="readonly">state == 'validated' and not sr_is_admin</attribute>
+            </xpath>
+
+            <xpath expr="//field[@name='duration']" position="attributes">
+                <attribute name="readonly">state == 'validated' and not sr_is_admin</attribute>
+            </xpath>
+
+            <xpath expr="//field[@name='date_start']" position="attributes">
+                <attribute name="readonly">state == 'validated' and not sr_is_admin</attribute>
+            </xpath>
+
+            <xpath expr="//field[@name='date_stop']" position="attributes">
+                <attribute name="readonly">state == 'validated' and not sr_is_admin</attribute>
+            </xpath>
+
+            <xpath expr="//field[@name='duration']" position="after">
+                <field name="sr_planned_hours" string="Rooster" widget="float_time" readonly="1"/>
+                <field name="sr_extra_hours" string="Extra" widget="float_time" readonly="1"/>
+                <field name="sr_contract_allows_overtime" string="OT Recht" readonly="1" optional="show"/>
+                <field name="sr_overtime_treatment" string="SR Classificatie" widget="badge" readonly="1" optional="show"/>
+                <field name="sr_overtime_150" string="OT 150%" widget="float_time"
+                       readonly="state == 'validated' and not sr_is_admin"/>
+                <field name="sr_overtime_200" string="OT 200%" widget="float_time"
+                       readonly="state == 'validated' and not sr_is_admin"/>
+                <field name="sr_manual_override" optional="show"
+                       readonly="state == 'validated' and not sr_is_admin"/>
+                <field name="sr_entry_source" optional="show"/>
+                <field name="sr_import_batch" optional="show" invisible="sr_entry_source != 'import'"/>
+            </xpath>
         </field>
     </record>
 

@@ -1,6 +1,7 @@
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
 from datetime import date as Date
+from decimal import Decimal, ROUND_HALF_UP
 
 from odoo import api, fields, models
 from odoo.exceptions import UserError, ValidationError
@@ -12,6 +13,36 @@ class HrContract(models.Model):
     _inherit = 'hr.contract'
 
     SR_AKB_MAX_CHILDREN = 4
+    SR_CONTRACT_LINE_FIELD_MAP = {
+        'sr_kinderbijslag_bedrag': {
+            'code': 'KINDBIJ',
+            'xmlid': 'l10n_sr_hr_payroll.sr_line_type_kinderbijslag',
+            'name': 'Kinderbijslag',
+            'category': 'vrijgesteld',
+            'fallback_names': ('kinderbijslag',),
+        },
+        'sr_vervoer_toelage': {
+            'code': 'TRANSPORT',
+            'xmlid': 'l10n_sr_hr_payroll.sr_line_type_transport',
+            'name': 'Transportvergoeding',
+            'category': 'vrijgesteld',
+            'fallback_names': ('transportvergoeding', 'transport', 'vervoer'),
+        },
+        'sr_representatie_toelage': {
+            'code': 'REPRES',
+            'xmlid': 'l10n_sr_hr_payroll.sr_line_type_representatie',
+            'name': 'Representatie Toelage',
+            'category': 'belastbaar',
+            'fallback_names': ('representatie toelage', 'representatie'),
+        },
+        'sr_vrije_geneeskundige_behandeling': {
+            'code': 'GENEESK',
+            'xmlid': 'l10n_sr_hr_payroll.sr_line_type_geneeskunde',
+            'name': 'Vrije Geneeskundige Behandeling',
+            'category': 'belastbaar',
+            'fallback_names': ('vrije geneeskundige behandeling', 'geneeskundige behandeling'),
+        },
+    }
 
     sr_salary_type = fields.Selection(
         selection=[
@@ -33,6 +64,62 @@ class HrContract(models.Model):
             'Gebruikt voor de Art. 10h splitsing: max SRD 250/kind/maand, '
             'max SRD 1.000/maand is belastingvrij. Het meerdere is belastbaar.'
         ),
+    )
+
+    sr_has_overtime_right = fields.Boolean(
+        string='Heeft Overwerkrecht',
+        default=True,
+        store=True,
+        help=(
+            'Overwerk kan worden uitbetaald als variabel bedrag op basis van geregistreerde uren.\n'
+            'Als uitgevinkt worden extra uren wel geregistreerd maar NIET als variabel overwerk uitbetaald.\n'
+            'Gebruik de Vaste Loon Regels voor een vaste periodieke overwerktoeslag.'
+        ),
+    )
+
+    sr_hourly_wage = fields.Float(
+        string='Uurloon (SRD)',
+        digits=(16, 4),
+        compute='_compute_sr_hourly_wage',
+        store=True,
+        precompute=True,
+        help='Bruto uurloon: basisloon ÷ 173,33 (maandloon) of ÷ 80 (fortnight).',
+    )
+    sr_kinderbijslag_bedrag = fields.Monetary(
+        string='Kinderbijslag per Periode',
+        currency_field='currency_id',
+        compute='_compute_sr_named_contract_lines',
+        inverse='_inverse_sr_kinderbijslag_bedrag',
+        store=True,
+        precompute=True,
+        help='Snelle contractinvoer voor de vaste kinderbijslagregel. Schrijft door naar de fiscale contractregels.',
+    )
+    sr_vervoer_toelage = fields.Monetary(
+        string='Vervoer / Transport',
+        currency_field='currency_id',
+        compute='_compute_sr_named_contract_lines',
+        inverse='_inverse_sr_vervoer_toelage',
+        store=True,
+        precompute=True,
+        help='Vaste transportvergoeding per periode. Wordt als SR contractregel opgeslagen.',
+    )
+    sr_representatie_toelage = fields.Monetary(
+        string='Representatie',
+        currency_field='currency_id',
+        compute='_compute_sr_named_contract_lines',
+        inverse='_inverse_sr_representatie_toelage',
+        store=True,
+        precompute=True,
+        help='Vaste representatietoelage per periode. Wordt als SR contractregel opgeslagen.',
+    )
+    sr_vrije_geneeskundige_behandeling = fields.Monetary(
+        string='Vrije Geneeskundige Behandeling',
+        currency_field='currency_id',
+        compute='_compute_sr_named_contract_lines',
+        inverse='_inverse_sr_vrije_geneeskundige_behandeling',
+        store=True,
+        precompute=True,
+        help='Vaste geneeskundige behandeling per periode. Wordt als belastbare SR contractregel opgeslagen.',
     )
 
     # ── Flexibele vaste loon regels (debit / credit) ───────────────────────
@@ -98,10 +185,15 @@ class HrContract(models.Model):
     )
 
     @api.depends(
+        'sr_kinderbijslag_bedrag',
+        'sr_vervoer_toelage',
+        'sr_representatie_toelage',
+        'sr_vrije_geneeskundige_behandeling',
         'wage',
         'sr_salary_type',
         'sr_aantal_kinderen',
         'sr_vaste_regels.type_id',
+        'sr_vaste_regels.name',
         'sr_vaste_regels.amount',
         'sr_vaste_regels.sr_categorie',
         'sr_vaste_regels.amount_type',
@@ -120,6 +212,7 @@ class HrContract(models.Model):
 
         for contract in self:
             periodes = 26 if contract.sr_salary_type == 'fn' else 12
+            heffingskorting = contract._sr_get_heffingskorting_per_periode()
 
             belastbaar_toelagen = contract._sr_resolve_regels('belastbaar')
             vrijgesteld_toelagen = contract._sr_resolve_other_vrijgestelde_regels()
@@ -145,6 +238,7 @@ class HrContract(models.Model):
             contract.sr_preview_aov_periode = result['aov_per_periode']
             contract.sr_preview_netto = (
                 bruto_totaal
+                + heffingskorting
                 - result['lb_per_periode']
                 - result['aov_per_periode']
                 - inhoudingen
@@ -161,6 +255,7 @@ class HrContract(models.Model):
                 belastbaar_toelagen=belastbaar_toelagen,
                 bruto_totaal=bruto_totaal,
                 netto_totaal=contract.sr_preview_netto,
+                heffingskorting=heffingskorting,
             )
 
     @api.onchange('sr_aantal_kinderen')
@@ -220,7 +315,133 @@ class HrContract(models.Model):
         for contract in self:
             contract.sr_tax_bracket_html = html
 
+    @api.depends('wage', 'sr_salary_type')
+    def _compute_sr_hourly_wage(self):
+        """Berekent het bruto uurloon: basisloon ÷ 173,33 (maandloon) of ÷ 80 (fortnight)."""
+        for contract in self:
+            wage = contract.wage or 0.0
+            if not wage:
+                contract.sr_hourly_wage = 0.0
+                continue
+            divisor = Decimal('80.0') if contract.sr_salary_type == 'fn' else Decimal('173.333333')
+            hourly = Decimal(str(wage)) / divisor
+            contract.sr_hourly_wage = float(
+                hourly.quantize(Decimal('0.0001'), rounding=ROUND_HALF_UP)
+            )
+
+    def _sr_is_payroll_contract(self):
+        self.ensure_one()
+        sr_struct = self.env.ref('l10n_sr_hr_payroll.sr_payroll_structure', raise_if_not_found=False)
+        return bool(sr_struct and self.structure_type_id == sr_struct.type_id)
+
+    @api.constrains('wage', 'state', 'structure_type_id')
+    def _check_sr_positive_wage(self):
+        for contract in self:
+            if not contract._sr_is_payroll_contract():
+                continue
+            if contract.state not in ('open', 'pending'):
+                continue
+            if (contract.wage or 0.0) <= 0.0:
+                raise ValidationError(
+                    'SR payroll-contracten met een actieve status vereisen een positief basisloon. '
+                    'Zonder loon kunnen uurloon, overwerk en fiscale inhoudingen niet veilig worden berekend.'
+                )
+
+    @api.depends(
+        'sr_vaste_regels.type_id',
+        'sr_vaste_regels.name',
+        'sr_vaste_regels.amount',
+        'sr_vaste_regels.amount_type',
+        'sr_vaste_regels.percentage',
+        'sr_vaste_regels.percentage_base',
+    )
+    def _compute_sr_named_contract_lines(self):
+        for contract in self:
+            for field_name, definition in self.SR_CONTRACT_LINE_FIELD_MAP.items():
+                total = sum(
+                    contract._sr_resolve_line_amount(line)
+                    for line in contract._sr_get_named_rule_lines(definition)
+                )
+                contract[field_name] = calc.round_money(total)
+
     # ── Helper methoden voor berekeningen ──────────────────────────────
+
+    def _sr_get_line_type_from_definition(self, definition):
+        line_type = self.env.ref(definition['xmlid'], raise_if_not_found=False)
+        if line_type:
+            return line_type
+        return self.env['hr.contract.sr.line.type'].search([
+            ('code', '=', definition['code']),
+        ], limit=1)
+
+    def _sr_get_named_rule_lines(self, definition):
+        self.ensure_one()
+        fallback_names = {name.casefold() for name in definition.get('fallback_names', ())}
+        return self.sr_vaste_regels.filtered(
+            lambda line: (line.type_id and line.type_id.code == definition['code'])
+            or (
+                not line.type_id
+                and (line.name or '').strip().casefold() in fallback_names
+            )
+        )
+
+    def _sr_set_named_rule_amount(self, field_name, amount):
+        self.ensure_one()
+        definition = self.SR_CONTRACT_LINE_FIELD_MAP[field_name]
+        lines = self._sr_get_named_rule_lines(definition)
+        if lines:
+            lines.unlink()
+
+        if not amount:
+            return
+
+        line_type = self._sr_get_line_type_from_definition(definition)
+        line_vals = {
+            'contract_id': self.id,
+            'name': definition['name'],
+            'sr_categorie': definition['category'],
+            'amount_type': 'fixed',
+            'amount': amount,
+        }
+        if line_type:
+            line_vals['type_id'] = line_type.id
+        self.env['hr.contract.sr.line'].create(line_vals)
+
+    def _inverse_sr_kinderbijslag_bedrag(self):
+        for contract in self:
+            contract._sr_set_named_rule_amount('sr_kinderbijslag_bedrag', contract.sr_kinderbijslag_bedrag)
+
+    def _inverse_sr_vervoer_toelage(self):
+        for contract in self:
+            contract._sr_set_named_rule_amount('sr_vervoer_toelage', contract.sr_vervoer_toelage)
+
+    def _inverse_sr_representatie_toelage(self):
+        for contract in self:
+            contract._sr_set_named_rule_amount('sr_representatie_toelage', contract.sr_representatie_toelage)
+
+    def _inverse_sr_vrije_geneeskundige_behandeling(self):
+        for contract in self:
+            contract._sr_set_named_rule_amount(
+                'sr_vrije_geneeskundige_behandeling',
+                contract.sr_vrije_geneeskundige_behandeling,
+            )
+
+    def _sr_get_heffingskorting_per_periode(self, heffingskorting_maand=None):
+        """Geeft de netto heffingskorting terug voor maandloon of FN."""
+        self.ensure_one()
+        if heffingskorting_maand is None:
+            heffingskorting_maand = calc.get_sr_parameter_value(
+                self.env, 'SR_HEFFINGSKORTING', Date.today(),
+                default=calc.get_config_parameter_default('SR_HEFFINGSKORTING'),
+                raise_if_not_found=False,
+            )
+        if not heffingskorting_maand:
+            return 0.0
+
+        periodes = 26 if self.sr_salary_type == 'fn' else 12
+        if periodes == 12:
+            return calc.round_money(heffingskorting_maand)
+        return calc.round_money(heffingskorting_maand * 12.0 / 26.0)
 
     def _sr_resolve_line_amount(self, line):
         """
@@ -275,12 +496,14 @@ class HrContract(models.Model):
         if max_kind_maand is None:
             max_kind_maand = calc.get_sr_parameter_value(
                 self.env, 'SR_KINDBIJ_MAX_KIND_MAAND', Date.today(),
-                default=250.0, raise_if_not_found=False,
+                default=calc.get_config_parameter_default('SR_KINDBIJ_MAX_KIND_MAAND'),
+                raise_if_not_found=False,
             )
         if max_maand is None:
             max_maand = calc.get_sr_parameter_value(
                 self.env, 'SR_KINDBIJ_MAX_MAAND', Date.today(),
-                default=1000.0, raise_if_not_found=False,
+                default=calc.get_config_parameter_default('SR_KINDBIJ_MAX_MAAND'),
+                raise_if_not_found=False,
             )
         # Kinderbijslag regels via type KINDBIJ of genormaliseerde naam.
         kb_lines = [

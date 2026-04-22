@@ -197,15 +197,19 @@ class TestArtikel14Berekening(common.TransactionCase):
         # AOV moet negatief zijn
         self.assertLess(aov, 0.0, 'AOV bijdrage moet negatief zijn (inhouding)')
 
-        # Nettoloon = bruto + LB + AOV (geen heffingskorting)
-        self.assertAlmostEqual(net, gross + lb + aov, places=2,
+        hk = self._get_line_total(payslip, 'SR_HK')
+
+        # Nettoloon = bruto + LB + AOV + heffingskorting
+        self.assertAlmostEqual(hk, 750.0, places=2,
+                       msg='Heffingskorting moet exact SRD 750 per maand zijn')
+        self.assertAlmostEqual(net, gross + lb + aov + hk, places=2,
                                msg='Nettoloon berekening klopt niet')
 
         self.assertAlmostEqual(abs(lb), 2025.13, places=2,
                        msg='LB voor het referentiesalaris wijkt af van het 2026 rekenvoorbeeld')
         self.assertAlmostEqual(abs(aov), 794.22, places=2,
                        msg='AOV voor het referentiesalaris wijkt af van het 2026 rekenvoorbeeld')
-        self.assertAlmostEqual(net, 17436.25, places=2,
+        self.assertAlmostEqual(net, 18186.25, places=2,
                        msg='Nettoloon voor het referentiesalaris moet tot op de cent kloppen')
 
         # Nettoloon moet lager zijn dan brutoloon
@@ -647,6 +651,8 @@ class TestArtikel14Breakdown(common.TransactionCase):
 
         verwachte_sleutels = [
             'periodes', 'is_fn', 'fn_period_label', 'fn_period_indicator',
+            'payslip_layout', 'payslip_layout_label',
+            'period_title', 'employee_reference', 'employment_start_date', 'bank_account_number', 'bank_name', 'hourly_wage',
             'basic', 'toelagen', 'kinderbijslag',
             'bruto_per_periode', 'bruto_totaal', 'bruto_jaarloon',
             'belastingvrij_jaar', 'forfaitaire_pct', 'forfaitaire_jaar',
@@ -658,6 +664,10 @@ class TestArtikel14Breakdown(common.TransactionCase):
             'aov_bijz', 'aov_17a', 'aov_overwerk',
             'franchise_periode', 'aov_grondslag', 'aov_tarief_pct', 'aov_per_periode',
             'aftrek_bv', 'heffingskorting', 'pensioen', 'contract_inhoudingen', 'input_inhoudingen',
+            'earnings_lines', 'deductions_lines', 'summary_cards',
+            'payslip_line_rows', 'belasting_line_rows',
+            'display_debit_total', 'display_credit_total', 'display_net_total',
+            'belasting_paid_total', 'belasting_tax_total', 'belasting_aov_total',
             'totaal_lb', 'totaal_aov',
             'totaal_inhoudingen', 'netto',
         ]
@@ -665,34 +675,57 @@ class TestArtikel14Breakdown(common.TransactionCase):
             self.assertIn(sleutel, bd,
                           f'Ontbrekende sleutel in breakdown: {sleutel}')
 
-    def test_breakdown_legacy_heffingskorting_volgt_payslip_netto(self):
+    def test_breakdown_bevat_report_helper_lijsten(self):
+        """Report helpers moeten voldoende data geven voor eenvoudige layouts."""
+        payslip = self._make_payslip(wage=20000.0)
+        bd = payslip._get_sr_artikel14_breakdown()
+
+        self.assertEqual(bd['payslip_layout'], 'employee_simple')
+        self.assertEqual(bd['payslip_layout_label'], 'Klassiek Debet / Credit')
+        self.assertTrue(any(line['name'] == 'Salaris' for line in bd['earnings_lines']))
+        self.assertTrue(any(card['label'] == 'Netto loon' for card in bd['summary_cards']))
+        self.assertTrue(any(row['name'] == 'SALARIS' for row in bd['payslip_line_rows']))
+        self.assertIsInstance(bd['display_debit_total'], float)
+
+    def test_payslip_layout_default_volgt_config_parameter(self):
+        """Nieuwe loonstroken moeten de geconfigureerde standaardlayout overnemen."""
+        icp = self.env['ir.config_parameter'].sudo()
+        key = 'sr_payroll.sr_default_payslip_layout'
+        old_value = icp.get_param(key)
+        try:
+            icp.set_param(key, 'compact')
+            payslip = self._make_payslip(wage=18000.0)
+            self.assertEqual(payslip.sr_payslip_layout, 'compact')
+        finally:
+            param = self.env['ir.config_parameter'].sudo().search([('key', '=', key)], limit=1)
+            if old_value in (None, False, ''):
+                param.unlink()
+            else:
+                icp.set_param(key, old_value)
+
+    def test_payslip_layout_default_valt_terug_bij_verouderde_config_waarde(self):
+        """Oude configwaarden zoals 'detailed' mogen niet meer als werknemerslayout terugkomen."""
+        icp = self.env['ir.config_parameter'].sudo()
+        key = 'sr_payroll.default_payslip_layout'
+        old_value = icp.get_param(key)
+        try:
+            icp.set_param(key, 'detailed')
+            payslip = self._make_payslip(wage=18000.0)
+            self.assertEqual(payslip.sr_payslip_layout, 'employee_simple')
+            self.assertEqual(payslip._sr_get_effective_payslip_layout(), 'employee_simple')
+        finally:
+            param = self.env['ir.config_parameter'].sudo().search([('key', '=', key)], limit=1)
+            if old_value in (None, False, ''):
+                param.unlink()
+            else:
+                icp.set_param(key, old_value)
+
+    def test_breakdown_actieve_heffingskorting_volgt_payslip_netto(self):
         """
-        Historische SR_HK-regels mogen de PDF-breakdown niet uit sync trekken.
-        De wettelijke grondslag blijft zonder HK, maar netto moet wel matchen
-        met de bestaande payslip-regels.
+        De actieve SR_HK-regel moet als afzonderlijke nettocredit zichtbaar zijn,
+        terwijl de wettelijke grondslag zonder HK blijft.
         """
         payslip = self._make_payslip(wage=25000.0)
-        hk_rule = self.env.ref('l10n_sr_hr_payroll.sr_rule_heffingskorting')
-        gross_line = payslip.line_ids.filtered(lambda l: l.code == 'GROSS')[:1]
-        net_line = payslip.line_ids.filtered(lambda l: l.code == 'NET')[:1]
-
-        self.env['hr.payslip.line'].create({
-            'name': 'Heffingskorting (legacy)',
-            'code': 'SR_HK',
-            'sequence': 55,
-            'category_id': hk_rule.category_id.id,
-            'salary_rule_id': hk_rule.id,
-            'slip_id': payslip.id,
-            'employee_id': payslip.employee_id.id,
-            'contract_id': payslip.contract_id.id,
-            'company_id': payslip.company_id.id,
-            'amount': 750.0,
-            'quantity': 1.0,
-            'rate': 100.0,
-            'total': 750.0,
-        })
-        gross_line.total += 750.0
-        net_line.total += 750.0
 
         bd = payslip._get_sr_artikel14_breakdown()
 
@@ -739,7 +772,7 @@ class TestArtikel14Breakdown(common.TransactionCase):
         self.assertEqual(bd['franchise_periode'], 0.0,
                          'Fortnight heeft geen AOV franchise')
         self.assertEqual(bd['fn_period_label'], '2026FN10')
-        self.assertEqual(bd['fn_period_indicator'], '202510')
+        self.assertEqual(bd['fn_period_indicator'], '202610')
 
     def test_breakdown_lb_stemt_overeen_met_salarisregel(self):
         """
