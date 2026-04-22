@@ -22,6 +22,7 @@
             <!-- Voeg sr_is_admin toe als verborgen veld (nodig voor readonly-condities) -->
             <xpath expr="//field[@name='company_id']" position="after">
                 <field name="sr_is_admin" invisible="1"/>
+                <field name="sr_contract_allows_overtime" invisible="1"/>
             </xpath>
 
             <!-- Naam: ook bewerkbaar voor admin bij validated-status -->
@@ -79,8 +80,24 @@
                     voor niet-beheerders.
                 </div>
 
+                <div class="alert alert-warning" role="status"
+                     invisible="not sr_has_schedule_deviation">
+                    Deze werkboeking wijkt af van het contractrooster. Controleer de extra uren
+                    voordat de loonstrook wordt gegenereerd.
+                </div>
+
+                <div class="alert alert-secondary" role="status"
+                     invisible="sr_contract_allows_overtime or sr_extra_hours &lt;= 0">
+                    Extra uren zijn gedetecteerd, maar het contract staat geen overwerkuitbetaling toe.
+                    Deze uren blijven administratief zichtbaar en worden niet als belastbaar overwerk doorgestuurd.
+                </div>
+
                 <group name="sr_overtime_group" string="Overwerk &amp; Registratie" col="4">
                     <group class="o_form_fw_labels">
+                        <field name="sr_contract_allows_overtime" readonly="1"/>
+                        <field name="sr_overtime_treatment" widget="badge" readonly="1"/>
+                        <field name="sr_planned_hours" widget="float_time" readonly="1"/>
+                        <field name="sr_extra_hours" widget="float_time" readonly="1"/>
                         <field name="sr_overtime_150"
                                widget="float_time"
                                readonly="state == 'validated' and not sr_is_admin"/>
@@ -91,12 +108,14 @@
                                readonly="state == 'validated' and not sr_is_admin"/>
                     </group>
                     <group class="o_form_fw_labels">
+                        <field name="sr_has_schedule_deviation" readonly="1"/>
                         <field name="sr_entry_source"
                                readonly="state == 'validated' and not sr_is_admin"/>
                         <field name="sr_import_batch"
                                readonly="state == 'validated' and not sr_is_admin"
                                placeholder="Bijv. CLOCK-2026-04-21"
                                invisible="sr_entry_source != 'import'"/>
+                        <field name="sr_deviation_note" readonly="1" invisible="not sr_deviation_note"/>
                     </group>
                 </group>
             </xpath>
@@ -113,10 +132,15 @@
             <xpath expr="//list" position="attributes">
                 <attribute name="editable">bottom</attribute>
                 <attribute name="default_order">date_start desc</attribute>
+                <attribute name="decoration-warning">sr_has_schedule_deviation and sr_overtime_treatment not in ('manual', 'unpaid')</attribute>
+                <attribute name="decoration-danger">sr_overtime_treatment == 'unpaid'</attribute>
+                <attribute name="decoration-info">sr_manual_override</attribute>
             </xpath>
 
             <xpath expr="//field[@name='name']" position="before">
                 <field name="sr_is_admin" invisible="1"/>
+                <field name="sr_has_schedule_deviation" invisible="1"/>
+                <field name="sr_overtime_treatment" invisible="1"/>
             </xpath>
 
             <xpath expr="//field[@name='name']" position="attributes">
@@ -140,13 +164,18 @@
             </xpath>
 
             <xpath expr="//field[@name='duration']" position="after">
-                  <field name="sr_overtime_150" optional="hide" string="OT 150%" widget="float_time"
+                <field name="sr_planned_hours" string="Rooster" widget="float_time" readonly="1"/>
+                <field name="sr_extra_hours" string="Extra" widget="float_time" readonly="1"/>
+                <field name="sr_contract_allows_overtime" string="OT Recht" readonly="1" optional="show"/>
+                <field name="sr_overtime_treatment" string="SR Classificatie" widget="badge" readonly="1" optional="show"/>
+                <field name="sr_overtime_150" string="OT 150%" widget="float_time"
                        readonly="state == 'validated' and not sr_is_admin"/>
-                  <field name="sr_overtime_200" optional="hide" string="OT 200%" widget="float_time"
+                <field name="sr_overtime_200" string="OT 200%" widget="float_time"
                        readonly="state == 'validated' and not sr_is_admin"/>
-                <field name="sr_manual_override" optional="hide"
+                <field name="sr_manual_override" optional="show"
                        readonly="state == 'validated' and not sr_is_admin"/>
-                <field name="sr_entry_source" optional="hide"/>
+                <field name="sr_entry_source" optional="show"/>
+                <field name="sr_import_batch" optional="show" invisible="sr_entry_source != 'import'"/>
             </xpath>
         </field>
     </record>

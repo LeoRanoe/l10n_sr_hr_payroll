@@ -142,6 +142,17 @@ def get_sr_parameter_value(env, code, ref_date, default=None, raise_if_not_found
     return value
 
 
+def _raise_configuration_error(code, context_label, original_error=None):
+    config_key = get_config_parameter_key(code)
+    message = f"SR Payroll configuratieparameter '{code}' ontbreekt of is ongeldig"
+    if config_key:
+        message += f" (verwachte sleutel: '{config_key}')"
+    if context_label:
+        message += f" voor {context_label}"
+    message += '. Controleer SR Payroll Instellingen of de referentieparameterhistorie.'
+    raise UserError(message) from original_error
+
+
 def _collect_dynamic_brackets(code_names, get_value):
     """
     Bouwt de reguliere Art. 14 schijven dynamisch op uit SR_SCHIJF_* en
@@ -269,14 +280,22 @@ def fetch_params_from_rule_parameter(env, ref_date):
     RuleParam = env['hr.rule.parameter']
     params = {}
     for code, key in PARAM_CODE_MAP.items():
-        params[key] = get_sr_parameter_value(
-            env, code, ref_date, raise_if_not_found=True,
-        )
+        try:
+            params[key] = get_sr_parameter_value(
+                env, code, ref_date, raise_if_not_found=True,
+            )
+        except UserError as error:
+            _raise_configuration_error(code, ref_date.isoformat(), error)
     code_names = RuleParam.search([('code', 'like', 'SR_')]).mapped('code')
-    params['brackets'] = _collect_dynamic_brackets(
-        code_names,
-        lambda code: get_sr_parameter_value(env, code, ref_date, raise_if_not_found=True),
-    )
+    try:
+        params['brackets'] = _collect_dynamic_brackets(
+            code_names,
+            lambda code: get_sr_parameter_value(env, code, ref_date, raise_if_not_found=True),
+        )
+    except UserError as error:
+        raise UserError(
+            f'SR Payroll schijfconfiguratie is ongeldig voor {ref_date.isoformat()}. {error}'
+        ) from error
     return _pad_legacy_bracket_fields(params)
 
 
@@ -289,12 +308,22 @@ def fetch_params_from_payslip(payslip):
     """
     params = {}
     for code, key in PARAM_CODE_MAP.items():
-        params[key] = payslip._rule_parameter(code)
+        try:
+            params[key] = payslip._rule_parameter(code)
+        except (UserError, KeyError, TypeError, ValueError) as error:
+            context_label = payslip.date_to.isoformat() if payslip.date_to else 'deze loonstrook'
+            _raise_configuration_error(code, context_label, error)
     code_names = payslip.env['hr.rule.parameter'].search([('code', 'like', 'SR_')]).mapped('code')
-    params['brackets'] = _collect_dynamic_brackets(
-        code_names,
-        payslip._rule_parameter,
-    )
+    try:
+        params['brackets'] = _collect_dynamic_brackets(
+            code_names,
+            payslip._rule_parameter,
+        )
+    except UserError as error:
+        context_label = payslip.date_to.isoformat() if payslip.date_to else 'deze loonstrook'
+        raise UserError(
+            f'SR Payroll schijfconfiguratie is ongeldig voor {context_label}. {error}'
+        ) from error
     return _pad_legacy_bracket_fields(params)
 
 

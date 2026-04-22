@@ -681,7 +681,7 @@ class TestArtikel14Breakdown(common.TransactionCase):
         bd = payslip._get_sr_artikel14_breakdown()
 
         self.assertEqual(bd['payslip_layout'], 'employee_simple')
-        self.assertEqual(bd['payslip_layout_label'], 'Debet / Credit')
+        self.assertEqual(bd['payslip_layout_label'], 'Klassiek Debet / Credit')
         self.assertTrue(any(line['name'] == 'Salaris' for line in bd['earnings_lines']))
         self.assertTrue(any(card['label'] == 'Netto loon' for card in bd['summary_cards']))
         self.assertTrue(any(row['name'] == 'SALARIS' for row in bd['payslip_line_rows']))
@@ -690,12 +690,29 @@ class TestArtikel14Breakdown(common.TransactionCase):
     def test_payslip_layout_default_volgt_config_parameter(self):
         """Nieuwe loonstroken moeten de geconfigureerde standaardlayout overnemen."""
         icp = self.env['ir.config_parameter'].sudo()
-        key = 'sr_payroll.default_payslip_layout'
+        key = 'sr_payroll.sr_default_payslip_layout'
         old_value = icp.get_param(key)
         try:
             icp.set_param(key, 'compact')
             payslip = self._make_payslip(wage=18000.0)
             self.assertEqual(payslip.sr_payslip_layout, 'compact')
+        finally:
+            param = self.env['ir.config_parameter'].sudo().search([('key', '=', key)], limit=1)
+            if old_value in (None, False, ''):
+                param.unlink()
+            else:
+                icp.set_param(key, old_value)
+
+    def test_payslip_layout_default_valt_terug_bij_verouderde_config_waarde(self):
+        """Oude configwaarden zoals 'detailed' mogen niet meer als werknemerslayout terugkomen."""
+        icp = self.env['ir.config_parameter'].sudo()
+        key = 'sr_payroll.default_payslip_layout'
+        old_value = icp.get_param(key)
+        try:
+            icp.set_param(key, 'detailed')
+            payslip = self._make_payslip(wage=18000.0)
+            self.assertEqual(payslip.sr_payslip_layout, 'employee_simple')
+            self.assertEqual(payslip._sr_get_effective_payslip_layout(), 'employee_simple')
         finally:
             param = self.env['ir.config_parameter'].sudo().search([('key', '=', key)], limit=1)
             if old_value in (None, False, ''):

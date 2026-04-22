@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <data noupdate="1">
+        <record id="sr_payroll_config_default_payslip_layout" model="ir.config_parameter">
+            <field name="key">sr_payroll.sr_default_payslip_layout</field>
+            <field name="value">employee_simple</field>
+        </record>
         <record id="sr_payroll_config_belastingvrij_jaar" model="ir.config_parameter">
             <field name="key">sr_payroll.belastingvrij_jaar</field>
             <field name="value">108000.0</field>
