@@ -983,9 +983,9 @@
                                     <div class="sr-icon"><i class="fa fa-list-alt"/></div>
                                     <h3>Controleer na de berekening</h3>
                                     <ul class="sr-checklist">
-                                        <li><strong>Salary Computation</strong> toont LB, AOV en netto zonder onverwachte dubbele regels.</li>
-                                        <li><strong>Other Inputs</strong> bevat alleen de invoer van deze specifieke loonstrook.</li>
-                                        <li><strong>HTML Preview</strong> of PDF sluit aan op de contractpreview en de verwachte uitkomst.</li>
+                                        <li><strong>Salarisberekening</strong> toont LB, AOV en netto zonder onverwachte dubbele regels.</li>
+                                        <li><strong>Andere invoer</strong> bevat alleen de invoer van deze specifieke loonstrook.</li>
+                                        <li><strong>HTML-weergave</strong> of PDF sluit aan op de contractweergave en de verwachte uitkomst.</li>
                                         <li>Zolang de loonstrook in <strong>Concept</strong> staat kunt u opnieuw berekenen.</li>
                                     </ul>
                                 </article>
@@ -1013,8 +1013,8 @@
                                         </tr>
                                         <tr>
                                             <td><span class="sr-step">3</span></td>
-                                            <td>Voeg alleen indien nodig <strong>Other Inputs</strong> toe voor eenmalige posten zoals overwerk, bonus of bijzondere beloning.</td>
-                                            <td>Tab <strong>Other Inputs</strong></td>
+                                            <td>Voeg alleen indien nodig <strong>Andere invoer</strong> toe voor eenmalige posten zoals overwerk, bonus of bijzondere beloning.</td>
+                                            <td>Tab <strong>Andere invoer</strong></td>
                                         </tr>
                                         <tr>
                                             <td><span class="sr-step">4</span></td>
@@ -1024,11 +1024,11 @@
                                         <tr>
                                             <td><span class="sr-step">5</span></td>
                                             <td>Controleer de regels voor <strong>SR_LB</strong>, <strong>SR_AOV</strong>, eventuele vrijstellingen en het nettoresultaat.</td>
-                                            <td>Tab <strong>Salary Computation</strong></td>
+                                            <td>Tab <strong>Salarisberekening</strong></td>
                                         </tr>
                                         <tr>
                                             <td><span class="sr-step">6</span></td>
-                                            <td>Gebruik <strong>HTML Preview</strong> of de contractpreview als u de berekening stap voor stap wilt uitleggen of vergelijken.</td>
+                                            <td>Gebruik <strong>HTML-weergave</strong> of de contractweergave als u de berekening stap voor stap wilt uitleggen of vergelijken.</td>
                                             <td>Loonstrook of contract</td>
                                         </tr>
                                         <tr>

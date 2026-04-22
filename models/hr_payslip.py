@@ -16,6 +16,8 @@ _SR_HOURLY_RATE_QUANT = Decimal('0.000001')
 _SR_PAYSLIP_LAYOUT_DEFAULT = 'employee_simple'
 _SR_PAYSLIP_LAYOUT_CONFIG_KEY = 'sr_payroll.sr_default_payslip_layout'
 _SR_PAYSLIP_LAYOUT_LEGACY_CONFIG_KEY = 'sr_payroll.default_payslip_layout'
+_SR_DISPLAY_MODE_CONFIG_KEY = 'sr_payroll.netto_display_mode'
+_SR_DISPLAY_MODE_DEFAULT = 'srd'
 _SR_PAYSLIP_LAYOUTS = [
     ('employee_simple', 'Klassiek Debet / Credit'),
     ('compact', 'Compact Netto-overzicht'),
@@ -140,6 +142,58 @@ class HrPayslip(models.Model):
         compute_sudo=True,
     )
 
+    # ── Multi-Currency: bevroren snapshot (kopie bij compute_sheet) ───────
+    sr_frozen_contract_currency_id = fields.Many2one(
+        'res.currency',
+        string='Contract Valuta (Bevroren)',
+        readonly=True,
+        copy=False,
+        help='Contractvaluta bevroren op het moment van loonberekening.',
+    )
+    sr_frozen_exchange_rate = fields.Float(
+        string='Technische Wisselkoerssnapshot',
+        digits=(16, 6),
+        store=True,
+        readonly=True,
+        copy=False,
+        help='Technisch compatibiliteitsveld voor oudere data. Gebruik sr_exchange_rate voor alle actuele payroll-logica.',
+    )
+    sr_exchange_rate = fields.Float(
+        related='sr_frozen_exchange_rate',
+        string='Wisselkoers bij Berekening',
+        digits=(16, 6),
+        store=True,
+        readonly=True,
+        copy=False,
+        help='Persistente alias voor de bevroren wisselkoers op deze loonstrook.',
+    )
+    sr_frozen_netto_display_mode = fields.Selection(
+        selection=[
+            ('srd', 'Altijd in SRD'),
+            ('contract_currency', 'Toon ook in Contractvaluta'),
+        ],
+        string='Netto Weergavemodus (Bevroren)',
+        readonly=True,
+        copy=False,
+        help='Netto weergavemodus bevroren op het moment van loonberekening.',
+    )
+    sr_netto_bronvaluta = fields.Float(
+        string='Netto Loon (Bronvaluta)',
+        digits=(16, 2),
+        store=True,
+        readonly=True,
+        copy=False,
+        help='Nettoloon omgerekend naar de contractvaluta. Gelijk aan Netto SRD als contractvaluta = SRD.',
+    )
+    sr_belastingvrij_periode_srd = fields.Float(
+        string='Belastingvrije Voet / Periode (SRD)',
+        digits=(16, 2),
+        store=True,
+        readonly=True,
+        copy=False,
+        help='Bevroren belastingvrije voet per periode op basis van de actieve parameters tijdens berekening.',
+    )
+
     @api.model
     def _default_sr_payslip_layout(self):
         params = self.env['ir.config_parameter'].sudo()
@@ -222,9 +276,12 @@ class HrPayslip(models.Model):
             slip._sr_validate_contract_period_integrity()
             slip._sr_validate_fn_period_2026()
             slip._sr_require_positive_contract_wage()
+            slip._sr_freeze_currency_snapshot()
             slip._sr_sync_overtime_inputs_from_work_entries()
             slip._sr_store_work_entry_snapshot()
         res = super().compute_sheet()
+        for slip in self:
+            slip._sr_store_currency_totals()
         _sr_calc_cache.clear()
         return res
 
@@ -232,8 +289,26 @@ class HrPayslip(models.Model):
         for slip in self:
             slip._sr_validate_contract_period_integrity()
             slip._sr_require_positive_contract_wage()
+            slip._sr_freeze_currency_snapshot()
             slip._sr_store_work_entry_snapshot()
-        return super().action_payslip_done()
+        result = super().action_payslip_done()
+        for slip in self:
+            slip._sr_store_currency_totals()
+        return result
+
+    def write(self, vals):
+        locked_snapshot_fields = {
+            'sr_frozen_contract_currency_id',
+            'sr_frozen_exchange_rate',
+            'sr_frozen_netto_display_mode',
+        }
+        if locked_snapshot_fields.intersection(vals) and not self.env.context.get('sr_allow_locked_currency_update'):
+            locked_slips = self.filtered(lambda slip: slip.state in ('done', 'paid'))
+            if locked_slips:
+                raise UserError(
+                    'De bevroren valuta-snapshot van een bevestigde SR-loonstrook mag niet meer worden gewijzigd.'
+                )
+        return super().write(vals)
 
     def _sr_require_positive_contract_wage(self):
         self.ensure_one()
@@ -320,6 +395,112 @@ class HrPayslip(models.Model):
             'sr_total_worked_days': summary['total_worked_days'],
         })
 
+    def _sr_get_config_exchange_rate(self, currency=None, params=None):
+        self.ensure_one()
+        currency = currency or getattr(self.contract_id, 'sr_contract_currency', False)
+        if not currency or currency.name == 'SRD':
+            return 1.0
+        if params is None:
+            params = self.env['ir.config_parameter'].sudo()
+        if currency.name == 'USD':
+            try:
+                return float(params.get_param('sr_payroll.exchange_rate_usd', default='36.5000'))
+            except (TypeError, ValueError):
+                return 36.5
+        if currency.name == 'EUR':
+            try:
+                return float(params.get_param('sr_payroll.exchange_rate_eur', default='39.0000'))
+            except (TypeError, ValueError):
+                return 39.0
+        return 1.0
+
+    def _sr_freeze_currency_snapshot(self, force=False):
+        """
+        Bevriест de contractvaluta, wisselkoers en display-modus op de loonstrook.
+
+        Wordt aangeroepen aan het begin van compute_sheet(), vóór de salarisregels,
+        zodat _sr_wage_in_srd() en _sr_get_hourly_rate() de bevroren waarden kunnen lezen.
+        """
+        self.ensure_one()
+        if not force and self.sr_frozen_contract_currency_id and self.sr_exchange_rate:
+            return
+
+        contract = self.contract_id
+        if not contract:
+            return
+
+        # Contractvaluta van het contract lezen
+        currency = getattr(contract, 'sr_contract_currency', False)
+        if not currency:
+            currency = self.env['res.currency'].search([('name', '=', 'SRD')], limit=1)
+
+        # Wisselkoers ophalen uit ir.config_parameter
+        params = self.env['ir.config_parameter'].sudo()
+        rate = self._sr_get_config_exchange_rate(currency=currency, params=params)
+
+        # Display modus ophalen
+        display_mode = params.get_param(_SR_DISPLAY_MODE_CONFIG_KEY, default=_SR_DISPLAY_MODE_DEFAULT)
+        if display_mode not in ('srd', 'contract_currency'):
+            display_mode = _SR_DISPLAY_MODE_DEFAULT
+
+        self.update({
+            'sr_frozen_contract_currency_id': currency.id if currency else False,
+            'sr_frozen_exchange_rate': rate,
+            'sr_frozen_netto_display_mode': display_mode,
+        })
+
+    def _sr_store_currency_totals(self):
+        self.ensure_one()
+        if not self.line_ids:
+            return
+
+        def _line_total(*codes):
+            return sum(
+                line.total or 0.0
+                for line in self.line_ids
+                if line.code in codes
+            )
+
+        netto_srd = _line_total('NET')
+        rate = self.sr_exchange_rate or 1.0
+        currency = self.sr_frozen_contract_currency_id
+        if currency and currency.name not in ('SRD', False, '') and rate > 0:
+            netto_bronvaluta = Decimal(str(netto_srd)) / Decimal(str(rate))
+        else:
+            netto_bronvaluta = Decimal(str(netto_srd))
+
+        belastingvrij_jaar = Decimal(str(self._rule_parameter('SR_BELASTINGVRIJ_JAAR') or 0.0))
+        periodes = Decimal(str(self._sr_get_periodes() or 0))
+        belastingvrij_periode = Decimal('0.0')
+        if periodes > 0:
+            belastingvrij_periode = belastingvrij_jaar / periodes
+
+        self.update({
+            'sr_netto_bronvaluta': float(netto_bronvaluta.quantize(_SR_MONEY_QUANT, rounding=ROUND_HALF_UP)),
+            'sr_belastingvrij_periode_srd': float(
+                belastingvrij_periode.quantize(_SR_MONEY_QUANT, rounding=ROUND_HALF_UP)
+            ),
+        })
+
+    def _sr_wage_in_srd(self):
+        """
+        Geeft het contractloon terug in SRD.
+
+        Voor SRD-contracten: direct contract.wage.
+        Voor USD/EUR-contracten: contract.wage × sr_exchange_rate.
+        De bevroren wisselkoers wordt gebruikt zodat herberekening consistent blijft.
+        """
+        self.ensure_one()
+        wage = self.contract_id.wage or 0.0
+        if not wage:
+            return 0.0
+        rate = self.sr_exchange_rate or 1.0
+        currency = self.sr_frozen_contract_currency_id
+        if currency and currency.name not in ('SRD', False, ''):
+            result = Decimal(str(wage)) * Decimal(str(rate))
+            return float(result.quantize(_SR_MONEY_QUANT, rounding=ROUND_HALF_UP))
+        return wage
+
     def _rule_parameter(self, code):
         self.ensure_one()
         config_key = calc.get_config_parameter_key(code)
@@ -384,11 +565,11 @@ class HrPayslip(models.Model):
 
     def _sr_get_hourly_rate(self):
         self.ensure_one()
-        wage = self.contract_id.wage or 0.0
-        if not wage:
+        wage_srd = self._sr_wage_in_srd()
+        if not wage_srd:
             return 0.0
         divisor = Decimal('80') if self._sr_get_periodes() == 26 else Decimal('173.333333')
-        hourly_rate = Decimal(str(wage)) / divisor
+        hourly_rate = Decimal(str(wage_srd)) / divisor
         return float(hourly_rate.quantize(_SR_HOURLY_RATE_QUANT, rounding=ROUND_HALF_UP))
 
     def _sr_sync_overtime_inputs_from_work_entries(self):

@@ -40,3 +40,17 @@ class HrPayslipRun(models.Model):
                 'Er zijn geen afgeronde SR-loonstroken in deze loonrun om een belastingoverzicht te exporteren.'
             )
         return self.env.ref('l10n_sr_hr_payroll.action_report_sr_tax_overview_period').report_action(self, config=False)
+
+    def action_open_sr_tax_report(self):
+        """Open het SR Fiscaal Belastingoverzicht gefilterd op deze loonrun."""
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'SR Fiscaal Overzicht',
+            'res_model': 'hr.payroll.tax.report',
+            'view_mode': 'list,pivot,form',
+            'domain': [('payslip_run_id', '=', self.id)],
+            'context': {
+                'search_default_group_by_department': 1,
+            },
+        }
