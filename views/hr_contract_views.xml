@@ -37,6 +37,10 @@
                         <page string="Fiscale Data" name="sr_fiscale_data_tab">
                             <group string="Basisloon &amp; Verloning" name="sr_basis_verloning">
                                 <group>
+                                    <field name="sr_contract_currency"
+                                           options="{'no_create': True, 'no_open': True}"
+                                           string="Contractvaluta"
+                                           help="Kies de valuta van het basisloon. Wordt omgerekend naar SRD via de dagkoers in de Payroll Instellingen."/>
                                     <field name="wage" widget="monetary" options="{'currency_field': 'currency_id'}" required="1"/>
                                     <field name="sr_salary_type"
                                            widget="radio"
@@ -46,6 +50,10 @@
                                            help="Bruto uurloon berekend uit het basisloon (automatisch)."/>
                                 </group>
                                 <group>
+                                    <div class="alert alert-warning border mb-0" role="alert"
+                                         invisible="sr_contract_currency == False or sr_contract_currency.name == 'SRD'">
+                                        Basisloon is in vreemde valuta. Bij loonberekening wordt omgerekend naar SRD via de dagkoers in de Payroll Instellingen (Valuta &amp;amp; Wisselkoers). Controleer of de koers actueel is.
+                                    </div>
                                     <div class="alert alert-danger border mb-0" role="alert" invisible="wage &gt; 0">
                                         Een actief SR payroll-contract vereist een positief basisloon. Zonder loon worden uurloon, overwerk en LB/AOV geblokkeerd.
                                     </div>
@@ -137,7 +145,7 @@
                             </field>
                         </page>
 
-                        <page string="Controle &amp; Preview" name="sr_controle_preview_tab">
+                        <page string="Controle &amp; Voorbeeld" name="sr_controle_preview_tab">
                             <group string="Eenmalige &amp; Variabele Betalingen (via Loonstrook)" name="sr_payslip_info">
                                 <div colspan="2" class="alert alert-success small" role="status">
                                     <strong>&#9432; Hoe eigen loon codes aanmaken?</strong><br/>
@@ -146,7 +154,7 @@
                                     <strong>Overwerk</strong> komt normaal automatisch uit <strong>Werkboekingen</strong>
                                     wanneer het contract overwerkrecht heeft en het werkboekingstype als SR overwerk staat ingesteld:
                                     <ol class="mt-1 mb-0 ps-3">
-                                        <li>Ga naar <strong>Configuratie → Salaris → Other Input Types</strong></li>
+                                        <li>Ga naar <strong>Configuratie → Salaris → Andere invoertypen</strong></li>
                                         <li>Maak een nieuwe loon code aan (bijv. "Olie Toeslag Variabel")</li>
                                         <li>Stel de <strong>SR Loon Categorie</strong> in (belastbaar / vrijgesteld / overwerk / vakantie / gratificatie / bijzondere beloning)</li>
                                         <li>Voeg het bedrag toe bij het aanmaken van de loonstrook</li>
@@ -155,7 +163,7 @@
                                         <strong>Vooringestelde codes:</strong>
                                         SR_IN_OVERWERK_150 (Werkdag overwerk) ·
                                         SR_IN_OVERWERK_200 (Zon/feestdag overwerk) ·
-                                        SR_IN_OVERWERK (Legacy/generiek) ·
+                                        SR_IN_OVERWERK (oud/generiek) ·
                                         SR_IN_VAKANTIE (Vakantietoelage Art. 10i) ·
                                         SR_IN_GRAT (Gratificatie Art. 10j) ·
                                         SR_IN_BIJZ (Bijzondere Beloning Art. 17) ·
@@ -173,7 +181,7 @@
 
                             <group string="Rekenvoorbeeld — Geschatte Loonstrook per Periode" name="sr_rekenvoorbeeld">
                                 <div colspan="2" class="alert alert-warning small mb-2" role="status">
-                                    &#9432;&#160;<em>Schatting op basis van vaste contractwaarden. Eenmalige payslip-invoer (overwerk, vakantie, bonus) is niet inbegrepen. Definitieve bedragen staan op de loonstrook.</em>
+                                    &#9432;&#160;<em>Schatting op basis van vaste contractwaarden. Eenmalige loonstrookinvoer zoals overwerk, vakantie of bonus is niet inbegrepen. Definitieve bedragen staan op de loonstrook.</em>
                                 </div>
                                 <group string="Bruto &amp; Belastbaar">
                                     <field name="sr_preview_bruto" readonly="1" widget="monetary" string="Bruto Loon (incl. vaste toelagen)"/>

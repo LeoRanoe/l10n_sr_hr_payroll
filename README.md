@@ -13,7 +13,19 @@ De module ondersteunt:
 - overwerk (Art. 17c)
 - bijzondere beloningen (Art. 17)
 - uitkering ineens / jubileum (Art. 17a)
-- contractpreview, loonstrookrapport en configuratie/help-pagina's
+- contractweergave, loonstrookrapport en configuratie/help-pagina's
+- multi-currency payroll met SRD-, USD- en EUR-ondersteuning
+- FX-lock per loonstrook voor historische koersvastheid
+- exporteerbaar fiscaal overzicht op basis van een live SQL-view
+
+## Release Note 18.0.1.0
+
+Deze release levert de definitieve Suriname Payroll v1.0 voor Odoo 18.
+
+- Multi-Currency Engine: contracten en loonstroken ondersteunen SRD, USD en EUR met een bevroren koerssnapshot per loonstrook.
+- FX-Lock & Audit Trail: bevestigde SR-loonstroken bewaren contractvaluta, wisselkoers, netto bronvaluta en belastingvrije voet voor reproduceerbare fiscale controles.
+- Exportable Fiscal Reports: het fiscaal overzicht draait op een live PostgreSQL SQL-view met filtering per loonrun, afdeling, contractvaluta en bedrijf.
+- Release Hardening: standaard 2026-parameters worden bij installatie geladen, wisselkoersen zijn strikt positief gevalideerd en multi-company record rules beschermen de rapportage.
 
 ## Belangrijke functionele keuze
 

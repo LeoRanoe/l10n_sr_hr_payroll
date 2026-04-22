@@ -35,7 +35,11 @@ _SR_CONFIG_FIELD_CODES = {
 _SR_CONFIG_FIELD_DEFAULTS = {
     'overwerk_factor_150': 1.5,
     'overwerk_factor_200': 2.0,
+    'sr_exchange_rate_usd': 36.5,
+    'sr_exchange_rate_eur': 39.0,
 }
+_SR_DISPLAY_MODE_CONFIG_KEY = 'sr_payroll.netto_display_mode'
+_SR_DISPLAY_MODE_DEFAULT = 'srd'
 _SR_MANAGED_CONFIG_FIELDS = tuple(_SR_CONFIG_FIELD_CODES) + tuple(_SR_CONFIG_FIELD_DEFAULTS)
 
 
@@ -77,6 +81,15 @@ class ResConfigSettings(models.TransientModel):
             layout_value = self._sr_get_layout_config_value()
             values['sr_default_payslip_layout'] = (
                 layout_value if layout_value in valid_values else _SR_PAYSLIP_LAYOUT_DEFAULT
+            )
+
+        if not field_names or 'sr_netto_display_mode' in requested_fields:
+            valid_modes = {'srd', 'contract_currency'}
+            mode_value = self.env['ir.config_parameter'].sudo().get_param(
+                _SR_DISPLAY_MODE_CONFIG_KEY
+            )
+            values['sr_netto_display_mode'] = (
+                mode_value if mode_value in valid_modes else _SR_DISPLAY_MODE_DEFAULT
             )
 
         return values
@@ -124,6 +137,12 @@ class ResConfigSettings(models.TransientModel):
         ], limit=1)
         if legacy_param:
             legacy_param.unlink()
+
+        params.set_param(
+            _SR_DISPLAY_MODE_CONFIG_KEY,
+            self.sr_netto_display_mode or _SR_DISPLAY_MODE_DEFAULT,
+        )
+
         return result
 
     sr_currency_id = fields.Many2one(
@@ -148,56 +167,66 @@ class ResConfigSettings(models.TransientModel):
         string='Belastingvrije voet (SRD / jaar)',
         config_parameter='sr_payroll.belastingvrij_jaar',
         default=lambda self: self._sr_default_param('SR_BELASTINGVRIJ_JAAR'),
+        help='Jaarlijkse belastingvrije voet volgens de Surinaamse loonbelasting. Een verhoging verlaagt de LB per periode voor alle nieuw berekende loonstroken.',
     )
     forfaitaire_pct = fields.Float(
         string='Forfaitaire aftrek % (decimaal)',
         digits=(16, 4),
         config_parameter='sr_payroll.forfaitaire_pct',
         default=lambda self: self._sr_default_param('SR_FORFAITAIRE_PCT'),
+        help='Forfaitaire beroepskostenaftrek als decimaal percentage. Wijzigingen beïnvloeden de belastbare grondslag van nieuwe loonberekeningen.',
     )
     forfaitaire_max_jaar = fields.Float(
         string='Forfaitaire aftrek maximum (SRD / jaar)',
         config_parameter='sr_payroll.forfaitaire_max_jaar',
         default=lambda self: self._sr_default_param('SR_FORFAITAIRE_MAX_JAAR'),
+        help='Jaarplafond op de forfaitaire aftrek. Dit maximum begrenst de aftrek nadat het percentage is toegepast.',
     )
     schijf_1_grens = fields.Float(
         string='Schijf 1 grens (SRD / jaar)',
         config_parameter='sr_payroll.schijf_1_grens',
         default=lambda self: self._sr_default_param('SR_SCHIJF_1_GRENS'),
+        help='Bovengrens van de eerste Art. 14 belastingschijf op jaarbasis. Verschuift direct het progressieve tariefpunt voor nieuwe berekeningen.',
     )
     schijf_2_grens = fields.Float(
         string='Schijf 2 grens (SRD / jaar)',
         config_parameter='sr_payroll.schijf_2_grens',
         default=lambda self: self._sr_default_param('SR_SCHIJF_2_GRENS'),
+        help='Bovengrens van de tweede Art. 14 belastingschijf op jaarbasis. Moet hoger zijn dan Schijf 1.',
     )
     schijf_3_grens = fields.Float(
         string='Schijf 3 grens (SRD / jaar)',
         config_parameter='sr_payroll.schijf_3_grens',
         default=lambda self: self._sr_default_param('SR_SCHIJF_3_GRENS'),
+        help='Bovengrens van de derde Art. 14 belastingschijf op jaarbasis. Moet hoger zijn dan Schijf 2.',
     )
     tarief_1 = fields.Float(
         string='Tarief schijf 1 (decimaal)',
         digits=(16, 4),
         config_parameter='sr_payroll.tarief_1',
         default=lambda self: self._sr_default_param('SR_TARIEF_1'),
+        help='Belastingtarief voor schijf 1 als decimaal percentage, bijvoorbeeld 0,08 voor 8%.',
     )
     tarief_2 = fields.Float(
         string='Tarief schijf 2 (decimaal)',
         digits=(16, 4),
         config_parameter='sr_payroll.tarief_2',
         default=lambda self: self._sr_default_param('SR_TARIEF_2'),
+        help='Belastingtarief voor schijf 2 als decimaal percentage.',
     )
     tarief_3 = fields.Float(
         string='Tarief schijf 3 (decimaal)',
         digits=(16, 4),
         config_parameter='sr_payroll.tarief_3',
         default=lambda self: self._sr_default_param('SR_TARIEF_3'),
+        help='Belastingtarief voor schijf 3 als decimaal percentage.',
     )
     tarief_4 = fields.Float(
         string='Tarief schijf 4 (decimaal)',
         digits=(16, 4),
         config_parameter='sr_payroll.tarief_4',
         default=lambda self: self._sr_default_param('SR_TARIEF_4'),
+        help='Belastingtarief voor de hoogste Art. 14 schijf als decimaal percentage.',
     )
     heffingskorting = fields.Float(
         string='Heffingskorting (SRD)',
@@ -210,11 +239,13 @@ class ResConfigSettings(models.TransientModel):
         digits=(16, 4),
         config_parameter='sr_payroll.aov_tarief',
         default=lambda self: self._sr_default_param('SR_AOV_TARIEF'),
+        help='AOV-inhouding als decimaal percentage. Heeft direct impact op elke nieuw berekende loonstrook.',
     )
     aov_franchise_maand = fields.Float(
         string='AOV franchise (SRD / maand)',
         config_parameter='sr_payroll.aov_franchise_maand',
         default=lambda self: self._sr_default_param('SR_AOV_FRANCHISE_MAAND'),
+        help='Maandelijkse franchise die eerst van de AOV-grondslag wordt afgetrokken bij maandloon-contracten.',
     )
     bijz_beloning_max = fields.Float(
         string='Vrijstelling vakantie/gratificatie per categorie (SRD / jaar)',
@@ -226,11 +257,13 @@ class ResConfigSettings(models.TransientModel):
         string='AKB per kind (SRD / maand)',
         config_parameter='sr_payroll.akb_per_kind',
         default=lambda self: self._sr_default_param('SR_KINDBIJ_MAX_KIND_MAAND'),
+        help='Belastingvrije kinderbijslag per kind per maand. Gebruik de officiële 2026 norm voor consistente AKB-splitsing.',
     )
     akb_max_bedrag = fields.Float(
         string='AKB maximum (SRD / maand)',
         config_parameter='sr_payroll.akb_max_bedrag',
         default=lambda self: self._sr_default_param('SR_KINDBIJ_MAX_MAAND'),
+        help='Maandelijks maximum voor de totale belastingvrije kinderbijslag. Bedragen boven dit plafond worden belastbaar.',
     )
     overwerk_schijf_1_grens = fields.Float(
         string='Overwerk schijf 1 grens (SRD / tijdvak)',
@@ -275,6 +308,45 @@ class ResConfigSettings(models.TransientModel):
         help='Vermenigvuldiger voor overwerk op zondag of wettelijke feestdagen. Standaard: 2,0.',
     )
 
+    # ── Valuta & Wisselkoers ──────────────────────────────────────────────
+    sr_exchange_rate_usd = fields.Float(
+        string='Dagkoers USD → SRD',
+        digits=(16, 6),
+        config_parameter='sr_payroll.exchange_rate_usd',
+        default=36.5,
+        help=(
+            'Actuele dagkoers: 1 USD = x SRD. '
+            'Wordt bij elke loonrun gekopieerd naar de loonstrook en daar bevroren opgeslagen. '
+            'Pas de koers aan voor elke loonrun als de wisselkoers gewijzigd is.'
+        ),
+    )
+    sr_exchange_rate_eur = fields.Float(
+        string='Dagkoers EUR → SRD',
+        digits=(16, 6),
+        config_parameter='sr_payroll.exchange_rate_eur',
+        default=39.0,
+        help=(
+            'Actuele dagkoers: 1 EUR = x SRD. '
+            'Wordt bij elke loonrun gekopieerd naar de loonstrook en daar bevroren opgeslagen. '
+            'Pas de koers aan voor elke loonrun als de wisselkoers gewijzigd is.'
+        ),
+    )
+    sr_netto_display_mode = fields.Selection(
+        selection=[
+            ('srd', 'Altijd in SRD (standaard)'),
+            ('contract_currency', 'Toon ook in Contractvaluta (netto dual-display)'),
+        ],
+        string='Netto Weergave / Uitbetaalmodus',
+        config_parameter=_SR_DISPLAY_MODE_CONFIG_KEY,
+        default=_SR_DISPLAY_MODE_DEFAULT,
+        help=(
+            'Bepaalt of het nettoloon op de loonstrook en in het fiscaal overzicht '
+            'naast SRD ook in de contractvaluta wordt getoond. '
+            '"Altijd in SRD" is de standaard voor alle SRD-contracten. '
+            '"Dual-display" toont het SRD-bedrag én het bronvaluta-equivalent naast elkaar.'
+        ),
+    )
+
     def _sr_ensure_non_negative(self, field_name, label):
         for settings in self:
             value = settings[field_name]
@@ -296,6 +368,8 @@ class ResConfigSettings(models.TransientModel):
         'overwerk_schijf_2_grens',
         'overwerk_factor_150',
         'overwerk_factor_200',
+        'sr_exchange_rate_usd',
+        'sr_exchange_rate_eur',
     )
     def _check_non_negative_amounts(self):
         field_labels = {
@@ -313,9 +387,27 @@ class ResConfigSettings(models.TransientModel):
             'overwerk_schijf_2_grens': 'Overwerk schijf 2 grens',
             'overwerk_factor_150': 'Overwerk factor 150%',
             'overwerk_factor_200': 'Overwerk factor 200%',
+            'sr_exchange_rate_usd': 'Dagkoers USD → SRD',
+            'sr_exchange_rate_eur': 'Dagkoers EUR → SRD',
         }
         for field_name, label in field_labels.items():
             self._sr_ensure_non_negative(field_name, label)
+
+    @api.constrains('sr_exchange_rate_usd', 'sr_exchange_rate_eur')
+    def _check_positive_exchange_rates(self):
+        labels = {
+            'sr_exchange_rate_usd': 'Dagkoers USD → SRD',
+            'sr_exchange_rate_eur': 'Dagkoers EUR → SRD',
+        }
+        for settings in self:
+            for field_name, label in labels.items():
+                value = settings[field_name]
+                if value in (None, False):
+                    continue
+                if value <= 0:
+                    raise ValidationError(
+                        f'{label} moet groter zijn dan 0. Een nul- of negatieve koers blokkeert de loonverwerking.'
+                    )
 
     @api.constrains(
         'forfaitaire_pct',

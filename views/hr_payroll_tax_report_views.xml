@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ═══════════════════════════════════════════════════════════════
+         HR Payroll Tax Report — Fiscaal Belastingoverzicht SR
+         Model: hr.payroll.tax.report
+         ═══════════════════════════════════════════════════════════════ -->
+
+    <!-- LIST VIEW -->
+    <record id="view_hr_payroll_tax_report_list" model="ir.ui.view">
+        <field name="name">hr.payroll.tax.report.list</field>
+        <field name="model">hr.payroll.tax.report</field>
+        <field name="arch" type="xml">
+            <list string="SR Fiscaal Belastingoverzicht" create="false" edit="false" delete="false"
+                  default_order="date_from desc,department_name,employee_name">
+                <field name="date_from" optional="show"/>
+                <field name="date_to" optional="hide"/>
+                <field name="department_name" optional="show"/>
+                <field name="employee_name"/>
+                <field name="employee_identification_id" optional="hide"/>
+                <field name="contract_currency_id" optional="show" options="{'no_open': True}"/>
+                <field name="exchange_rate" optional="hide" digits="[16, 4]"/>
+                <field name="amount_bruto_srd" sum="Totaal Bruto" optional="show"/>
+                <field name="amount_overwerk_150_srd" sum="Totaal OWK 150%" optional="hide"/>
+                <field name="amount_overwerk_200_srd" sum="Totaal OWK 200%" optional="hide"/>
+                <field name="amount_akb_srd" sum="Totaal AKB" optional="hide"/>
+                <field name="amount_aov_srd" sum="Totaal AOV" optional="show"/>
+                <field name="amount_belastingvrij_periode_srd" sum="Totaal BVV" optional="hide"/>
+                <field name="amount_lb_srd" sum="Totaal LB" optional="show"/>
+                <field name="amount_netto_srd" sum="Totaal Netto SRD" optional="show"/>
+                <field name="amount_netto_bronvaluta" sum="Totaal Netto Bronvaluta" optional="show"/>
+                <field name="payslip_state" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- FORM VIEW (read-only detail) -->
+    <record id="view_hr_payroll_tax_report_form" model="ir.ui.view">
+        <field name="name">hr.payroll.tax.report.form</field>
+        <field name="model">hr.payroll.tax.report</field>
+        <field name="arch" type="xml">
+            <form string="SR Fiscale Rapportregel" create="false" edit="false">
+                <sheet>
+                    <group>
+                        <group string="Werknemer">
+                            <field name="employee_id"/>
+                            <field name="employee_name"/>
+                            <field name="employee_identification_id"/>
+                            <field name="department_id"/>
+                        </group>
+                        <group string="Periode">
+                            <field name="date_from"/>
+                            <field name="date_to"/>
+                            <field name="payslip_run_id"/>
+                            <field name="payslip_state"/>
+                        </group>
+                    </group>
+                    <group>
+                        <group string="Valuta">
+                            <field name="contract_currency_id" options="{'no_open': True}"/>
+                            <field name="exchange_rate" digits="[16, 6]"/>
+                        </group>
+                        <group string="Bedragen (SRD)">
+                            <field name="amount_bruto_srd"/>
+                            <field name="amount_overwerk_150_srd"/>
+                            <field name="amount_overwerk_200_srd"/>
+                            <field name="amount_akb_srd"/>
+                            <field name="amount_aov_srd"/>
+                            <field name="amount_belastingvrij_periode_srd"/>
+                            <field name="amount_lb_srd"/>
+                            <field name="amount_netto_srd"/>
+                            <field name="amount_netto_bronvaluta"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- SEARCH VIEW -->
+    <record id="view_hr_payroll_tax_report_search" model="ir.ui.view">
+        <field name="name">hr.payroll.tax.report.search</field>
+        <field name="model">hr.payroll.tax.report</field>
+        <field name="arch" type="xml">
+            <search string="SR Fiscaal Belastingoverzicht">
+                <field name="employee_name" string="Werknemer"/>
+                <field name="employee_identification_id" string="ID-nummer"/>
+                <field name="department_name" string="Afdeling"/>
+                <field name="payslip_run_id" string="Loonrun"/>
+                <separator/>
+                <filter string="Bevestigd" name="filter_done"
+                        domain="[('payslip_state', 'in', ['done', 'paid'])]"/>
+                <filter string="USD Contracten" name="filter_usd"
+                        domain="[('contract_currency_id.name', '=', 'USD')]"/>
+                <filter string="EUR Contracten" name="filter_eur"
+                        domain="[('contract_currency_id.name', '=', 'EUR')]"/>
+                <separator/>
+                <filter string="Huidig jaar" name="filter_current_year"
+                        domain="[('date_from', '&gt;=', (context_today() + relativedelta(month=1, day=1)).strftime('%Y-%m-%d'))]"/>
+                <group expand="1" string="Groepeer op">
+                    <filter name="group_by_month" string="Maand/Periode"
+                            context="{'group_by': 'date_from:month'}"/>
+                    <filter name="group_by_department" string="Afdeling"
+                            context="{'group_by': 'department_id'}"/>
+                    <filter name="group_by_currency" string="Contractvaluta"
+                            context="{'group_by': 'contract_currency_id'}"/>
+                    <filter name="group_by_run" string="Loonrun"
+                            context="{'group_by': 'payslip_run_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- PIVOT VIEW -->
+    <record id="view_hr_payroll_tax_report_pivot" model="ir.ui.view">
+        <field name="name">hr.payroll.tax.report.pivot</field>
+        <field name="model">hr.payroll.tax.report</field>
+        <field name="arch" type="xml">
+            <pivot string="SR Fiscaal Belastingoverzicht" disable_linking="True">
+                <field name="date_from" type="row" interval="month"/>
+                <field name="department_name" type="row"/>
+                <field name="amount_bruto_srd" type="measure"/>
+                <field name="amount_lb_srd" type="measure"/>
+                <field name="amount_aov_srd" type="measure"/>
+                <field name="amount_netto_srd" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- ACTION -->
+    <record id="action_sr_payroll_tax_report" model="ir.actions.act_window">
+        <field name="name">SR Fiscaal Belastingoverzicht</field>
+        <field name="res_model">hr.payroll.tax.report</field>
+        <field name="view_mode">list,pivot,form</field>
+        <field name="context">{'search_default_group_by_month': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Geen fiscale rapportrecords gevonden.
+            </p>
+            <p>
+                Deze view leest live uit bevestigde SR-loonstroken en hun loonregels.
+            </p>
+        </field>
+    </record>
+
+    <!-- MENUITEM: Payroll ▸ Suriname ▸ Fiscaal Overzicht -->
+    <menuitem
+        id="menu_sr_tax_report"
+        name="Fiscaal Overzicht"
+        parent="menu_sr_payroll_root"
+        action="action_sr_payroll_tax_report"
+        sequence="30"
+        groups="hr_payroll.group_hr_payroll_manager,base.group_system"/>
+
+    <menuitem
+        id="menu_sr_tax_report_accounting"
+        name="Fiscaal Overzicht Export"
+        parent="menu_sr_payroll_root"
+        action="action_sr_payroll_tax_report"
+        sequence="35"
+        groups="l10n_sr_hr_payroll.group_sr_payroll_accountant_export,base.group_system"/>
+
+</odoo>
