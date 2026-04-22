@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="action_report_sr_annual_statement" model="ir.actions.report">
+        <field name="name">SR Jaaropgave</field>
+        <field name="model">sr.payroll.annual.statement.wizard</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">l10n_sr_hr_payroll.report_sr_annual_statement</field>
+        <field name="print_report_name">
+            'Jaaropgave - %s - %s' % (object.employee_id.name or '', object.year or '')
+        </field>
+        <field name="paperformat_id" ref="base.paperformat_euro"/>
+    </record>
+
+    <template id="report_sr_annual_statement">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="doc">
+                <t t-set="statement" t-value="doc._get_sr_annual_statement_data()"/>
+                <t t-call="web.external_layout">
+                    <div class="page">
+                        <div style="margin-bottom:16px;">
+                            <h2 class="mt-0 mb-2" style="font-size:18pt; font-weight:700;">Loonopgave <t t-esc="statement.get('year')"/></h2>
+                            <table style="width:100%; border-collapse:collapse; font-size:10.5pt;">
+                                <tbody>
+                                    <tr>
+                                        <td style="width:18%; padding:2px 0;"><strong>Naam</strong></td>
+                                        <td style="width:2%; padding:2px 0;">:</td>
+                                        <td style="width:30%; padding:2px 0;"><t t-esc="statement.get('surname')"/></td>
+                                        <td style="width:18%; padding:2px 0;"><strong>Voornamen</strong></td>
+                                        <td style="width:2%; padding:2px 0;">:</td>
+                                        <td style="width:30%; padding:2px 0;"><t t-esc="statement.get('given_names')"/></td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding:2px 0;"><strong>Adres</strong></td>
+                                        <td style="padding:2px 0;">:</td>
+                                        <td style="padding:2px 0;"><t t-esc="statement.get('address')"/></td>
+                                        <td style="padding:2px 0;"><strong>Geb. datum</strong></td>
+                                        <td style="padding:2px 0;">:</td>
+                                        <td style="padding:2px 0;"><t t-esc="statement.get('birth_date').strftime('%d-%b-%Y') if statement.get('birth_date') else '-'"/></td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding:2px 0;"><strong>District</strong></td>
+                                        <td style="padding:2px 0;">:</td>
+                                        <td style="padding:2px 0;"><t t-esc="statement.get('district')"/></td>
+                                        <td style="padding:2px 0;"><strong>Functie</strong></td>
+                                        <td style="padding:2px 0;">:</td>
+                                        <td style="padding:2px 0;"><t t-esc="statement.get('job_title')"/></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <table style="width:100%; border-collapse:collapse; font-size:10.5pt; margin-bottom:16px;">
+                            <thead>
+                                <tr style="background:#d9d9d9;">
+                                    <th style="text-align:left; padding:4px 6px; text-decoration:underline;">Omschrijving</th>
+                                    <th style="text-align:right; padding:4px 6px; text-decoration:underline;">Bruto Bedrag (SRD)</th>
+                                    <th style="text-align:right; padding:4px 6px; text-decoration:underline;">Belast Bedrag (SRD)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr t-foreach="statement.get('income_rows', [])" t-as="row">
+                                    <td style="padding:4px 6px;"><t t-esc="row.get('description')"/></td>
+                                    <td style="padding:4px 6px; text-align:right;"><t t-esc="'{:,.2f}'.format(row.get('gross_amount', 0))"/></td>
+                                    <td style="padding:4px 6px; text-align:right;"><t t-esc="'{:,.2f}'.format(row.get('taxable_amount', 0))"/></td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:4px 6px; border-top:1px solid #000; font-weight:700;">Subtotaal</td>
+                                    <td style="padding:4px 6px; border-top:1px solid #000; text-align:right; font-weight:700;"><t t-esc="'{:,.2f}'.format(statement.get('income_gross_total', 0))"/></td>
+                                    <td style="padding:4px 6px; border-top:1px solid #000; text-align:right; font-weight:700;"><t t-esc="'{:,.2f}'.format(statement.get('income_taxable_total', 0))"/></td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <div style="background:#d9d9d9; padding:4px 6px; font-weight:700; margin-bottom:4px;">Pensioen</div>
+                        <table style="width:100%; border-collapse:collapse; font-size:10.5pt; margin-bottom:16px;">
+                            <tbody>
+                                <tr>
+                                    <td style="padding:4px 6px;">PENSIOENFONDS</td>
+                                    <td style="padding:4px 6px; text-align:right;"><t t-esc="'-{:,.2f}'.format(statement.get('pension_total', 0)) if statement.get('pension_total', 0) else '-'"/></td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <div style="background:#d9d9d9; padding:4px 6px; font-weight:700; margin-bottom:4px;">Belastingen &amp; Premies</div>
+                        <table style="width:100%; border-collapse:collapse; font-size:10.5pt; margin-bottom:16px;">
+                            <thead>
+                                <tr>
+                                    <th style="text-align:left; padding:4px 6px; text-decoration:underline;">Artikel</th>
+                                    <th style="text-align:left; padding:4px 6px; text-decoration:underline;">Omschrijving</th>
+                                    <th style="text-align:left; padding:4px 6px; text-decoration:underline;">Van</th>
+                                    <th style="text-align:left; padding:4px 6px; text-decoration:underline;">Tot</th>
+                                    <th style="text-align:right; padding:4px 6px; text-decoration:underline;">Loonbelasting (SRD)</th>
+                                    <th style="text-align:right; padding:4px 6px; text-decoration:underline;">AOV Premie (SRD)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr t-foreach="statement.get('article14_rows', [])" t-as="row">
+                                    <td style="padding:4px 6px;"><t t-esc="row.get('article')"/></td>
+                                    <td style="padding:4px 6px;"><t t-esc="row.get('description')"/></td>
+                                    <td style="padding:4px 6px;"><t t-esc="row.get('date_from').strftime('%d-%m-%Y') if row.get('date_from') else '-'"/></td>
+                                    <td style="padding:4px 6px;"><t t-esc="row.get('date_to').strftime('%d-%m-%Y') if row.get('date_to') else '-'"/></td>
+                                    <td style="padding:4px 6px; text-align:right;"><t t-esc="'{:,.2f}'.format(row.get('loonbelasting', 0))"/></td>
+                                    <td style="padding:4px 6px; text-align:right;"><t t-esc="'{:,.2f}'.format(row.get('aov', 0))"/></td>
+                                </tr>
+                                <tr>
+                                    <td colspan="4" style="padding:4px 6px; border-top:1px solid #000; text-align:right; font-weight:700;">Totaal ingehouden belastingen en AOV</td>
+                                    <td style="padding:4px 6px; border-top:1px solid #000; text-align:right; font-weight:700;"><t t-esc="'{:,.2f}'.format(statement.get('lb_total', 0))"/></td>
+                                    <td style="padding:4px 6px; border-top:1px solid #000; text-align:right; font-weight:700;"><t t-esc="'{:,.2f}'.format(statement.get('aov_total', 0))"/></td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <div style="background:#d9d9d9; padding:4px 6px; font-weight:700; margin-bottom:4px;">Belastingkorting</div>
+                        <table style="width:100%; border-collapse:collapse; font-size:10.5pt; margin-bottom:18px;">
+                            <thead>
+                                <tr>
+                                    <th style="text-align:left; padding:4px 6px; text-decoration:underline;">Omschrijving</th>
+                                    <th style="text-align:right; padding:4px 6px; text-decoration:underline;">Bedrag (SRD)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr t-if="not statement.get('tax_credit_rows')">
+                                    <td colspan="2" style="padding:4px 6px; color:#666;">Geen belastingkortingen geregistreerd in dit jaar.</td>
+                                </tr>
+                                <tr t-foreach="statement.get('tax_credit_rows', [])" t-as="row">
+                                    <td style="padding:4px 6px;"><t t-esc="row.get('description')"/></td>
+                                    <td style="padding:4px 6px; text-align:right;"><t t-esc="'{:,.2f}'.format(row.get('amount', 0))"/></td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <table style="width:100%; border-collapse:collapse; font-size:10.5pt;">
+                            <tbody>
+                                <tr>
+                                    <td style="width:60%; padding:2px 0;"><strong>Bedrijfsgegevens</strong></td>
+                                    <td style="width:40%; padding:2px 0; text-align:right;"><strong>Netto totaal</strong> <t t-esc="'SRD {:,.2f}'.format(statement.get('net_total', 0))"/></td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:2px 0;"><t t-esc="statement.get('company_name')"/></td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:2px 0;"><t t-esc="statement.get('company_address') or '-'"/></td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:2px 0;">Telefoon: <t t-esc="statement.get('company_phone')"/></td>
+                                    <td></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+
+</odoo>

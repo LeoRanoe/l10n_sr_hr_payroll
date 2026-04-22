@@ -42,9 +42,8 @@
         <t t-call="web.html_container">
             <t t-foreach="docs" t-as="doc">
                 <t t-set="bd" t-value="doc._get_sr_artikel14_breakdown()"/>
-                <t t-set="layout" t-value="doc.sr_payslip_layout or 'employee_simple'"/>
-                <t t-if="layout == 'detailed'" t-call="l10n_sr_hr_payroll.report_payslip_sr_detailed"/>
-                <t t-elif="layout == 'compact'" t-call="l10n_sr_hr_payroll.report_payslip_sr_compact"/>
+                <t t-set="layout" t-value="doc._sr_get_effective_payslip_layout()"/>
+                <t t-if="layout == 'compact'" t-call="l10n_sr_hr_payroll.report_payslip_sr_employee_compact"/>
                 <t t-else="" t-call="l10n_sr_hr_payroll.report_payslip_sr_employee_simple"/>
             </t>
         </t>

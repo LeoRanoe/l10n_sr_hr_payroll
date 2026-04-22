@@ -14,10 +14,11 @@ _sr_calc_cache = {}
 _SR_MONEY_QUANT = Decimal('0.01')
 _SR_HOURLY_RATE_QUANT = Decimal('0.000001')
 _SR_PAYSLIP_LAYOUT_DEFAULT = 'employee_simple'
+_SR_PAYSLIP_LAYOUT_CONFIG_KEY = 'sr_payroll.sr_default_payslip_layout'
+_SR_PAYSLIP_LAYOUT_LEGACY_CONFIG_KEY = 'sr_payroll.default_payslip_layout'
 _SR_PAYSLIP_LAYOUTS = [
-    ('employee_simple', 'Debet / Credit'),
-    ('compact', 'Belasting Overzicht'),
-    ('detailed', 'Uitgebreid (Artikel 14 detail)'),
+    ('employee_simple', 'Klassiek Debet / Credit'),
+    ('compact', 'Compact Netto-overzicht'),
 ]
 
 SR_FN_2026_PERIODS = (
@@ -66,15 +67,98 @@ class HrPayslip(models.Model):
         copy=False,
         help='Kies welke loonstrooklayout gebruikt wordt voor deze SR-loonstrook.',
     )
+    sr_regular_hours = fields.Float(
+        string='Normale Uren',
+        digits=(16, 2),
+        copy=False,
+        readonly=True,
+    )
+    sr_overtime_hours_150 = fields.Float(
+        string='Overwerk 150% Uren',
+        digits=(16, 2),
+        copy=False,
+        readonly=True,
+    )
+    sr_overtime_hours_200 = fields.Float(
+        string='Overwerk 200% Uren',
+        digits=(16, 2),
+        copy=False,
+        readonly=True,
+    )
+    sr_unpaid_extra_hours = fields.Float(
+        string='Extra Uren Niet Uitbetaald',
+        digits=(16, 2),
+        copy=False,
+        readonly=True,
+    )
+    sr_total_worked_hours = fields.Float(
+        string='Totaal Gewerkte Uren',
+        digits=(16, 2),
+        copy=False,
+        readonly=True,
+    )
+    sr_total_worked_days = fields.Float(
+        string='Totaal Gewerkte Dagen',
+        digits=(16, 2),
+        copy=False,
+        readonly=True,
+    )
+    sr_bruto_totaal_display = fields.Monetary(
+        string='Bruto Totaal',
+        currency_field='currency_id',
+        compute='_compute_sr_summary_display',
+        compute_sudo=True,
+    )
+    sr_heffingskorting_display = fields.Monetary(
+        string='Heffingskorting',
+        currency_field='currency_id',
+        compute='_compute_sr_summary_display',
+        compute_sudo=True,
+    )
+    sr_lb_totaal_display = fields.Monetary(
+        string='Totale LB',
+        currency_field='currency_id',
+        compute='_compute_sr_summary_display',
+        compute_sudo=True,
+    )
+    sr_aov_totaal_display = fields.Monetary(
+        string='Totale AOV',
+        currency_field='currency_id',
+        compute='_compute_sr_summary_display',
+        compute_sudo=True,
+    )
+    sr_inhoudingen_totaal_display = fields.Monetary(
+        string='Totale Inhoudingen',
+        currency_field='currency_id',
+        compute='_compute_sr_summary_display',
+        compute_sudo=True,
+    )
+    sr_netto_totaal_display = fields.Monetary(
+        string='Netto Totaal',
+        currency_field='currency_id',
+        compute='_compute_sr_summary_display',
+        compute_sudo=True,
+    )
 
     @api.model
     def _default_sr_payslip_layout(self):
-        value = self.env['ir.config_parameter'].sudo().get_param(
-            'sr_payroll.default_payslip_layout',
-            default=_SR_PAYSLIP_LAYOUT_DEFAULT,
-        )
+        params = self.env['ir.config_parameter'].sudo()
+        value = params.get_param(_SR_PAYSLIP_LAYOUT_CONFIG_KEY)
+        if value in (None, False, ''):
+            value = params.get_param(
+                _SR_PAYSLIP_LAYOUT_LEGACY_CONFIG_KEY,
+                default=_SR_PAYSLIP_LAYOUT_DEFAULT,
+            )
         valid_values = {key for key, _label in _SR_PAYSLIP_LAYOUTS}
         return value if value in valid_values else _SR_PAYSLIP_LAYOUT_DEFAULT
+
+    def _sr_get_effective_payslip_layout(self):
+        self.ensure_one()
+        valid_values = {key for key, _label in _SR_PAYSLIP_LAYOUTS}
+        layout = self.sr_payslip_layout or _SR_PAYSLIP_LAYOUT_DEFAULT
+        if layout in valid_values:
+            return layout
+        return _SR_PAYSLIP_LAYOUT_DEFAULT
 
     @api.depends('struct_id')
     def _compute_sr_is_sr_struct(self):
@@ -82,14 +166,64 @@ class HrPayslip(models.Model):
         for slip in self:
             slip.sr_is_sr_struct = sr_struct and slip.struct_id == sr_struct
 
+    @api.depends('line_ids.code', 'line_ids.total')
+    def _compute_sr_summary_display(self):
+        for slip in self:
+            def _line_total(*codes):
+                return sum(
+                    line.total or 0.0
+                    for line in slip.line_ids
+                    if line.code in codes
+                )
+
+            basic = _line_total('BASIC')
+            toelagen = _line_total('SR_ALW')
+            kinderbijslag = _line_total('SR_KB_BELAST', 'SR_KB_VRIJ')
+            vrijgesteld_contract = _line_total('SR_KINDBIJ')
+            input_belastbaar = _line_total('SR_INPUT_BELASTB')
+            input_vrijgesteld = _line_total('SR_INPUT_VRIJ')
+            overwerk = _line_total('SR_OVERWERK')
+            vakantie = _line_total('SR_VAKANTIE')
+            gratificatie = _line_total('SR_GRAT')
+            bijz_beloning = _line_total('SR_BIJZ')
+            uitkering_ineens = _line_total('SR_UITK_INEENS')
+            heffingskorting = _line_total('SR_HK')
+
+            bruto_totaal = (
+                basic + toelagen + kinderbijslag + vrijgesteld_contract
+                + input_belastbaar + input_vrijgesteld + overwerk
+                + vakantie + gratificatie + bijz_beloning + uitkering_ineens
+            )
+            totaal_lb = abs(_line_total('SR_LB', 'SR_LB_BIJZ', 'SR_LB_17A', 'SR_LB_OVERWERK'))
+            totaal_aov = abs(_line_total('SR_AOV', 'SR_AOV_BIJZ', 'SR_AOV_17A', 'SR_AOV_OVERWERK'))
+            overige_inhoudingen = abs(_line_total('SR_PENSIOEN', 'SR_INPUT_AFTREK', 'SR_AFTREK_BV'))
+
+            slip.sr_bruto_totaal_display = bruto_totaal
+            slip.sr_heffingskorting_display = heffingskorting
+            slip.sr_lb_totaal_display = totaal_lb
+            slip.sr_aov_totaal_display = totaal_aov
+            slip.sr_inhoudingen_totaal_display = totaal_lb + totaal_aov + overige_inhoudingen
+            slip.sr_netto_totaal_display = _line_total('NET')
+
     def compute_sheet(self):
         """Clear Art. 14 calculation cache before computing salary rules."""
         global _sr_calc_cache
         _sr_calc_cache.clear()
+        sr_struct = self.env.ref('l10n_sr_hr_payroll.sr_payroll_structure', raise_if_not_found=False)
+        locked_slips = self.filtered(
+            lambda slip: sr_struct and slip.struct_id == sr_struct and slip.state in ('done', 'paid')
+        )
+        if locked_slips and not self.env.context.get('sr_allow_confirmed_recompute'):
+            raise UserError(
+                'Bevestigde SR-loonstroken zijn bevroren. Zet de loonstrook eerst terug naar concept '
+                'of gebruik expliciet technische override-context voor herberekening.'
+            )
         for slip in self:
             slip._sr_validate_contract_period_integrity()
             slip._sr_validate_fn_period_2026()
+            slip._sr_require_positive_contract_wage()
             slip._sr_sync_overtime_inputs_from_work_entries()
+            slip._sr_store_work_entry_snapshot()
         res = super().compute_sheet()
         _sr_calc_cache.clear()
         return res
@@ -97,7 +231,94 @@ class HrPayslip(models.Model):
     def action_payslip_done(self):
         for slip in self:
             slip._sr_validate_contract_period_integrity()
+            slip._sr_require_positive_contract_wage()
+            slip._sr_store_work_entry_snapshot()
         return super().action_payslip_done()
+
+    def _sr_require_positive_contract_wage(self):
+        self.ensure_one()
+        sr_struct = self.env.ref('l10n_sr_hr_payroll.sr_payroll_structure', raise_if_not_found=False)
+        if self.struct_id != sr_struct or not self.contract_id:
+            return
+        if (self.contract_id.wage or 0.0) > 0.0:
+            return
+        raise UserError(
+            'Deze SR-loonstrook kan niet worden berekend omdat het gekoppelde contract geen positief basisloon heeft. '
+            'Corrigeer eerst het contractloon zodat uurloon, overwerk en LB/AOV veilig berekend worden.'
+        )
+
+    def _sr_get_period_bounds(self):
+        self.ensure_one()
+        if not self.date_from or not self.date_to:
+            return False, False
+        return (
+            datetime.combine(self.date_from, time.min),
+            datetime.combine(self.date_to + timedelta(days=1), time.min),
+        )
+
+    def _sr_get_period_work_entries(self):
+        self.ensure_one()
+        sr_struct = self.env.ref('l10n_sr_hr_payroll.sr_payroll_structure', raise_if_not_found=False)
+        if self.struct_id != sr_struct or not self.contract_id or not self.date_from or not self.date_to:
+            return self.env['hr.work.entry']
+
+        period_start, period_stop = self._sr_get_period_bounds()
+        return self.env['hr.work.entry'].search([
+            ('contract_id', '=', self.contract_id.id),
+            ('date_start', '<', period_stop),
+            ('date_stop', '>', period_start),
+            ('state', '=', 'validated'),
+        ], order='date_start, id')
+
+    def _sr_build_work_entry_snapshot(self, work_entries=None):
+        self.ensure_one()
+        work_entries = work_entries if work_entries is not None else self._sr_get_period_work_entries()
+        summary = {
+            'regular_hours': 0.0,
+            'overtime_hours_150': 0.0,
+            'overtime_hours_200': 0.0,
+            'unpaid_extra_hours': 0.0,
+            'total_worked_hours': 0.0,
+            'total_worked_days': 0.0,
+        }
+        worked_days = set()
+
+        for entry in work_entries:
+            if hasattr(entry, '_sr_get_actual_duration_hours'):
+                actual_hours = entry._sr_get_actual_duration_hours()
+            elif entry.date_start and entry.date_stop:
+                actual_hours = max((entry.date_stop - entry.date_start).total_seconds() / 3600.0, 0.0)
+            else:
+                actual_hours = entry.duration or 0.0
+
+            overtime_150 = max(entry.sr_overtime_150 or 0.0, 0.0)
+            overtime_200 = max(entry.sr_overtime_200 or 0.0, 0.0)
+            unpaid_extra = max(entry.sr_extra_hours or 0.0, 0.0) if getattr(entry, 'sr_overtime_treatment', False) == 'unpaid' else 0.0
+            regular_hours = max(actual_hours - overtime_150 - overtime_200 - unpaid_extra, 0.0)
+
+            summary['regular_hours'] += regular_hours
+            summary['overtime_hours_150'] += overtime_150
+            summary['overtime_hours_200'] += overtime_200
+            summary['unpaid_extra_hours'] += unpaid_extra
+            summary['total_worked_hours'] += actual_hours
+
+            if actual_hours > 0.005 and entry.date_start:
+                worked_days.add(entry.date_start.date())
+
+        summary['total_worked_days'] = float(len(worked_days))
+        return summary
+
+    def _sr_store_work_entry_snapshot(self):
+        self.ensure_one()
+        summary = self._sr_build_work_entry_snapshot()
+        self.update({
+            'sr_regular_hours': summary['regular_hours'],
+            'sr_overtime_hours_150': summary['overtime_hours_150'],
+            'sr_overtime_hours_200': summary['overtime_hours_200'],
+            'sr_unpaid_extra_hours': summary['unpaid_extra_hours'],
+            'sr_total_worked_hours': summary['total_worked_hours'],
+            'sr_total_worked_days': summary['total_worked_days'],
+        })
 
     def _rule_parameter(self, code):
         self.ensure_one()
@@ -116,9 +337,10 @@ class HrPayslip(models.Model):
 
     def _sr_get_layout_label(self):
         self.ensure_one()
-        return dict(_SR_PAYSLIP_LAYOUTS).get(
-            self.sr_payslip_layout or _SR_PAYSLIP_LAYOUT_DEFAULT,
-            dict(_SR_PAYSLIP_LAYOUTS)[_SR_PAYSLIP_LAYOUT_DEFAULT],
+        layout_labels = dict(_SR_PAYSLIP_LAYOUTS)
+        return layout_labels.get(
+            self._sr_get_effective_payslip_layout(),
+            layout_labels[_SR_PAYSLIP_LAYOUT_DEFAULT],
         )
 
     def _sr_money_quantize(self, value, quant=_SR_MONEY_QUANT):
@@ -201,16 +423,10 @@ class HrPayslip(models.Model):
         if hourly_rate <= 0:
             return
 
-        period_start = datetime.combine(self.date_from, time.min)
-        period_stop = datetime.combine(self.date_to + timedelta(days=1), time.min)
+        period_start, period_stop = self._sr_get_period_bounds()
 
         # Zoek alle gevalideerde work entries in de loonperiode
-        work_entries = self.env['hr.work.entry'].search([
-            ('contract_id', '=', self.contract_id.id),
-            ('date_start', '<', period_stop),
-            ('date_stop', '>', period_start),
-            ('state', '=', 'validated'),
-        ], order='date_start, id')
+        work_entries = self._sr_get_period_work_entries()
 
         # Lees multiplier-factors uit configuratie
         config = self.env['ir.config_parameter'].sudo()
@@ -629,6 +845,35 @@ class HrPayslip(models.Model):
         if fn_period:
             period_title = f'{period_title} {fn_period["label"]}'
 
+        hours_summary_lines = []
+        for label, hours, tone in [
+            ('Normale uren', self.sr_regular_hours, 'neutral'),
+            ('Overwerk 150%', self.sr_overtime_hours_150, 'warning'),
+            ('Overwerk 200%', self.sr_overtime_hours_200, 'danger'),
+            ('Extra uren niet uitbetaald', self.sr_unpaid_extra_hours, 'muted'),
+        ]:
+            if abs(hours or 0.0) < 0.005:
+                continue
+            hours_summary_lines.append({
+                'label': label,
+                'hours': abs(hours),
+                'tone': tone,
+            })
+
+        worked_days_rows = []
+        for worked_day in self.worked_days_line_ids.sorted(lambda record: (record.sequence, record.id)):
+            hours = worked_day.number_of_hours or 0.0
+            days = worked_day.number_of_days or 0.0
+            amount = worked_day.amount or 0.0
+            if abs(hours) < 0.005 and abs(days) < 0.005 and abs(amount) < 0.005:
+                continue
+            worked_days_rows.append({
+                'name': worked_day.name or worked_day.work_entry_type_id.name or 'Werktijd',
+                'days': days,
+                'hours': hours,
+                'amount': amount,
+            })
+
         line_label_map = {
             'BASIC': 'SALARIS',
             'SR_ALW': 'TOELAGEN',
@@ -704,7 +949,7 @@ class HrPayslip(models.Model):
             # Basis
             'periodes': periodes,
             'is_fn': periodes == 26,
-            'payslip_layout': self.sr_payslip_layout or _SR_PAYSLIP_LAYOUT_DEFAULT,
+            'payslip_layout': self._sr_get_effective_payslip_layout(),
             'payslip_layout_label': self._sr_get_layout_label(),
             'period_title': period_title,
             'fn_period_indicator': fn_period['indicator'] if fn_period else False,
@@ -777,6 +1022,14 @@ class HrPayslip(models.Model):
             'earnings_lines': earnings_lines,
             'deductions_lines': deductions_lines,
             'summary_cards': summary_cards,
+            'hours_summary_lines': hours_summary_lines,
+            'worked_days_rows': worked_days_rows,
+            'regular_hours': self.sr_regular_hours,
+            'overtime_hours_150': self.sr_overtime_hours_150,
+            'overtime_hours_200': self.sr_overtime_hours_200,
+            'unpaid_extra_hours': self.sr_unpaid_extra_hours,
+            'total_worked_hours': self.sr_total_worked_hours,
+            'total_worked_days': self.sr_total_worked_days,
             'payslip_line_rows': payslip_line_rows,
             'belasting_line_rows': belasting_line_rows,
             'display_debit_total': display_debit_total,
@@ -794,9 +1047,9 @@ class HrPayslip(models.Model):
     def action_print_sr_payslip(self):
         """Print de gekozen SR-loonstrooklayout als PDF."""
         self.ensure_one()
-        return self.env.ref('l10n_sr_hr_payroll.action_report_payslip_sr').report_action(self)
+        return self.env.ref('l10n_sr_hr_payroll.action_report_payslip_sr').report_action(self, config=False)
 
     def action_preview_sr_payslip(self):
         """Bekijk de gekozen SR-loonstrooklayout als HTML preview."""
         self.ensure_one()
-        return self.env.ref('l10n_sr_hr_payroll.action_report_payslip_sr_preview').report_action(self)
+        return self.env.ref('l10n_sr_hr_payroll.action_report_payslip_sr_preview').report_action(self, config=False)

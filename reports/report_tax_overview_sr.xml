@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="action_report_sr_tax_overview_period" model="ir.actions.report">
+        <field name="name">Belastingoverzicht Periode SR</field>
+        <field name="model">hr.payslip.run</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">l10n_sr_hr_payroll.report_sr_tax_overview_period</field>
+        <field name="print_report_name">
+            'Belastingoverzicht - %s' % (object.name or '')
+        </field>
+        <field name="paperformat_id" ref="base.paperformat_euro"/>
+    </record>
+
+    <template id="report_sr_tax_overview_period">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="batch">
+                <t t-foreach="batch._sr_get_tax_overview_slips()" t-as="slip">
+                    <t t-set="doc" t-value="slip"/>
+                    <t t-set="bd" t-value="slip._get_sr_artikel14_breakdown()"/>
+                    <t t-call="l10n_sr_hr_payroll.report_payslip_sr_compact"/>
+                </t>
+            </t>
+        </t>
+    </template>
+
+</odoo>

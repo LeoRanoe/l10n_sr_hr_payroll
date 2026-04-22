@@ -206,4 +206,45 @@
         </field>
     </record>
 
+    <record id="hr_payslip_sr_form_fiscal_overview" model="ir.ui.view">
+        <field name="name">hr.payslip.sr.form.fiscal.overview</field>
+        <field name="model">hr.payslip</field>
+        <field name="inherit_id" ref="hr_payroll.view_hr_payslip_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//page[@name='salary_computation']" position="after">
+                <page string="SR Fiscaal Overzicht" name="sr_fiscal_overview" invisible="not sr_is_sr_struct">
+                    <group col="4">
+                        <group string="Bruto / Netto Samenvatting" class="o_form_fw_labels">
+                            <field name="sr_bruto_totaal_display" widget="monetary" readonly="1"/>
+                            <field name="sr_heffingskorting_display" widget="monetary" readonly="1"/>
+                            <field name="sr_lb_totaal_display" widget="monetary" readonly="1"/>
+                            <field name="sr_aov_totaal_display" widget="monetary" readonly="1"/>
+                            <field name="sr_inhoudingen_totaal_display" widget="monetary" readonly="1"/>
+                            <field name="sr_netto_totaal_display" widget="monetary" readonly="1"/>
+                        </group>
+                        <group string="Uren Specificatie" class="o_form_fw_labels">
+                            <field name="sr_total_worked_days" readonly="1"/>
+                            <field name="sr_total_worked_hours" widget="float_time" readonly="1"/>
+                            <field name="sr_regular_hours" widget="float_time" readonly="1"/>
+                            <field name="sr_overtime_hours_150" widget="float_time" readonly="1"/>
+                            <field name="sr_overtime_hours_200" widget="float_time" readonly="1"/>
+                            <field name="sr_unpaid_extra_hours" widget="float_time" readonly="1"/>
+                        </group>
+                    </group>
+
+                    <separator string="Gewerkte Dagen Snapshot"/>
+                    <field name="worked_days_line_ids" readonly="1" nolabel="1">
+                        <list string="Worked Days Snapshot" create="0" delete="0">
+                            <field name="work_entry_type_id" readonly="1"/>
+                            <field name="name" readonly="1"/>
+                            <field name="number_of_days" readonly="1" sum="Totaal Dagen"/>
+                            <field name="number_of_hours" widget="float_time" readonly="1" sum="Totaal Uren"/>
+                            <field name="amount" readonly="1" sum="Totaal Bedrag"/>
+                        </list>
+                    </field>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
 </odoo>

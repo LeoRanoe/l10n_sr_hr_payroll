@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="hr_employee_view_form_sr_annual_statement" model="ir.ui.view">
+        <field name="name">hr.employee.form.sr.annual.statement</field>
+        <field name="model">hr.employee</field>
+        <field name="inherit_id" ref="hr.view_employee_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button
+                    name="action_open_sr_annual_statement_wizard"
+                    string="Jaaropgave PDF"
+                    type="object"
+                    class="oe_stat_button"
+                    icon="fa-file-text-o"
+                    invisible="not id"
+                    groups="hr_payroll.group_hr_payroll_user"
+                    help="Genereer een jaarlijkse SR-loonopgave voor deze werknemer."/>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

@@ -5,3 +5,4 @@ l10n_sr_contract_sr_line_type_user,hr.contract.sr.line.type user,l10n_sr_hr_payr
 l10n_sr_contract_sr_line_type_manager,hr.contract.sr.line.type manager,l10n_sr_hr_payroll.model_hr_contract_sr_line_type,hr_payroll.group_hr_payroll_manager,1,1,1,1
 l10n_sr_public_holiday_user,sr.public.holiday user,l10n_sr_hr_payroll.model_sr_public_holiday,hr_payroll.group_hr_payroll_user,1,0,0,0
 l10n_sr_public_holiday_manager,sr.public.holiday manager,l10n_sr_hr_payroll.model_sr_public_holiday,hr_payroll.group_hr_payroll_manager,1,1,1,1
+l10n_sr_annual_statement_wizard_user,sr.payroll.annual.statement.wizard user,l10n_sr_hr_payroll.model_sr_payroll_annual_statement_wizard,hr_payroll.group_hr_payroll_user,1,1,1,0

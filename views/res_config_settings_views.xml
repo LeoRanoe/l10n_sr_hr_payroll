@@ -12,6 +12,7 @@
                         <div class="text-muted mb-3">
                             Dit is het <strong>dagelijkse beheerscherm</strong> voor actuele SR payrollwaarden.
                             Deze instellingen worden persistent in <code>ir.config_parameter</code> opgeslagen en direct door de payrollberekening gebruikt.
+                            De 2026 startwaarden gelden alleen zolang een sleutel nog niet in de database bestaat; na opslaan is <code>ir.config_parameter</code> de enige bron van waarheid.
                         </div>
                         <div class="alert alert-info" role="alert">
                             Gebruik dit scherm voor actuele bedragen en tarieven. Technische referentiecodes en historische parameterregels zijn alleen nodig voor implementatie, controle en toekomstige uitbreidingen.
@@ -100,9 +101,9 @@
                                     </group>
                                 </group>
                                 <div class="alert alert-secondary mt-3 mb-0" role="alert">
-                                    <strong>Debet / Credit</strong> volgt een klassieke salarisstrook met personeelskop en kolommen voor aantal, debet, credit en netto.<br/>
-                                    <strong>Belasting Overzicht</strong> toont de bedragen in belastingkolommen zoals verloond bedrag, loonbelasting en premie AOV.<br/>
-                                    <strong>Uitgebreid</strong> behoudt de volledige Artikel 14 en AOV detailberekening.
+                                    <strong>Klassiek Debet / Credit</strong> toont een vertrouwde salarisstrook met personeelskop en regels voor debet, credit en netto.<br/>
+                                    <strong>Compact Netto-overzicht</strong> toont alleen de hoofdinkomsten, inhoudingen en het uit te betalen nettoloon.<br/>
+                                    Belastingoverzichten en jaaropgaven worden los geëxporteerd vanuit payroll, niet meer via deze medewerkerslayout.
                                 </div>
                             </page>
                             <page string="Technisch / Audit" groups="base.group_system">

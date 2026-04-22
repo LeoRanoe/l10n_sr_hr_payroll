@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_sr_payroll_annual_statement_wizard_form" model="ir.ui.view">
+        <field name="name">sr.payroll.annual.statement.wizard.form</field>
+        <field name="model">sr.payroll.annual.statement.wizard</field>
+        <field name="arch" type="xml">
+            <form string="SR Jaaropgave exporteren">
+                <group>
+                    <field name="employee_id"/>
+                    <field name="year"/>
+                </group>
+                <footer>
+                    <button string="Export PDF" class="btn-primary" name="action_export_pdf" type="object"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+</odoo>
