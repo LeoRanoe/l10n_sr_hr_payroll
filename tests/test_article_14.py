@@ -800,3 +800,77 @@ class TestArtikel14Breakdown(common.TransactionCase):
         bd = payslip._get_sr_artikel14_breakdown()
         self.assertEqual(bd, {},
                          'Lege loonstrook moet leeg dict teruggeven')
+
+    def test_breakdown_gebruikt_historische_parameterwaarden_boven_live_config(self):
+        belastingvrij_param = self.env['hr.rule.parameter'].search([
+            ('code', '=', 'SR_BELASTINGVRIJ_JAAR')
+        ], limit=1)
+        config = self.env['ir.config_parameter'].sudo()
+        old_config = config.get_param('sr_payroll.belastingvrij_jaar')
+        jan_value = belastingvrij_param.parameter_version_ids.filtered(
+            lambda value: value.date_from == date(2026, 1, 1)
+        )[:1]
+        old_jan_value = jan_value.parameter_value if jan_value else None
+        jul_value = belastingvrij_param.parameter_version_ids.filtered(
+            lambda value: value.date_from == date(2026, 7, 1)
+        )[:1]
+        old_jul_value = jul_value.parameter_value if jul_value else None
+
+        try:
+            if jan_value:
+                jan_value.write({'parameter_value': 108000.0})
+            else:
+                jan_value = self.env['hr.rule.parameter.value'].create({
+                    'rule_parameter_id': belastingvrij_param.id,
+                    'date_from': date(2026, 1, 1),
+                    'parameter_value': 108000.0,
+                })
+            if jul_value:
+                jul_value.write({'parameter_value': 120000.0})
+            else:
+                jul_value = self.env['hr.rule.parameter.value'].create({
+                    'rule_parameter_id': belastingvrij_param.id,
+                    'date_from': date(2026, 7, 1),
+                    'parameter_value': 120000.0,
+                })
+            config.set_param('sr_payroll.belastingvrij_jaar', 130000.0)
+            contract = self.env['hr.contract'].create({
+                'name': 'Historische Parameter Contract',
+                'employee_id': self.employee.id,
+                'company_id': self.company.id,
+                'structure_type_id': self.structure_type.id,
+                'wage': 20000.0,
+                'sr_salary_type': 'monthly',
+                'date_start': date(2026, 1, 1),
+                'state': 'open',
+            })
+            payslip = self.env['hr.payslip'].create({
+                'name': 'Historische Parameter Payslip',
+                'employee_id': self.employee.id,
+                'contract_id': contract.id,
+                'struct_id': self.structure.id,
+                'date_from': date(2026, 6, 1),
+                'date_to': date(2026, 6, 30),
+                'company_id': self.company.id,
+            })
+            payslip.compute_sheet()
+
+            breakdown = payslip._get_sr_artikel14_breakdown()
+
+            self.assertEqual(payslip._rule_parameter('SR_BELASTINGVRIJ_JAAR'), 108000.0)
+            self.assertEqual(breakdown['belastingvrij_jaar'], 108000.0)
+        finally:
+            if jan_value:
+                if old_jan_value is None:
+                    jan_value.unlink()
+                else:
+                    jan_value.write({'parameter_value': old_jan_value})
+            if jul_value:
+                if old_jul_value is None:
+                    jul_value.unlink()
+                else:
+                    jul_value.write({'parameter_value': old_jul_value})
+            if old_config in (None, False, ''):
+                config.search([('key', '=', 'sr_payroll.belastingvrij_jaar')], limit=1).unlink()
+            else:
+                config.set_param('sr_payroll.belastingvrij_jaar', old_config)

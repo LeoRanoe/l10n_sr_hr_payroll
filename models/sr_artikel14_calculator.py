@@ -130,13 +130,20 @@ def get_config_parameter_value(env, code, default=None):
 
 
 def get_sr_parameter_value(env, code, ref_date, default=None, raise_if_not_found=True):
+    value = env['hr.rule.parameter']._get_parameter_from_code(
+        code, ref_date, raise_if_not_found=False,
+    )
+    if value not in (None, False, ''):
+        return value
+
     config_value = get_config_parameter_value(env, code, default=None)
     if config_value is not None:
         return config_value
 
-    value = env['hr.rule.parameter']._get_parameter_from_code(
-        code, ref_date, raise_if_not_found=raise_if_not_found,
-    )
+    if default is not None:
+        return default
+    if raise_if_not_found:
+        raise UserError(f'Missing parameter: {code}')
     if value in (None, False, ''):
         return default
     return value

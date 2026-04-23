@@ -5,6 +5,7 @@ from decimal import Decimal, ROUND_HALF_UP
 
 from odoo import api, fields, models
 from odoo.exceptions import UserError, ValidationError
+from odoo.tools import float_compare
 
 from . import sr_artikel14_calculator as calc
 
@@ -62,7 +63,9 @@ class HrContract(models.Model):
         help=(
             'Aantal kinderen waarvoor kinderbijslag wordt betaald.\n'
             'Gebruikt voor de Art. 10h splitsing: max SRD 250/kind/maand, '
-            'max SRD 1.000/maand is belastingvrij. Het meerdere is belastbaar.'
+            'max SRD 1.000/maand is belastingvrij. Het meerdere is belastbaar.\n'
+            'Je mag administratief meer dan 4 kinderen registreren; '
+            'de fiscale vrijstelling blijft begrensd op maximaal 4 kinderen.'
         ),
     )
 
@@ -100,8 +103,6 @@ class HrContract(models.Model):
         string='Uurloon (SRD)',
         digits=(16, 4),
         compute='_compute_sr_hourly_wage',
-        store=True,
-        precompute=True,
         help='Bruto uurloon in SRD: basisloon (omgerekend) ÷ 173,33 (maandloon) of ÷ 80 (fortnight).',
     )
     sr_kinderbijslag_bedrag = fields.Monetary(
@@ -204,10 +205,6 @@ class HrContract(models.Model):
     )
 
     @api.depends(
-        'sr_kinderbijslag_bedrag',
-        'sr_vervoer_toelage',
-        'sr_representatie_toelage',
-        'sr_vrije_geneeskundige_behandeling',
         'wage',
         'sr_salary_type',
         'sr_aantal_kinderen',
@@ -289,19 +286,21 @@ class HrContract(models.Model):
         if self.sr_aantal_kinderen is False:
             return
         if self.sr_aantal_kinderen < 0:
-            self.sr_aantal_kinderen = 0
             return {
                 'warning': {
                     'title': 'Ongeldige AKB invoer',
-                    'message': 'Aantal kinderen kan niet negatief zijn. De waarde is teruggezet naar 0.',
+                    'message': 'Aantal kinderen kan niet negatief zijn.',
                 }
             }
         if self.sr_aantal_kinderen > self.SR_AKB_MAX_CHILDREN:
-            self.sr_aantal_kinderen = self.SR_AKB_MAX_CHILDREN
             return {
                 'warning': {
-                    'title': 'AKB limiet bereikt',
-                    'message': 'Voor de 2026 release accepteert de module maximaal 4 kinderen voor AKB.',
+                    'title': 'AKB fiscaal gemaximeerd',
+                    'message': (
+                        'Meer dan 4 kinderen mogen administratief worden geregistreerd, '
+                        'maar de fiscale AKB-vrijstelling blijft voor de 2026-regels '
+                        'gemaximeerd op 4 kinderen.'
+                    ),
                 }
             }
 
@@ -327,10 +326,6 @@ class HrContract(models.Model):
         for contract in self:
             if contract.sr_aantal_kinderen < 0:
                 raise ValidationError('Aantal kinderen kan niet negatief zijn.')
-            if contract.sr_aantal_kinderen > self.SR_AKB_MAX_CHILDREN:
-                raise ValidationError(
-                    'Aantal kinderen voor AKB mag voor de 2026 release maximaal 4 zijn.'
-                )
 
     @api.depends()
     def _compute_sr_tax_bracket_html(self):
@@ -456,22 +451,49 @@ class HrContract(models.Model):
         self.ensure_one()
         definition = self.SR_CONTRACT_LINE_FIELD_MAP[field_name]
         lines = self._sr_get_named_rule_lines(definition)
-        if lines:
-            lines.unlink()
-
-        if not amount:
+        normalized_amount = calc.round_money(amount or 0.0)
+        current_total = calc.round_money(sum(self._sr_resolve_line_amount(line) for line in lines)) if lines else 0.0
+        keeper = lines[:1]
+        line_type = self._sr_get_line_type_from_definition(definition)
+        keeper_matches_definition = bool(keeper) and (
+            keeper.name == definition['name']
+            and keeper.amount_type == 'fixed'
+            and keeper.sr_categorie == definition['category']
+            and (
+                (line_type and keeper.type_id == line_type)
+                or (not line_type and not keeper.type_id)
+            )
+        )
+        if (
+            float_compare(current_total, normalized_amount, precision_digits=2) == 0
+            and len(lines) == 1
+            and keeper_matches_definition
+        ):
             return
 
-        line_type = self._sr_get_line_type_from_definition(definition)
+        if not normalized_amount:
+            if lines:
+                lines.unlink()
+            return
+
+        extra_lines = lines - keeper
+        if extra_lines:
+            extra_lines.unlink()
+
         line_vals = {
-            'contract_id': self.id,
             'name': definition['name'],
             'sr_categorie': definition['category'],
             'amount_type': 'fixed',
-            'amount': amount,
+            'amount': normalized_amount,
         }
         if line_type:
             line_vals['type_id'] = line_type.id
+
+        if keeper:
+            keeper.write(line_vals)
+            return
+
+        line_vals['contract_id'] = self.id
         self.env['hr.contract.sr.line'].create(line_vals)
 
     def _inverse_sr_kinderbijslag_bedrag(self):
@@ -587,7 +609,8 @@ class HrContract(models.Model):
             return {'belastbaar': total_kb, 'vrijgesteld': 0.0}
 
         periodes = 26 if self.sr_salary_type == 'fn' else 12
-        exempt_maand = min(self.sr_aantal_kinderen * max_kind_maand, max_maand)
+        eligible_children = min(self.sr_aantal_kinderen, self.SR_AKB_MAX_CHILDREN)
+        exempt_maand = min(eligible_children * max_kind_maand, max_maand)
         exempt_per_periode = exempt_maand if periodes == 12 else exempt_maand * 12.0 / 26.0
 
         kb_exempt = min(total_kb, exempt_per_periode)

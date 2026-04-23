@@ -8,7 +8,7 @@ Tests voor de verbeteringen uit de 5-fasen implementatie:
 
 from datetime import date
 
-from odoo.exceptions import ValidationError
+from odoo.exceptions import UserError, ValidationError
 from odoo.tests import common, tagged
 
 
@@ -31,6 +31,12 @@ class TestImprovements(common.TransactionCase):
             'name': 'Test Werknemer Impr',
             'company_id': cls.company.id,
         })
+        cls.payroll_manager_user = common.new_test_user(
+            cls.env,
+            login='sr_payroll_manager_impr',
+            groups='base.group_user,hr_payroll.group_hr_payroll_manager',
+            company_id=cls.company.id,
+        )
         cls.structure = cls.env.ref('l10n_sr_hr_payroll.sr_payroll_structure')
         cls.structure_type = cls.structure.type_id
 
@@ -91,6 +97,18 @@ class TestImprovements(common.TransactionCase):
         })
         self.assertTrue(line.id)
 
+    def test_onchange_akb_warns_without_capping_child_count(self):
+        """De onchange mag waarschuwen maar de administratieve invoer niet forceren."""
+        contract = self.env['hr.contract'].new({
+            'sr_aantal_kinderen': 5,
+        })
+
+        warning = contract._onchange_sr_aantal_kinderen()
+
+        self.assertEqual(contract.sr_aantal_kinderen, 5)
+        self.assertEqual(warning['warning']['title'], 'AKB fiscaal gemaximeerd')
+        self.assertIn('administratief', warning['warning']['message'])
+
     # ── Fase 5: sr_is_sr_struct boolean ─────────────────────────────
 
     def test_sr_is_sr_struct_true(self):
@@ -147,3 +165,34 @@ class TestImprovements(common.TransactionCase):
         aov2 = payslip._sr_artikel14_aov(8000.0)
         self.assertEqual(lb1, lb2, "LB moet consistent zijn bij herhaalde aanroep")
         self.assertEqual(aov1, aov2, "AOV moet consistent zijn bij herhaalde aanroep")
+
+    def test_sr_helpers_tolerate_missing_contract(self):
+        """SR helper-methodes mogen geen singleton-fout geven zonder contract."""
+        payslip = self.env['hr.payslip'].new({
+            'name': 'Test Zonder Contract',
+            'struct_id': self.structure.id,
+            'date_from': date(2026, 4, 1),
+            'date_to': date(2026, 4, 30),
+            'company_id': self.company.id,
+        })
+
+        self.assertEqual(payslip._sr_get_periodes(), 12)
+        payslip._sr_validate_fn_period_2026()
+        payslip._sr_freeze_currency_snapshot()
+        self.assertFalse(payslip.sr_frozen_contract_currency_id)
+
+    def test_tax_report_view_is_readonly_for_payroll_manager(self):
+        """SQL-view rapporten moeten voor payroll managers read-only blijven."""
+        report_model = self.env['hr.payroll.tax.report'].with_user(self.payroll_manager_user)
+
+        self.assertTrue(report_model.has_access('read'))
+        self.assertFalse(report_model.has_access('create'))
+        self.assertFalse(report_model.has_access('write'))
+        self.assertFalse(report_model.has_access('unlink'))
+
+    def test_tax_report_view_create_raises_user_error(self):
+        """Model guard moet create expliciet blokkeren, ook buiten ACL-checks om."""
+        with self.assertRaises(UserError):
+            self.env['hr.payroll.tax.report'].create({
+                'employee_name': 'Niet Toegestaan',
+            })

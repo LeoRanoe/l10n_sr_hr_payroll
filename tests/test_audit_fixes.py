@@ -158,8 +158,9 @@ class TestAuditFixes(common.TransactionCase):
             'employee_id': contract.employee_id.id,
             'contract_id': contract.id,
             'work_entry_type_id': overtime_type.id,
-            'date_start': datetime(2026, 5, 10, 18, 0, 0),
-            'date_stop': datetime(2026, 5, 10, 20, 0, 0),
+            'date_start': datetime(2026, 5, 11, 18, 0, 0),
+            'date_stop': datetime(2026, 5, 11, 20, 0, 0),
+            'sr_manual_override': True,
         })
         self.assertTrue(work_entry.action_validate())
 
@@ -234,6 +235,19 @@ class TestAuditFixes(common.TransactionCase):
         contract.generate_work_entries(date(2026, 5, 1), date(2026, 5, 31), force=True)
 
         self.assertFalse(work_entry.exists())
+
+    def test_payroll_indexes_exist(self):
+        index_names = {
+            'hr_payslip_sr_struct_state_idx',
+            'hr_payslip_line_slip_code_idx',
+            'hr_work_entry_contract_state_dates_idx',
+        }
+        self.env.cr.execute(
+            "SELECT indexname FROM pg_indexes WHERE indexname = ANY(%s)",
+            (list(index_names),),
+        )
+        found = {row[0] for row in self.env.cr.fetchall()}
+        self.assertTrue(index_names.issubset(found))
 
     def test_breakdown_uses_half_up_local_money_format(self):
         params = calc.fetch_params_from_rule_parameter(self.env, date(2026, 5, 1))

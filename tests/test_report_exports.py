@@ -84,6 +84,57 @@ class TestSrReportExports(common.TransactionCase):
         self.assertEqual(eligible_slips, done_slip)
         self.assertTrue(payslip_run.sr_has_sr_payslips)
 
+    def test_tax_report_view_geeft_alleen_done_sr_slips_en_input_totals(self):
+        done_slip = self._make_done_sr_payslip(
+            year=2026,
+            month=7,
+            inputs=[('l10n_sr_hr_payroll.sr_input_overwerk_150', 7600.0)],
+        )
+        draft_slip = self._make_done_sr_payslip(year=2026, month=8)
+        draft_slip.write({'state': 'draft'})
+
+        report_rows = self.env['hr.payroll.tax.report'].search([
+            ('payslip_id', 'in', [done_slip.id, draft_slip.id]),
+        ])
+
+        self.assertEqual(report_rows.payslip_id, done_slip)
+        self.assertGreater(report_rows.amount_bruto_srd, 0.0)
+        self.assertAlmostEqual(report_rows.amount_overwerk_150_srd, 7600.0, places=2)
+
+    def test_tax_report_fields_stay_excel_friendly(self):
+        done_slip = self._make_done_sr_payslip(
+            year=2026,
+            month=7,
+            inputs=[('l10n_sr_hr_payroll.sr_input_overwerk_150', 7600.0)],
+        )
+
+        self.env.flush_all()
+        report_row = self.env['hr.payroll.tax.report'].search([
+            ('payslip_id', '=', done_slip.id),
+        ], limit=1)
+
+        numeric_fields = (
+            'exchange_rate',
+            'amount_bruto_srd',
+            'amount_overwerk_150_srd',
+            'amount_overwerk_200_srd',
+            'amount_aov_srd',
+            'amount_belastingvrij_periode_srd',
+            'amount_lb_srd',
+            'amount_akb_srd',
+            'amount_netto_srd',
+            'amount_netto_bronvaluta',
+        )
+
+        self.assertTrue(report_row)
+        self.assertEqual(report_row._fields['date_from'].type, 'date')
+        self.assertEqual(report_row._fields['date_to'].type, 'date')
+        self.assertIsInstance(report_row.date_from, date)
+        self.assertIsInstance(report_row.date_to, date)
+        for field_name in numeric_fields:
+            self.assertEqual(report_row._fields[field_name].type, 'float')
+            self.assertIsInstance(report_row[field_name], float)
+
     def test_batch_tax_overview_action_geeft_pdf_report(self):
         payslip_run = self.env['hr.payslip.run'].create({
             'name': 'Batch Export September 2026',
