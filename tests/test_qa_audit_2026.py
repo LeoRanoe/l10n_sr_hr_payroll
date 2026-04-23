@@ -312,34 +312,158 @@ class TestQAAudit2026(common.TransactionCase):
         )
         self.assertTrue(self.env.cr.fetchone()[0])
 
-    def test_contract_salary_type_and_hourly_wage_persist_in_postgresql(self):
+    def test_contract_salary_type_persists_and_hourly_wage_recomputes_live(self):
+        usd = self.env.ref('base.USD')
+        old_rate = self.params.get_param('sr_payroll.exchange_rate_usd')
+
+        try:
+            self.params.set_param('sr_payroll.exchange_rate_usd', 36.5)
+            contract = self._create_contract(
+                self.employee_monthly,
+                wage=100.0,
+                salary_type='fn',
+            )
+            contract.write({'sr_contract_currency': usd.id})
+            contract.invalidate_recordset(['sr_hourly_wage'])
+
+            self.env.flush_all()
+            self.env.cr.execute(
+                "SELECT sr_salary_type FROM hr_contract WHERE id = %s",
+                (contract.id,),
+            )
+            salary_type = self.env.cr.fetchone()[0]
+
+            self.assertEqual(salary_type, 'fn')
+            self.assertAlmostEqual(contract.sr_hourly_wage, 45.6250, places=4)
+
+            contract.write({'sr_salary_type': 'monthly'})
+            contract.invalidate_recordset(['sr_hourly_wage'])
+            self.assertAlmostEqual(contract.sr_hourly_wage, 21.0577, places=4)
+
+            self.params.set_param('sr_payroll.exchange_rate_usd', 40.0)
+            contract.invalidate_recordset(['sr_hourly_wage'])
+            self.assertAlmostEqual(contract.sr_hourly_wage, 23.0769, places=4)
+        finally:
+            if old_rate in (None, False, ''):
+                self.params.search([('key', '=', 'sr_payroll.exchange_rate_usd')], limit=1).unlink()
+            else:
+                self.params.set_param('sr_payroll.exchange_rate_usd', old_rate)
+
+    def test_batch_compute_sheet_keeps_overtime_inputs_per_slip(self):
+        batch_employee = self.env['hr.employee'].create({
+            'name': 'QA Batch OT Werknemer',
+            'company_id': self.company.id,
+        })
         contract = self._create_contract(
             self.employee_monthly,
-            wage=20800.0,
-            salary_type='fn',
+            wage=17333.3333,
+        )
+        contract_b = self._create_contract(
+            batch_employee,
+            wage=17333.3333,
         )
 
-        self.env.flush_all()
-
-        self.env.cr.execute(
-            "SELECT sr_salary_type, sr_hourly_wage FROM hr_contract WHERE id = %s",
-            (contract.id,),
+        self._create_work_entry(
+            contract,
+            self.overtime_work_type,
+            datetime(2026, 4, 7, 18, 0, 0),
+            2.0,
         )
-        salary_type, hourly_wage = self.env.cr.fetchone()
-
-        self.assertEqual(salary_type, 'fn')
-        self.assertAlmostEqual(float(hourly_wage), 260.0, places=4)
-
-        contract.write({'sr_salary_type': 'monthly'})
-        self.env.flush_all()
-        self.env.cr.execute(
-            "SELECT sr_salary_type, sr_hourly_wage FROM hr_contract WHERE id = %s",
-            (contract.id,),
+        self._create_work_entry(
+            contract_b,
+            self.overtime_work_type,
+            datetime(2026, 4, 8, 18, 0, 0),
+            1.0,
         )
-        salary_type, hourly_wage = self.env.cr.fetchone()
 
-        self.assertEqual(salary_type, 'monthly')
-        self.assertAlmostEqual(float(hourly_wage), 120.0, places=4)
+        payslip_a = self.env['hr.payslip'].create({
+            'name': 'QA Batch Slip A',
+            'employee_id': contract.employee_id.id,
+            'contract_id': contract.id,
+            'struct_id': self.structure.id,
+            'date_from': date(2026, 4, 1),
+            'date_to': date(2026, 4, 30),
+            'company_id': self.company.id,
+        })
+        payslip_b = self.env['hr.payslip'].create({
+            'name': 'QA Batch Slip B',
+            'employee_id': contract_b.employee_id.id,
+            'contract_id': contract_b.id,
+            'struct_id': self.structure.id,
+            'date_from': date(2026, 4, 1),
+            'date_to': date(2026, 4, 30),
+            'company_id': self.company.id,
+        })
+
+        (payslip_a | payslip_b).compute_sheet()
+
+        self.assertAlmostEqual(
+            self._input_amount(payslip_a, 'l10n_sr_hr_payroll.sr_input_overwerk_150'),
+            300.0,
+            places=2,
+        )
+        self.assertAlmostEqual(
+            self._input_amount(payslip_b, 'l10n_sr_hr_payroll.sr_input_overwerk_150'),
+            150.0,
+            places=2,
+        )
+
+    def test_recompute_keeps_single_generated_input_and_frozen_exchange_rate(self):
+        usd = self.env.ref('base.USD')
+        old_rate = self.params.get_param('sr_payroll.exchange_rate_usd')
+        try:
+            self.params.set_param('sr_payroll.exchange_rate_usd', 36.5)
+            contract = self._create_contract(
+                self.employee_monthly,
+                wage=100.0,
+            )
+            contract.write({'sr_contract_currency': usd.id})
+            self._create_work_entry(
+                contract,
+                self.overtime_work_type,
+                datetime(2026, 4, 7, 18, 0, 0),
+                2.0,
+            )
+
+            payslip = self.env['hr.payslip'].create({
+                'name': 'QA Recompute Snapshot',
+                'employee_id': contract.employee_id.id,
+                'contract_id': contract.id,
+                'struct_id': self.structure.id,
+                'date_from': date(2026, 4, 1),
+                'date_to': date(2026, 4, 30),
+                'company_id': self.company.id,
+            })
+
+            payslip.compute_sheet()
+            generated_inputs = self.env['hr.payslip.input'].search([
+                ('payslip_id', '=', payslip.id),
+                ('sr_generated_from_work_entry', '=', True),
+            ])
+            initial_amount = sum(generated_inputs.mapped('amount'))
+            self.assertAlmostEqual(payslip.sr_exchange_rate, 36.5, places=4)
+            self.assertGreater(initial_amount, 0.0)
+            self.assertEqual(len(generated_inputs), 1)
+
+            self.params.set_param('sr_payroll.exchange_rate_usd', 40.0)
+            payslip.compute_sheet()
+            generated_inputs = self.env['hr.payslip.input'].search([
+                ('payslip_id', '=', payslip.id),
+                ('sr_generated_from_work_entry', '=', True),
+            ])
+
+            self.assertAlmostEqual(payslip.sr_exchange_rate, 36.5, places=4)
+            self.assertAlmostEqual(
+                sum(generated_inputs.mapped('amount')),
+                initial_amount,
+                places=2,
+            )
+            self.assertEqual(len(generated_inputs), 1)
+        finally:
+            if old_rate in (None, False, ''):
+                self.params.search([('key', '=', 'sr_payroll.exchange_rate_usd')], limit=1).unlink()
+            else:
+                self.params.set_param('sr_payroll.exchange_rate_usd', old_rate)
 
     def test_named_contract_allowances_persist_via_contract_fields(self):
         contract = self._create_contract(
@@ -385,6 +509,43 @@ class TestQAAudit2026(common.TransactionCase):
         self.assertEqual(contract.sr_vervoer_toelage, 350.0)
         self.assertEqual(contract.sr_representatie_toelage, 900.0)
         self.assertEqual(contract.sr_vrije_geneeskundige_behandeling, 125.0)
+
+    def test_named_contract_allowance_write_same_value_does_not_duplicate_rule_lines(self):
+        contract = self._create_contract(
+            self.employee_akb,
+            wage=18000.0,
+            sr_aantal_kinderen=2,
+        )
+
+        contract.write({'sr_kinderbijslag_bedrag': 500.0})
+        first_line_ids = contract.sr_vaste_regels.filtered(lambda line: line.type_id.code == 'KINDBIJ').ids
+        contract.write({'sr_kinderbijslag_bedrag': 500.0})
+        second_line_ids = contract.sr_vaste_regels.filtered(lambda line: line.type_id.code == 'KINDBIJ').ids
+
+        self.assertEqual(first_line_ids, second_line_ids)
+        self.assertEqual(len(second_line_ids), 1)
+        self.assertEqual(contract.sr_kinderbijslag_bedrag, 500.0)
+
+    def test_work_entry_create_preclassifies_overtime_buckets(self):
+        contract = self._create_contract(
+            self.employee_monthly,
+            wage=18000.0,
+            sr_has_overtime_right=True,
+        )
+
+        work_entry = self.env['hr.work.entry'].create({
+            'name': 'QA Preclassified Overtime',
+            'employee_id': contract.employee_id.id,
+            'contract_id': contract.id,
+            'company_id': self.company.id,
+            'work_entry_type_id': self.overtime_work_type.id,
+            'date_start': datetime(2026, 4, 8, 18, 0, 0),
+            'date_stop': datetime(2026, 4, 8, 20, 0, 0),
+            'duration': 2.0,
+        })
+
+        self.assertAlmostEqual(work_entry.sr_overtime_150, 2.0, places=2)
+        self.assertAlmostEqual(work_entry.sr_overtime_200, 0.0, places=2)
 
     def test_settings_values_roundtrip_via_config_parameter(self):
         self.params.set_param('sr_payroll.akb_per_kind', 100.0)
@@ -672,18 +833,11 @@ class TestQAAudit2026(common.TransactionCase):
         )
         self.assertAlmostEqual(self._line_total(payslip, 'GROSS'), 16000.0, places=2)
 
-    def test_akb_is_capped_at_1000_and_more_than_four_children_is_rejected(self):
-        with self.assertRaises(ValidationError):
-            self._create_contract(
-                self.employee_akb,
-                wage=20000.0,
-                sr_aantal_kinderen=5,
-            )
-
+    def test_akb_is_capped_at_four_children_without_blocking_contract_input(self):
         contract = self._create_contract(
             self.employee_akb,
             wage=20000.0,
-            sr_aantal_kinderen=4,
+            sr_aantal_kinderen=5,
             sr_vaste_regels=[(0, 0, {
                 'name': 'Kinderbijslag QA',
                 'type_id': self.env.ref('l10n_sr_hr_payroll.sr_line_type_kinderbijslag').id,
@@ -691,8 +845,13 @@ class TestQAAudit2026(common.TransactionCase):
                 'amount': 1250.0,
             })],
         )
+
+        split = contract._sr_kinderbijslag_split(max_kind_maand=250.0, max_maand=5000.0)
         payslip = self._create_payslip(contract, date(2026, 4, 1), date(2026, 4, 30))
 
+        self.assertEqual(contract.sr_aantal_kinderen, 5)
+        self.assertAlmostEqual(split['vrijgesteld'], 1000.0, places=2)
+        self.assertAlmostEqual(split['belastbaar'], 250.0, places=2)
         self.assertAlmostEqual(self._line_total(payslip, 'SR_KB_VRIJ'), 1000.0, places=2)
         self.assertAlmostEqual(self._line_total(payslip, 'SR_KB_BELAST'), 250.0, places=2)
 

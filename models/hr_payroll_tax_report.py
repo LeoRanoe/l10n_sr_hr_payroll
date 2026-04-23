@@ -110,7 +110,13 @@ class HrPayrollTaxReport(models.Model):
 
     def _query(self):
         return """
-            WITH line_totals AS (
+            WITH valid_payslips AS (
+                SELECT hp.id
+                FROM hr_payslip hp
+                WHERE hp.sr_is_sr_struct IS TRUE
+                  AND hp.state IN ('done', 'paid')
+            ),
+            line_totals AS (
                 SELECT
                     hpl.slip_id AS payslip_id,
                     SUM(CASE WHEN hpl.code IN (
@@ -136,6 +142,7 @@ class HrPayrollTaxReport(models.Model):
                     SUM(CASE WHEN hpl.code = 'NET'
                         THEN hpl.total ELSE 0 END) AS amount_netto_srd
                 FROM hr_payslip_line hpl
+                JOIN valid_payslips vp ON vp.id = hpl.slip_id
                 GROUP BY hpl.slip_id
             ),
             input_totals AS (
@@ -146,6 +153,7 @@ class HrPayrollTaxReport(models.Model):
                     SUM(CASE WHEN hpit.code = 'SR_IN_OVERWERK_200'
                         THEN hpi.amount ELSE 0 END) AS amount_overwerk_200_srd
                 FROM hr_payslip_input hpi
+                JOIN valid_payslips vp ON vp.id = hpi.payslip_id
                 JOIN hr_payslip_input_type hpit ON hpit.id = hpi.input_type_id
                 GROUP BY hpi.payslip_id
             )
@@ -173,13 +181,12 @@ class HrPayrollTaxReport(models.Model):
                 COALESCE(lt.amount_netto_srd, 0.0) AS amount_netto_srd,
                 COALESCE(hp.sr_netto_bronvaluta, lt.amount_netto_srd, 0.0) AS amount_netto_bronvaluta,
                 hp.state AS payslip_state
-            FROM hr_payslip hp
+                        FROM valid_payslips vp
+                        JOIN hr_payslip hp ON hp.id = vp.id
             JOIN hr_employee he ON he.id = hp.employee_id
             LEFT JOIN hr_department hd ON hd.id = he.department_id
             LEFT JOIN line_totals lt ON lt.payslip_id = hp.id
             LEFT JOIN input_totals it ON it.payslip_id = hp.id
-            WHERE hp.sr_is_sr_struct IS TRUE
-              AND hp.state IN ('done', 'paid')
         """
 
     def init(self):
