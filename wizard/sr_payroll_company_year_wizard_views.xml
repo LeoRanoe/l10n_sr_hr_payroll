@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ═══════════════════════════════════════════════════════════════
+         SR Bedrijfs Jaaroverzicht Wizard — Views
+         Model: sr.payroll.company.year.wizard
+         ═══════════════════════════════════════════════════════════════ -->
+
+    <record id="view_sr_company_year_wizard_form" model="ir.ui.view">
+        <field name="name">sr.payroll.company.year.wizard.form</field>
+        <field name="model">sr.payroll.company.year.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Bedrijfs Jaaroverzicht Loonbelasting">
+                <group>
+                    <group>
+                        <field name="company_id"/>
+                    </group>
+                    <group>
+                        <field name="year"/>
+                    </group>
+                </group>
+                <footer>
+                    <button
+                        name="action_export_pdf"
+                        string="PDF Exporteren"
+                        type="object"
+                        class="btn-primary"
+                        icon="fa-file-pdf-o"/>
+                    <button
+                        string="Annuleren"
+                        class="btn-secondary"
+                        special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Action to open wizard -->
+    <record id="action_sr_company_year_wizard" model="ir.actions.act_window">
+        <field name="name">Bedrijfs Jaaroverzicht PDF</field>
+        <field name="res_model">sr.payroll.company.year.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="view_sr_company_year_wizard_form"/>
+        <field name="target">new</field>
+        <field name="binding_model_id" ref="hr_payroll.model_hr_payslip_run"/>
+        <field name="binding_view_types">list,form</field>
+    </record>
+
+</odoo>

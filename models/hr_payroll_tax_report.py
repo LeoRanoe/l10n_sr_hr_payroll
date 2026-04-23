@@ -93,6 +93,59 @@ class HrPayrollTaxReport(models.Model):
         readonly=True,
     )
 
+    # ── Artikel-niveau LB uitsplitsing ────────────────────────────────────────
+    amount_lb_art14_srd = fields.Float(
+        string='LB Art. 14 (SRD)', digits=(16, 2), readonly=True, aggregator='sum',
+        help='Loonbelasting regulier periodiek loon — Artikel 14 WLB',
+    )
+    amount_lb_bijz_srd = fields.Float(
+        string='LB Art. 17 (SRD)', digits=(16, 2), readonly=True, aggregator='sum',
+        help='Loonbelasting bijzondere beloningen — Artikel 17 WLB',
+    )
+    amount_lb_17a_srd = fields.Float(
+        string='LB Art. 17a (SRD)', digits=(16, 2), readonly=True, aggregator='sum',
+        help='Loonbelasting uitkering ineens — Artikel 17a WLB',
+    )
+    amount_lb_overwerk_srd = fields.Float(
+        string='LB Art. 17c (SRD)', digits=(16, 2), readonly=True, aggregator='sum',
+        help='Loonbelasting overwerk — Artikel 17c WLB',
+    )
+    # ── Artikel-niveau AOV uitsplitsing ───────────────────────────────────────
+    amount_aov_art14_srd = fields.Float(
+        string='AOV Art. 14 (SRD)', digits=(16, 2), readonly=True, aggregator='sum',
+        help='AOV premie regulier periodiek loon',
+    )
+    amount_aov_bijz_srd = fields.Float(
+        string='AOV Art. 17 (SRD)', digits=(16, 2), readonly=True, aggregator='sum',
+        help='AOV premie bijzondere beloningen',
+    )
+    amount_aov_17a_srd = fields.Float(
+        string='AOV Art. 17a (SRD)', digits=(16, 2), readonly=True, aggregator='sum',
+        help='AOV premie uitkering ineens',
+    )
+    amount_aov_overwerk_srd = fields.Float(
+        string='AOV Art. 17c (SRD)', digits=(16, 2), readonly=True, aggregator='sum',
+        help='AOV premie overwerk',
+    )
+    # ── Extra bruto uitsplitsing ──────────────────────────────────────────────
+    amount_bijz_bruto_srd = fields.Float(
+        string='Bijz. Beloningen Bruto (SRD)', digits=(16, 2), readonly=True, aggregator='sum',
+        help='Bruto bijzondere beloningen (vakantiegeld, gratificatie, overige bijz.)',
+    )
+    amount_uitk_ineens_srd = fields.Float(
+        string='Uitkering Ineens (SRD)', digits=(16, 2), readonly=True, aggregator='sum',
+        help='Bruto uitkering ineens (Art. 17a WLB)',
+    )
+    # ── Kortingen en inhoudingen ──────────────────────────────────────────────
+    amount_heffingskorting_srd = fields.Float(
+        string='Heffingskorting (SRD)', digits=(16, 2), readonly=True, aggregator='sum',
+        help='Toegepaste heffingskorting (belastingvermindering toegepast op werknemer)',
+    )
+    amount_pensioen_srd = fields.Float(
+        string='Pensioenfonds (SRD)', digits=(16, 2), readonly=True, aggregator='sum',
+        help='Pensioenfonds inhouding per periode',
+    )
+
     def _raise_readonly_view_error(self):
         raise UserError(_(
             'Het fiscaal overzicht is een auditrapport op basis van een SQL-view en kan niet rechtstreeks worden aangemaakt, gewijzigd of verwijderd. Pas de onderliggende loonstrook aan als correctie nodig is.'
@@ -140,7 +193,31 @@ class HrPayrollTaxReport(models.Model):
                     SUM(CASE WHEN hpl.code IN ('SR_KB_BELAST', 'SR_KB_VRIJ')
                         THEN hpl.total ELSE 0 END) AS amount_akb_srd,
                     SUM(CASE WHEN hpl.code = 'NET'
-                        THEN hpl.total ELSE 0 END) AS amount_netto_srd
+                        THEN hpl.total ELSE 0 END) AS amount_netto_srd,
+                    SUM(CASE WHEN hpl.code = 'SR_LB'
+                        THEN ABS(hpl.total) ELSE 0 END) AS amount_lb_art14_srd,
+                    SUM(CASE WHEN hpl.code = 'SR_LB_BIJZ'
+                        THEN ABS(hpl.total) ELSE 0 END) AS amount_lb_bijz_srd,
+                    SUM(CASE WHEN hpl.code = 'SR_LB_17A'
+                        THEN ABS(hpl.total) ELSE 0 END) AS amount_lb_17a_srd,
+                    SUM(CASE WHEN hpl.code = 'SR_LB_OVERWERK'
+                        THEN ABS(hpl.total) ELSE 0 END) AS amount_lb_overwerk_srd,
+                    SUM(CASE WHEN hpl.code = 'SR_AOV'
+                        THEN ABS(hpl.total) ELSE 0 END) AS amount_aov_art14_srd,
+                    SUM(CASE WHEN hpl.code = 'SR_AOV_BIJZ'
+                        THEN ABS(hpl.total) ELSE 0 END) AS amount_aov_bijz_srd,
+                    SUM(CASE WHEN hpl.code = 'SR_AOV_17A'
+                        THEN ABS(hpl.total) ELSE 0 END) AS amount_aov_17a_srd,
+                    SUM(CASE WHEN hpl.code = 'SR_AOV_OVERWERK'
+                        THEN ABS(hpl.total) ELSE 0 END) AS amount_aov_overwerk_srd,
+                    SUM(CASE WHEN hpl.code IN ('SR_VAKANTIE', 'SR_GRAT', 'SR_BIJZ')
+                        THEN hpl.total ELSE 0 END) AS amount_bijz_bruto_srd,
+                    SUM(CASE WHEN hpl.code = 'SR_UITK_INEENS'
+                        THEN hpl.total ELSE 0 END) AS amount_uitk_ineens_srd,
+                    SUM(CASE WHEN hpl.code = 'SR_HK'
+                        THEN hpl.total ELSE 0 END) AS amount_heffingskorting_srd,
+                    SUM(CASE WHEN hpl.code = 'SR_PENSIOEN'
+                        THEN ABS(hpl.total) ELSE 0 END) AS amount_pensioen_srd
                 FROM hr_payslip_line hpl
                 JOIN valid_payslips vp ON vp.id = hpl.slip_id
                 GROUP BY hpl.slip_id
@@ -180,6 +257,18 @@ class HrPayrollTaxReport(models.Model):
                 COALESCE(lt.amount_akb_srd, 0.0) AS amount_akb_srd,
                 COALESCE(lt.amount_netto_srd, 0.0) AS amount_netto_srd,
                 COALESCE(hp.sr_netto_bronvaluta, lt.amount_netto_srd, 0.0) AS amount_netto_bronvaluta,
+                COALESCE(lt.amount_lb_art14_srd, 0.0) AS amount_lb_art14_srd,
+                COALESCE(lt.amount_lb_bijz_srd, 0.0) AS amount_lb_bijz_srd,
+                COALESCE(lt.amount_lb_17a_srd, 0.0) AS amount_lb_17a_srd,
+                COALESCE(lt.amount_lb_overwerk_srd, 0.0) AS amount_lb_overwerk_srd,
+                COALESCE(lt.amount_aov_art14_srd, 0.0) AS amount_aov_art14_srd,
+                COALESCE(lt.amount_aov_bijz_srd, 0.0) AS amount_aov_bijz_srd,
+                COALESCE(lt.amount_aov_17a_srd, 0.0) AS amount_aov_17a_srd,
+                COALESCE(lt.amount_aov_overwerk_srd, 0.0) AS amount_aov_overwerk_srd,
+                COALESCE(lt.amount_bijz_bruto_srd, 0.0) AS amount_bijz_bruto_srd,
+                COALESCE(lt.amount_uitk_ineens_srd, 0.0) AS amount_uitk_ineens_srd,
+                COALESCE(lt.amount_heffingskorting_srd, 0.0) AS amount_heffingskorting_srd,
+                COALESCE(lt.amount_pensioen_srd, 0.0) AS amount_pensioen_srd,
                 hp.state AS payslip_state
                         FROM valid_payslips vp
                         JOIN hr_payslip hp ON hp.id = vp.id
