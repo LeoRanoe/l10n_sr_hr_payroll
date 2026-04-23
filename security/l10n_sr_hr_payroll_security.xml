@@ -5,6 +5,7 @@
         <record id="group_sr_payroll_accountant_export" model="res.groups">
             <field name="name">SR Payroll Accountant Export</field>
             <field name="category_id" ref="base.module_category_human_resources_payroll"/>
+            <field name="implied_ids" eval="[(4, ref('base.group_allow_export'))]"/>
         </record>
 
         <record id="rule_hr_payroll_tax_report_multi_company" model="ir.rule">
@@ -12,6 +13,7 @@
             <field name="model_id" ref="l10n_sr_hr_payroll.model_hr_payroll_tax_report"/>
             <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
             <field name="groups" eval="[
+                (4, ref('hr_payroll.group_hr_payroll_user')),
                 (4, ref('hr_payroll.group_hr_payroll_manager')),
                 (4, ref('l10n_sr_hr_payroll.group_sr_payroll_accountant_export')),
                 (4, ref('base.group_system'))

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_sr_payroll_tax_report_export_wizard_form" model="ir.ui.view">
+        <field name="name">sr.payroll.tax.report.export.wizard.form</field>
+        <field name="model">sr.payroll.tax.report.export.wizard</field>
+        <field name="arch" type="xml">
+            <form string="SR Fiscaal Overzicht exporteren">
+                <group>
+                    <field name="company_id" options="{'no_create': True}"/>
+                    <field name="date_from"/>
+                    <field name="date_to"/>
+                    <field name="row_count" readonly="1" invisible="not row_count"/>
+                </group>
+                <footer>
+                    <button string="Exporteer CSV" class="btn-primary" name="action_export_csv" type="object"/>
+                    <button string="Annuleren" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_sr_payroll_tax_report_export_wizard" model="ir.actions.act_window">
+        <field name="name">Exporteer SR Fiscaal Overzicht</field>
+        <field name="res_model">sr.payroll.tax.report.export.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+</odoo>

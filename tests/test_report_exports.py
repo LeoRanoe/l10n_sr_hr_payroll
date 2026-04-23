@@ -1,5 +1,6 @@
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
+from base64 import b64decode
 from datetime import date
 
 from odoo.tests import common, tagged
@@ -148,6 +149,40 @@ class TestSrReportExports(common.TransactionCase):
 
         self.assertEqual(action['type'], 'ir.actions.report')
         self.assertEqual(action['report_name'], 'l10n_sr_hr_payroll.report_sr_tax_overview_period')
+
+    def test_batch_tax_export_wizard_action_geeft_form_met_run_defaults(self):
+        payslip_run = self.env['hr.payslip.run'].create({
+            'name': 'Batch Export Wizard September 2026',
+            'date_start': date(2026, 9, 1),
+            'date_end': date(2026, 9, 30),
+            'company_id': self.company.id,
+        })
+
+        action = payslip_run.action_open_sr_tax_report_export_wizard()
+
+        self.assertEqual(action['type'], 'ir.actions.act_window')
+        self.assertEqual(action['res_model'], 'sr.payroll.tax.report.export.wizard')
+        self.assertEqual(action['context']['default_company_id'], self.company.id)
+        self.assertEqual(action['context']['default_date_from'], date(2026, 9, 1))
+        self.assertEqual(action['context']['default_date_to'], date(2026, 9, 30))
+
+    def test_company_tax_export_wizard_generates_csv_download(self):
+        self._make_done_sr_payslip(year=2026, month=9)
+        wizard = self.env['sr.payroll.tax.report.export.wizard'].create({
+            'company_id': self.company.id,
+            'date_from': date(2026, 9, 1),
+            'date_to': date(2026, 9, 30),
+        })
+
+        action = wizard.action_export_csv()
+        csv_content = b64decode(wizard.export_file).decode('utf-8-sig')
+
+        self.assertEqual(action['type'], 'ir.actions.act_url')
+        self.assertTrue(action['url'].startswith('/web/content?model=sr.payroll.tax.report.export.wizard'))
+        self.assertEqual(wizard.row_count, 1)
+        self.assertTrue(wizard.export_filename.endswith('.csv'))
+        self.assertIn('Werknemer', csv_content)
+        self.assertIn(self.employee.name, csv_content)
 
     def test_annual_statement_wizard_bouwt_jaardata(self):
         self._make_done_sr_payslip(year=2026, month=8)

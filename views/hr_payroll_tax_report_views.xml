@@ -24,8 +24,20 @@
                 <field name="amount_overwerk_200_srd" sum="Totaal OWK 200%" optional="hide"/>
                 <field name="amount_akb_srd" sum="Totaal AKB" optional="hide"/>
                 <field name="amount_aov_srd" sum="Totaal AOV" optional="show"/>
+                <field name="amount_aov_art14_srd" sum="Totaal AOV Art.14" optional="hide"/>
+                <field name="amount_aov_bijz_srd" sum="Totaal AOV Art.17" optional="hide"/>
+                <field name="amount_aov_17a_srd" sum="Totaal AOV Art.17a" optional="hide"/>
+                <field name="amount_aov_overwerk_srd" sum="Totaal AOV Art.17c" optional="hide"/>
                 <field name="amount_belastingvrij_periode_srd" sum="Totaal BVV" optional="hide"/>
                 <field name="amount_lb_srd" sum="Totaal LB" optional="show"/>
+                <field name="amount_lb_art14_srd" sum="Totaal LB Art.14" optional="hide"/>
+                <field name="amount_lb_bijz_srd" sum="Totaal LB Art.17" optional="hide"/>
+                <field name="amount_lb_17a_srd" sum="Totaal LB Art.17a" optional="hide"/>
+                <field name="amount_lb_overwerk_srd" sum="Totaal LB Art.17c" optional="hide"/>
+                <field name="amount_bijz_bruto_srd" sum="Totaal Bijz.Bel." optional="hide"/>
+                <field name="amount_uitk_ineens_srd" sum="Totaal Uitk.Ineens" optional="hide"/>
+                <field name="amount_heffingskorting_srd" sum="Totaal Heffingskorting" optional="hide"/>
+                <field name="amount_pensioen_srd" sum="Totaal Pensioen" optional="hide"/>
                 <field name="amount_netto_srd" sum="Totaal Netto SRD" optional="show"/>
                 <field name="amount_netto_bronvaluta" sum="Totaal Netto Bronvaluta" optional="show"/>
                 <field name="payslip_state" optional="hide"/>
@@ -59,14 +71,36 @@
                             <field name="contract_currency_id" options="{'no_open': True}"/>
                             <field name="exchange_rate" digits="[16, 6]"/>
                         </group>
-                        <group string="Bedragen (SRD)">
+                        <group string="Bruto Inkomsten (SRD)">
                             <field name="amount_bruto_srd"/>
+                            <field name="amount_bijz_bruto_srd"/>
+                            <field name="amount_uitk_ineens_srd"/>
                             <field name="amount_overwerk_150_srd"/>
                             <field name="amount_overwerk_200_srd"/>
                             <field name="amount_akb_srd"/>
-                            <field name="amount_aov_srd"/>
-                            <field name="amount_belastingvrij_periode_srd"/>
+                        </group>
+                    </group>
+                    <group>
+                        <group string="Loonbelasting Uitsplitsing (SRD)">
+                            <field name="amount_lb_art14_srd"/>
+                            <field name="amount_lb_bijz_srd"/>
+                            <field name="amount_lb_17a_srd"/>
+                            <field name="amount_lb_overwerk_srd"/>
                             <field name="amount_lb_srd"/>
+                        </group>
+                        <group string="AOV en Overige Inhoudingen (SRD)">
+                            <field name="amount_aov_art14_srd"/>
+                            <field name="amount_aov_bijz_srd"/>
+                            <field name="amount_aov_17a_srd"/>
+                            <field name="amount_aov_overwerk_srd"/>
+                            <field name="amount_aov_srd"/>
+                            <field name="amount_heffingskorting_srd"/>
+                            <field name="amount_pensioen_srd"/>
+                            <field name="amount_belastingvrij_periode_srd"/>
+                        </group>
+                    </group>
+                    <group>
+                        <group string="Netto (SRD)">
                             <field name="amount_netto_srd"/>
                             <field name="amount_netto_bronvaluta"/>
                         </group>
@@ -119,8 +153,12 @@
                 <field name="date_from" type="row" interval="month"/>
                 <field name="department_name" type="row"/>
                 <field name="amount_bruto_srd" type="measure"/>
+                <field name="amount_lb_art14_srd" type="measure"/>
+                <field name="amount_lb_bijz_srd" type="measure"/>
                 <field name="amount_lb_srd" type="measure"/>
+                <field name="amount_aov_art14_srd" type="measure"/>
                 <field name="amount_aov_srd" type="measure"/>
+                <field name="amount_heffingskorting_srd" type="measure"/>
                 <field name="amount_netto_srd" type="measure"/>
             </pivot>
         </field>
@@ -149,14 +187,22 @@
         parent="menu_sr_payroll_root"
         action="action_sr_payroll_tax_report"
         sequence="30"
-        groups="hr_payroll.group_hr_payroll_manager,base.group_system"/>
+        groups="hr_payroll.group_hr_payroll_user,hr_payroll.group_hr_payroll_manager,l10n_sr_hr_payroll.group_sr_payroll_accountant_export,base.group_system"/>
 
     <menuitem
         id="menu_sr_tax_report_accounting"
-        name="Fiscaal Overzicht Export"
+        name="Fiscaal Overzicht CSV"
         parent="menu_sr_payroll_root"
-        action="action_sr_payroll_tax_report"
+        action="action_sr_payroll_tax_report_export_wizard"
         sequence="35"
-        groups="l10n_sr_hr_payroll.group_sr_payroll_accountant_export,base.group_system"/>
+        groups="hr_payroll.group_hr_payroll_user,hr_payroll.group_hr_payroll_manager,l10n_sr_hr_payroll.group_sr_payroll_accountant_export,base.group_system"/>
+
+    <menuitem
+        id="menu_sr_company_year_overview"
+        name="Bedrijfs Jaaroverzicht PDF"
+        parent="menu_sr_payroll_root"
+        action="action_sr_company_year_wizard"
+        sequence="40"
+        groups="hr_payroll.group_hr_payroll_user,hr_payroll.group_hr_payroll_manager,l10n_sr_hr_payroll.group_sr_payroll_accountant_export,base.group_system"/>
 
 </odoo>
