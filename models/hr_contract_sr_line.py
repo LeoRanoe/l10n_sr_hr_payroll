@@ -21,16 +21,7 @@ class HrContractSrLine(models.Model):
     _description = 'Suriname Vaste Loon Regel'
     _order = 'sr_categorie, sequence, id'
 
-    def init(self):
-        self.env.cr.execute(
-            """
-            UPDATE hr_contract_sr_line AS line
-               SET sr_categorie = line_type.sr_categorie
-              FROM hr_contract_sr_line_type AS line_type
-             WHERE line.type_id = line_type.id
-               AND COALESCE(line.sr_categorie, '') != COALESCE(line_type.sr_categorie, '')
-            """
-        )
+
 
     contract_id = fields.Many2one(
         'hr.contract',

@@ -26,7 +26,7 @@
 
                     <div class="alert alert-info d-flex align-items-center mb-3" role="alert">
                         <div>
-                            <strong>&#9679; Artikel 14 WLB — Actief</strong>
+                            <strong><i class="fa fa-info-circle"/> Artikel 14 WLB — Actief</strong>
                             <span class="text-muted ms-2">
                                 Contractdata uit deze tab stroomt door naar werkboekingen, loonstroken en het rekenvoorbeeld.
                             </span>
@@ -147,8 +147,8 @@
 
                         <page string="Controle &amp; Voorbeeld" name="sr_controle_preview_tab">
                             <group string="Eenmalige &amp; Variabele Betalingen (via Loonstrook)" name="sr_payslip_info">
-                                <div colspan="2" class="alert alert-success small" role="status">
-                                    <strong>&#9432; Hoe eigen loon codes aanmaken?</strong><br/>
+                                <div colspan="2" class="alert alert-info small" role="status">
+                                    <strong><i class="fa fa-lightbulb"/> Hoe eigen loon codes aanmaken?</strong><br/>
                                     Bedragen die niet elke periode hetzelfde zijn, zoals vakantietoelage,
                                     bonus of gratificatie, beheer je via <strong>Loonstrook inputs</strong>.
                                     <strong>Overwerk</strong> komt normaal automatisch uit <strong>Werkboekingen</strong>
@@ -181,7 +181,7 @@
 
                             <group string="Rekenvoorbeeld — Geschatte Loonstrook per Periode" name="sr_rekenvoorbeeld">
                                 <div colspan="2" class="alert alert-warning small mb-2" role="status">
-                                    &#9432;&#160;<em>Schatting op basis van vaste contractwaarden. Eenmalige loonstrookinvoer zoals overwerk, vakantie of bonus is niet inbegrepen. Definitieve bedragen staan op de loonstrook.</em>
+                                    <i class="fa fa-exclamation-triangle"/>&#160;<em>Schatting op basis van vaste contractwaarden. Eenmalige loonstrookinvoer zoals overwerk, vakantie of bonus is niet inbegrepen. Definitieve bedragen staan op de loonstrook.</em>
                                 </div>
                                 <group string="Bruto &amp; Belastbaar">
                                     <field name="sr_preview_bruto" readonly="1" widget="monetary" string="Bruto Loon (incl. vaste toelagen)"/>
@@ -190,7 +190,7 @@
                                 <group string="Geschatte Inhoudingen &amp; Netto">
                                     <field name="sr_preview_lb_periode" readonly="1" widget="monetary" string="Loonbelasting per Periode (Art. 14)"/>
                                     <field name="sr_preview_aov_periode" readonly="1" widget="monetary" string="AOV per Periode (4%)"/>
-                                    <field name="sr_preview_netto" readonly="1" widget="monetary" string="Geschat Nettoloon"/>
+                                    <field name="sr_preview_netto" readonly="1" widget="monetary" string="Geschat Nettoloon" class="fw-bold text-success"/>
                                 </group>
                             </group>
 

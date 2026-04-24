@@ -970,7 +970,7 @@
                         <div class="sr-section__body">
                             <div class="sr-grid sr-grid--2">
                                 <article class="sr-info-card">
-                                    <div class="sr-icon"><i class="fa fa-check-square-o"/></div>
+                                    <div class="sr-icon"><i class="fa fa-check-square"/></div>
                                     <h3>Controleer eerst dit</h3>
                                     <ul class="sr-checklist">
                                         <li>De werknemer heeft een actief contract in status <strong>Running</strong>.</li>
@@ -1061,7 +1061,7 @@
                         <div class="sr-section__body">
                             <div class="sr-grid sr-grid--2">
                                 <article class="sr-info-card">
-                                    <div class="sr-icon"><i class="fa fa-id-card-o"/></div>
+                                    <div class="sr-icon"><i class="fa fa-id-card"/></div>
                                     <h3>Verplichte contractchecks</h3>
                                     <ul class="sr-checklist">
                                         <li><strong>Salary Structure Type</strong> = <strong>Suriname Salaris Structuur</strong>.</li>
@@ -1249,7 +1249,7 @@
 
                             <div class="sr-grid sr-grid--2" style="margin-top: 18px;">
                                 <article class="sr-info-card">
-                                    <div class="sr-icon"><i class="fa fa-lightbulb-o"/></div>
+                                    <div class="sr-icon"><i class="fa fa-lightbulb"/></div>
                                     <h3>Snelle keuzehulp</h3>
                                     <ul class="sr-checklist">
                                         <li>Structurele toelage of vergoeding: meestal <strong>Belastbaar</strong> of <strong>Vrijgesteld</strong>.</li>
@@ -1371,7 +1371,7 @@
 
                             <div class="sr-grid sr-grid--2" style="margin-top: 18px;">
                                 <article class="sr-info-card">
-                                    <div class="sr-icon"><i class="fa fa-calendar-check-o"/></div>
+                                    <div class="sr-icon"><i class="fa fa-calendar-check"/></div>
                                     <h3>Specifiek voor FN-contracten</h3>
                                     <ul class="sr-checklist">
                                         <li>Gebruik uitsluitend de 26 ondersteunde FN-perioden voor 2026.</li>
@@ -1489,7 +1489,7 @@
                         <div class="sr-section__body">
                             <div class="sr-grid sr-grid--2">
                                 <article class="sr-info-card">
-                                    <div class="sr-icon"><i class="fa fa-clock-o"/></div>
+                                    <div class="sr-icon"><i class="fa fa-clock"/></div>
                                     <h3>Overwerk (Art. 17c)</h3>
                                     <ul class="sr-checklist">
                                         <li>Wordt apart belast en niet via de gewone Art. 14 ladder.</li>

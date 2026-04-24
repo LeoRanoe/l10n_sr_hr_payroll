@@ -25,7 +25,7 @@
                 <field name="gross_wage" string="Bruto" widget="monetary" options="{'currency_field': 'currency_id'}" optional="show"/>
                 <field name="net_wage" string="Netto" widget="monetary" options="{'currency_field': 'currency_id'}" decoration-bf="1"/>
                 <button name="action_preview_sr_payslip" type="object" string="HTML" icon="fa-eye"/>
-                <button name="action_print_sr_payslip" type="object" string="PDF" icon="fa-file-pdf-o"/>
+                <button name="action_print_sr_payslip" type="object" string="PDF" icon="fa-file-pdf"/>
                 <field name="state" widget="badge"
                     decoration-info="state == 'draft'"
                     decoration-warning="state == 'verify'"
