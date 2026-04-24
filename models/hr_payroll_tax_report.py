@@ -297,3 +297,60 @@ class HrPayrollTaxReport(models.Model):
                 self.env.cr.execute(f'DROP VIEW IF EXISTS {self._table} CASCADE')
         tools.drop_view_if_exists(self.env.cr, self._table)
         self.env.cr.execute("""CREATE OR REPLACE VIEW %s AS (%s)""" % (self._table, self._query()))
+
+    # ── Fiscaal Overzicht lijst-PDF ───────────────────────────────────────────
+
+    def get_pdf_overview_data(self):
+        """Return grouped data dict for the Fiscaal Overzicht list PDF.
+
+        Called from the QWeb template with ``docs.get_pdf_overview_data()``.
+        ``docs`` is the full recordset selected in the list view.
+        """
+        _AMOUNT_FIELDS = [
+            'amount_bruto_srd', 'amount_bijz_bruto_srd',
+            'amount_lb_art14_srd', 'amount_lb_bijz_srd',
+            'amount_lb_17a_srd', 'amount_lb_overwerk_srd', 'amount_lb_srd',
+            'amount_aov_srd',
+            'amount_heffingskorting_srd', 'amount_pensioen_srd',
+            'amount_netto_srd',
+        ]
+
+        dept_map = {}
+        for rec in self:
+            dept_id = rec.department_id.id or 0
+            dept_name = rec.department_name or _('Geen Afdeling')
+            if dept_id not in dept_map:
+                dept_map[dept_id] = {
+                    'dept_name': dept_name,
+                    'employees': [],
+                    'totals': {f: 0.0 for f in _AMOUNT_FIELDS},
+                }
+            emp_row = {'employee_name': rec.employee_name or '-'}
+            for f in _AMOUNT_FIELDS:
+                v = getattr(rec, f, 0.0) or 0.0
+                emp_row[f] = v
+                dept_map[dept_id]['totals'][f] += v
+            dept_map[dept_id]['employees'].append(emp_row)
+
+        dept_groups = sorted(dept_map.values(), key=lambda d: d['dept_name'])
+        grand_totals = {f: sum(d['totals'][f] for d in dept_groups) for f in _AMOUNT_FIELDS}
+
+        # Date range from the selection
+        dates = self.mapped('date_from')
+        dates_to = self.mapped('date_to')
+        date_from = min(dates) if dates else False
+        date_to = max(dates_to) if dates_to else False
+
+        return {
+            'dept_groups': dept_groups,
+            'grand_totals': grand_totals,
+            'employee_count': len(set(self.mapped('employee_id').ids)),
+            'date_from': date_from,
+            'date_to': date_to,
+            'generated_on': fields.Date.context_today(self),
+        }
+
+    def action_print_pdf_overview(self):
+        return self.env.ref(
+            'l10n_sr_hr_payroll.action_report_sr_fiscal_overview_pdf'
+        ).report_action(self, config=False)

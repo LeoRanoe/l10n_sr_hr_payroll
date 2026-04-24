@@ -24,7 +24,13 @@
                         string="PDF Exporteren"
                         type="object"
                         class="btn-primary"
-                        icon="fa-file-pdf-o"/>
+                        icon="fa-file-pdf"/>
+                    <button
+                        name="action_preview_html"
+                        string="Voorbeeld (HTML)"
+                        type="object"
+                        class="btn-secondary"
+                        icon="fa-eye"/>
                     <button
                         string="Annuleren"
                         class="btn-secondary"

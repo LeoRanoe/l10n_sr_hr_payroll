@@ -66,6 +66,7 @@ Berekeningen:
         'reports/report_annual_statement_sr.xml',
         'reports/report_sr_company_period_overview.xml',
         'reports/report_sr_company_year_overview.xml',
+        'reports/report_sr_fiscal_overview_pdf.xml',
     ],
     'demo': [],
     'license': 'LGPL-3',

@@ -190,14 +190,6 @@
         groups="hr_payroll.group_hr_payroll_user,hr_payroll.group_hr_payroll_manager,l10n_sr_hr_payroll.group_sr_payroll_accountant_export,base.group_system"/>
 
     <menuitem
-        id="menu_sr_tax_report_accounting"
-        name="Fiscaal Overzicht CSV"
-        parent="menu_sr_payroll_root"
-        action="action_sr_payroll_tax_report_export_wizard"
-        sequence="35"
-        groups="hr_payroll.group_hr_payroll_user,hr_payroll.group_hr_payroll_manager,l10n_sr_hr_payroll.group_sr_payroll_accountant_export,base.group_system"/>
-
-    <menuitem
         id="menu_sr_company_year_overview"
         name="Bedrijfs Jaaroverzicht PDF"
         parent="menu_sr_payroll_root"

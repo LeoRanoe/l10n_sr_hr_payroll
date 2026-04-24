@@ -152,3 +152,12 @@ class SrPayrollCompanyYearWizard(models.TransientModel):
         return self.env.ref(
             'l10n_sr_hr_payroll.action_report_sr_company_year_overview'
         ).report_action(self, config=False)
+
+    def action_preview_html(self):
+        """Toon het Bedrijfs Jaaroverzicht als HTML-voorbeeld in de browser."""
+        self.ensure_one()
+        action = self.env.ref(
+            'l10n_sr_hr_payroll.action_report_sr_company_year_overview'
+        ).report_action(self, config=False)
+        action['report_type'] = 'qweb-html'
+        return action
