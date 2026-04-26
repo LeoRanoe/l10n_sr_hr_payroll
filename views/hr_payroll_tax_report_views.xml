@@ -12,6 +12,14 @@
         <field name="arch" type="xml">
             <list string="SR Fiscaal Belastingoverzicht" create="false" edit="false" delete="false"
                   default_order="date_from desc,department_name,employee_name">
+                <header>
+                    <button name="action_print_pdf_overview"
+                            string="Exporteer PDF Overzicht"
+                            type="object"
+                            class="btn-primary"
+                            icon="fa-file-pdf-o"
+                            help="Exporteer geselecteerde rijen als gegroepeerd PDF-overzicht. Selecteer eerst de gewenste periodes/rijen."/>
+                </header>
                 <field name="date_from" optional="show"/>
                 <field name="date_to" optional="hide"/>
                 <field name="department_name" optional="show"/>

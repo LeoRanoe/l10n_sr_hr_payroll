@@ -11,8 +11,8 @@
         <field name="default" eval="False"/>
         <field name="format">A4</field>
         <field name="orientation">Landscape</field>
-        <field name="margin_top">12</field>
-        <field name="margin_bottom">12</field>
+        <field name="margin_top">28</field>
+        <field name="margin_bottom">14</field>
         <field name="margin_left">8</field>
         <field name="margin_right">8</field>
         <field name="header_line" eval="False"/>
@@ -58,7 +58,7 @@
 
                         <!-- ── Afdeling-tabellen ──────────────────────────── -->
                         <t t-foreach="rd['dept_groups']" t-as="dept">
-                            <table style="width: 100%; border-collapse: collapse; margin-bottom: 6px; font-size: 7.5pt;">
+                            <table style="width: 100%; border-collapse: collapse; margin-bottom: 6px; font-size: 7.5pt; page-break-inside: auto;">
                                 <!-- Afdeling-header -->
                                 <tr style="background-color: #2c5f8a; color: white;">
                                     <td colspan="12" style="padding: 4px 6px; font-weight: bold; font-size: 8pt;">
@@ -66,7 +66,8 @@
                                         &#160;(<t t-esc="len(dept['employees'])"/> werknemers)
                                     </td>
                                 </tr>
-                                <!-- Kolomkoppen -->
+                                <!-- Kolomkoppen (herhalen op elke pagina) -->
+                                <thead style="display: table-header-group;">
                                 <tr style="background-color: #dce8f5; font-weight: bold; text-align: right;">
                                     <td style="text-align: left; width: 20%; border: 1px solid #aaa; padding: 3px 4px;">Werknemer</td>
                                     <td style="width: 8%; border: 1px solid #aaa; padding: 3px 4px;">Bruto (SRD)</td>
@@ -81,7 +82,9 @@
                                     <td style="width: 6%; border: 1px solid #aaa; padding: 3px 4px;">Pensioen</td>
                                     <td style="width: 8%; border: 1px solid #aaa; padding: 3px 4px;">Netto (SRD)</td>
                                 </tr>
+                                </thead>
                                 <!-- Werknemersrijen -->
+                                <tbody>
                                 <t t-foreach="dept['employees']" t-as="emp">
                                     <tr style="text-align: right;" t-att-style="'background-color: %s;' % ('#f9f9f9' if emp_index % 2 == 0 else '#ffffff')">
                                         <td style="text-align: left; border: 1px solid #ddd; padding: 2px 4px;">
@@ -100,7 +103,9 @@
                                         <td style="border: 1px solid #ddd; padding: 2px 4px; font-weight: bold;"><t t-esc="'{:,.2f}'.format(emp.get('amount_netto_srd', 0.0))"/></td>
                                     </tr>
                                 </t>
+                                </tbody>
                                 <!-- Afdelingssubtotaal -->
+                                <tfoot>
                                 <tr style="background-color: #b8d4ee; font-weight: bold; text-align: right;">
                                     <td style="text-align: left; border: 1px solid #aaa; padding: 3px 4px;">
                                         Subtotaal <t t-esc="dept['dept_name']"/>
@@ -117,6 +122,7 @@
                                     <td style="border: 1px solid #aaa; padding: 3px 4px;"><t t-esc="'{:,.2f}'.format(dept['totals'].get('amount_pensioen_srd', 0.0))"/></td>
                                     <td style="border: 1px solid #aaa; padding: 3px 4px;"><t t-esc="'{:,.2f}'.format(dept['totals'].get('amount_netto_srd', 0.0))"/></td>
                                 </tr>
+                                </tfoot>
                             </table>
                         </t>
 
