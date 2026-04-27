@@ -322,10 +322,16 @@ class HrPayslip(models.Model):
 
     def _rule_parameter(self, code):
         self.ensure_one()
+        try:
+            value = super()._rule_parameter(code)
+        except (UserError, KeyError, TypeError, ValueError):
+            value = None
+        if not calc.is_missing_parameter_value(value):
+            return value
         config_key = calc.get_config_parameter_key(code)
         if config_key:
             value = self.env['ir.config_parameter'].sudo().get_param(config_key)
-            if value not in (None, False, ''):
+            if not calc.is_missing_parameter_value(value):
                 try:
                     return float(value)
                 except (TypeError, ValueError):
