@@ -13,9 +13,17 @@
                     string="PDF Belastingoverzicht"
                     type="object"
                     class="btn-secondary"
-                    icon="fa-file-pdf-o"
+                    icon="fa-file-pdf"
                     invisible="state not in ('close', 'paid') or not sr_has_sr_payslips"
                     help="Exporteer per loonrun een belastingoverzicht in PDF voor alle afgeronde SR-loonstroken."/>
+                <button
+                    name="action_print_sr_company_period_overview"
+                    string="PDF Bedrijfsoverzicht Periode"
+                    type="object"
+                    class="btn-secondary"
+                    icon="fa-building"
+                    invisible="state not in ('close', 'paid') or not sr_has_sr_payslips"
+                    help="Exporteer het totale bedrijfsbelastingoverzicht van deze loonperiode als PDF, gegroepeerd per afdeling."/>
             </xpath>
         </field>
     </record>

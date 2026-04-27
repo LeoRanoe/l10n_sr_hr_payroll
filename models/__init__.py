@@ -14,3 +14,5 @@ from . import hr_work_entry
 from . import hr_work_entry_type
 from . import hr_work_entry_regen
 from . import sr_public_holiday
+from . import hr_payroll_tax_report
+from . import hr_payroll_indexes

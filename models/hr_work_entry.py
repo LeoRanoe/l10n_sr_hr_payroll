@@ -3,6 +3,7 @@
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError, ValidationError
 from odoo.tools import float_round
+from odoo.tools.float_utils import float_compare, float_is_zero
 
 
 class HrWorkEntry(models.Model):
@@ -116,14 +117,18 @@ class HrWorkEntry(models.Model):
             actual_hours = entry._sr_get_actual_duration_hours()
             planned_hours = entry._sr_get_planned_hours()
             extra_hours = entry._sr_get_extra_hours(planned_hours=planned_hours, actual_hours=actual_hours)
-            has_deviation = entry.sr_manual_override or abs(actual_hours - planned_hours) > 0.01 or extra_hours > 0.01
+            has_deviation = (
+                entry.sr_manual_override
+                or float_is_zero(actual_hours - planned_hours, precision_digits=2) is False
+                or float_is_zero(extra_hours, precision_digits=2) is False
+            )
 
             if entry.sr_manual_override:
                 treatment = 'manual'
                 note = _('Handmatige SR-correctie: automatische classificatie is geblokkeerd.')
-            elif extra_hours <= 0.01:
+            elif float_is_zero(extra_hours, precision_digits=2):
                 treatment = 'none'
-                if planned_hours > actual_hours + 0.01:
+                if float_compare(planned_hours, actual_hours, precision_digits=2) > 0:
                     note = _('Minder uren dan gepland rooster.')
                 elif has_deviation:
                     note = _('Afwijking gedetecteerd, maar zonder uitbetaalbaar overwerk.')
@@ -154,7 +159,7 @@ class HrWorkEntry(models.Model):
             if entry.date_start and entry.date_stop and entry.date_stop <= entry.date_start:
                 raise ValidationError('Een werkboeking moet een eindtijd hebben die later ligt dan de starttijd.')
             actual_hours = entry._sr_get_actual_duration_hours()
-            if actual_hours > self.SR_MAX_SINGLE_SHIFT_HOURS + 0.01:
+            if float_compare(actual_hours, self.SR_MAX_SINGLE_SHIFT_HOURS, precision_digits=2) > 0:
                 raise ValidationError(
                     'Een SR werkboeking mag niet meer dan 24 uur aaneengesloten bevatten. '
                     'Controleer de prikklok-import of splits de registratie op per werkdag.'
@@ -203,8 +208,14 @@ class HrWorkEntry(models.Model):
     @api.model_create_multi
     def create(self, vals_list):
         vals_list = [self._sr_prepare_manual_override_vals(vals) for vals in vals_list]
+        vals_list = [self._sr_prepare_overtime_bucket_vals(vals) for vals in vals_list]
         records = super().create(vals_list)
-        records._sr_classify_overtime()
+        reclassify_records = records.filtered(
+            lambda entry: not entry.sr_manual_override
+            and float_is_zero(entry.sr_overtime_150, precision_digits=2)
+            and float_is_zero(entry.sr_overtime_200, precision_digits=2)
+        )
+        reclassify_records._sr_classify_overtime()
         return records
 
     def write(self, vals):
@@ -225,6 +236,69 @@ class HrWorkEntry(models.Model):
         vals = dict(vals)
         if {'sr_overtime_150', 'sr_overtime_200'} & vals.keys() and 'sr_manual_override' not in vals:
             vals['sr_manual_override'] = True
+        return vals
+
+    def _sr_prepare_overtime_bucket_vals(self, vals):
+        vals = dict(vals)
+        if vals.get('sr_manual_override'):
+            return vals
+        if {'sr_overtime_150', 'sr_overtime_200'} & vals.keys():
+            return vals
+
+        contract_id = vals.get('contract_id')
+        work_entry_type_id = vals.get('work_entry_type_id')
+        date_start = fields.Datetime.to_datetime(vals.get('date_start'))
+        date_stop = fields.Datetime.to_datetime(vals.get('date_stop'))
+        duration = vals.get('duration')
+        if not contract_id or not work_entry_type_id or not date_start or not date_stop:
+            return vals
+
+        contract = self.env['hr.contract'].browse(contract_id)
+        work_entry_type = self.env['hr.work.entry.type'].browse(work_entry_type_id)
+        if not contract.exists() or not work_entry_type.exists():
+            return vals
+
+        actual_hours = 0.0
+        if date_start and date_stop:
+            actual_hours = max((date_stop - date_start).total_seconds() / 3600.0, 0.0)
+        actual_hours = max(duration or 0.0, actual_hours)
+        if float_is_zero(actual_hours, precision_digits=2) or not contract.sr_has_overtime_right:
+            vals.setdefault('sr_overtime_150', 0.0)
+            vals.setdefault('sr_overtime_200', 0.0)
+            return vals
+
+        if work_entry_type.sr_is_overtime:
+            overtime_hours = actual_hours
+        else:
+            calendar = contract.resource_calendar_id
+            planned_hours = 0.0
+            if calendar:
+                planned_hours = max(calendar.get_work_hours_count(date_start, date_stop, compute_leaves=False), 0.0)
+            else:
+                weekday = date_start.weekday()
+                planned_hours = min(actual_hours, 8.0 if weekday < 6 else 0.0)
+            overtime_hours = max(actual_hours - planned_hours, 0.0)
+
+        if float_is_zero(overtime_hours, precision_digits=2):
+            vals.setdefault('sr_overtime_150', 0.0)
+            vals.setdefault('sr_overtime_200', 0.0)
+            return vals
+
+        holiday_dates = set()
+        entry_date = date_start.date()
+        holidays = self.env['sr.public.holiday'].search([
+            ('date', '=', entry_date),
+            ('active', '=', True),
+        ])
+        if holidays:
+            holiday_dates = {holiday.date for holiday in holidays}
+
+        if entry_date.weekday() == 6 or entry_date in holiday_dates:
+            vals.setdefault('sr_overtime_200', float_round(overtime_hours, precision_digits=2))
+            vals.setdefault('sr_overtime_150', 0.0)
+        else:
+            vals.setdefault('sr_overtime_150', float_round(overtime_hours, precision_digits=2))
+            vals.setdefault('sr_overtime_200', 0.0)
         return vals
 
     def _sr_get_holiday_dates(self):
@@ -352,26 +426,34 @@ class HrWorkEntry(models.Model):
             extra_hours = entry._sr_get_extra_hours(actual_hours=actual_hours)
             overtime_hours = 0.0
 
-            if actual_hours > 0 and entry.contract_id.sr_has_overtime_right:
+            if float_compare(actual_hours, 0.0, precision_digits=2) > 0 and entry.contract_id.sr_has_overtime_right:
                 if entry.work_entry_type_id.sr_is_overtime:
                     overtime_hours = actual_hours
                 else:
                     overtime_hours = extra_hours
 
-            if overtime_hours <= 0.01:
-                entry.with_context(sr_skip_overtime_reclassify=True).write({
-                    'sr_overtime_150': 0.0,
-                    'sr_overtime_200': 0.0,
-                })
+            target_vals = {
+                'sr_overtime_150': 0.0,
+                'sr_overtime_200': 0.0,
+            }
+
+            if float_is_zero(overtime_hours, precision_digits=2):
+                if (
+                    float_is_zero(entry.sr_overtime_150, precision_digits=2)
+                    and float_is_zero(entry.sr_overtime_200, precision_digits=2)
+                ):
+                    continue
+                entry.with_context(sr_skip_overtime_reclassify=True).write(target_vals)
                 continue
 
             if entry._sr_is_200_percent_day(holiday_dates):
-                entry.with_context(sr_skip_overtime_reclassify=True).write({
-                    'sr_overtime_200': overtime_hours,
-                    'sr_overtime_150': 0.0,
-                })
+                target_vals['sr_overtime_200'] = float_round(overtime_hours, precision_digits=2)
             else:
-                entry.with_context(sr_skip_overtime_reclassify=True).write({
-                    'sr_overtime_150': overtime_hours,
-                    'sr_overtime_200': 0.0,
-                })
+                target_vals['sr_overtime_150'] = float_round(overtime_hours, precision_digits=2)
+
+            if (
+                float_compare(entry.sr_overtime_150, target_vals['sr_overtime_150'], precision_digits=2) == 0
+                and float_compare(entry.sr_overtime_200, target_vals['sr_overtime_200'], precision_digits=2) == 0
+            ):
+                continue
+            entry.with_context(sr_skip_overtime_reclassify=True).write(target_vals)

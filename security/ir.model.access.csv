@@ -6,3 +6,10 @@ l10n_sr_contract_sr_line_type_manager,hr.contract.sr.line.type manager,l10n_sr_h
 l10n_sr_public_holiday_user,sr.public.holiday user,l10n_sr_hr_payroll.model_sr_public_holiday,hr_payroll.group_hr_payroll_user,1,0,0,0
 l10n_sr_public_holiday_manager,sr.public.holiday manager,l10n_sr_hr_payroll.model_sr_public_holiday,hr_payroll.group_hr_payroll_manager,1,1,1,1
 l10n_sr_annual_statement_wizard_user,sr.payroll.annual.statement.wizard user,l10n_sr_hr_payroll.model_sr_payroll_annual_statement_wizard,hr_payroll.group_hr_payroll_user,1,1,1,0
+l10n_sr_tax_report_user,hr.payroll.tax.report user,l10n_sr_hr_payroll.model_hr_payroll_tax_report,hr_payroll.group_hr_payroll_user,1,0,0,0
+l10n_sr_tax_report_manager,hr.payroll.tax.report manager,l10n_sr_hr_payroll.model_hr_payroll_tax_report,hr_payroll.group_hr_payroll_manager,1,0,0,0
+l10n_sr_tax_report_accountant,hr.payroll.tax.report accountant,l10n_sr_hr_payroll.model_hr_payroll_tax_report,l10n_sr_hr_payroll.group_sr_payroll_accountant_export,1,0,0,0
+l10n_sr_tax_report_admin,hr.payroll.tax.report admin,l10n_sr_hr_payroll.model_hr_payroll_tax_report,base.group_system,1,0,0,0
+l10n_sr_tax_report_export_wizard_user,sr.payroll.tax.report.export.wizard user,l10n_sr_hr_payroll.model_sr_payroll_tax_report_export_wizard,hr_payroll.group_hr_payroll_user,1,1,1,0
+l10n_sr_company_year_wizard_user,sr.payroll.company.year.wizard user,l10n_sr_hr_payroll.model_sr_payroll_company_year_wizard,hr_payroll.group_hr_payroll_user,1,1,1,0
+l10n_sr_company_year_wizard_manager,sr.payroll.company.year.wizard manager,l10n_sr_hr_payroll.model_sr_payroll_company_year_wizard,hr_payroll.group_hr_payroll_manager,1,1,1,1

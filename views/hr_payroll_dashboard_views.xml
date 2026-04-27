@@ -24,6 +24,8 @@
                 <field name="basic_wage" string="Basisloon" widget="monetary" options="{'currency_field': 'currency_id'}" optional="show"/>
                 <field name="gross_wage" string="Bruto" widget="monetary" options="{'currency_field': 'currency_id'}" optional="show"/>
                 <field name="net_wage" string="Netto" widget="monetary" options="{'currency_field': 'currency_id'}" decoration-bf="1"/>
+                <button name="action_preview_sr_payslip" type="object" string="HTML" icon="fa-eye"/>
+                <button name="action_print_sr_payslip" type="object" string="PDF" icon="fa-file-pdf"/>
                 <field name="state" widget="badge"
                     decoration-info="state == 'draft'"
                     decoration-warning="state == 'verify'"
@@ -136,11 +138,11 @@
                 Dit is een <strong>gefilterd overzicht</strong> van alle loonstroken die verwerkt zijn
                 met de structuur <em>Suriname — Normaal Loon (Artikel 14 WLB)</em>.
                 Het zijn <strong>dezelfde loonstroken</strong> als in
-                <em>Payslips &#x2192; All Payslips</em> — alleen vooraf gefilterd op de SR structuur.
+                <em>Loonstroken &#x2192; Alle loonstroken</em> — alleen vooraf gefilterd op de SR-structuur.
             </p>
-            <h4>Verschil met Payslips &#x2192; All Payslips?</h4>
+            <h4>Verschil met Loonstroken &#x2192; Alle loonstroken?</h4>
             <ul>
-                <li><strong>All Payslips</strong> toont loonstroken van <em>alle</em> loonstructuren (ook andere landen of andere structuurtypen).</li>
+                <li><strong>Alle loonstroken</strong> toont loonstroken van <em>alle</em> loonstructuren, ook andere landen of structuurtypen.</li>
                 <li><strong>Loonstroken SR</strong> toont alleen de Surinaamse Art. 14 loonstroken — overzichtelijker als je uitsluitend met de SR module werkt.</li>
             </ul>
             <p>
@@ -156,7 +158,7 @@
         name="Suriname"
         parent="hr_payroll.menu_hr_payroll_payslips"
         sequence="90"
-        groups="hr_payroll.group_hr_payroll_user"/>
+        groups="hr_payroll.group_hr_payroll_user,l10n_sr_hr_payroll.group_sr_payroll_accountant_export,base.group_system"/>
 
     <menuitem
         id="menu_sr_payslip_dashboard"
@@ -167,7 +169,7 @@
         groups="hr_payroll.group_hr_payroll_user"/>
 
     <!-- ══════════════════════════════════════════════════════════════════
-         Payslip formulier uitbreiding: voeg Print & Preview knoppen toe
+         Loonstrookformulier uitbreiding: voeg afdruk- en voorbeeldknoppen toe
          Zichtbaar als stat-knoppen rechts bovenaan het payslip-formulier.
          Alleen getoond voor loonstroken met de SR-loonstructuur.
     ══════════════════════════════════════════════════════════════════ -->
@@ -183,7 +185,7 @@
                     readonly="state in ['cancel', 'done', 'paid']"
                     help="Kies per SR-loonstrook welke layout werknemers of payrollgebruikers te zien krijgen."/>
             </xpath>
-            <!-- Voeg Print + Preview knoppen toe aan de bestaande button_box -->
+            <!-- Voeg afdruk- en voorbeeldknoppen toe aan de bestaande button_box -->
             <xpath expr="//div[@name='button_box']" position="inside">
                 <field name="sr_is_sr_struct" invisible="1"/>
                 <button
@@ -196,7 +198,7 @@
                     help="Druk de Surinaamse loonstrook af als PDF (Artikel 14 WLB)"/>
                 <button
                     name="action_preview_sr_payslip"
-                    string="HTML Preview"
+                    string="HTML-weergave"
                     type="object"
                     class="oe_stat_button"
                     icon="fa-eye"
@@ -232,9 +234,22 @@
                         </group>
                     </group>
 
-                    <separator string="Gewerkte Dagen Snapshot"/>
+                          <group string="Valutasnapshot"
+                           invisible="not sr_frozen_contract_currency_id or sr_frozen_contract_currency_id.name == 'SRD'">
+                        <group>
+                            <field name="sr_frozen_contract_currency_id" readonly="1"
+                                   options="{'no_open': True}"/>
+                            <field name="sr_exchange_rate" readonly="1" digits="[16, 6]"/>
+                            <field name="sr_netto_bronvaluta" readonly="1"/>
+                        </group>
+                        <group>
+                            <field name="sr_frozen_netto_display_mode" readonly="1"/>
+                        </group>
+                    </group>
+
+                    <separator string="Momentopname Gewerkte Dagen"/>
                     <field name="worked_days_line_ids" readonly="1" nolabel="1">
-                        <list string="Worked Days Snapshot" create="0" delete="0">
+                        <list string="Momentopname Gewerkte Dagen" create="0" delete="0">
                             <field name="work_entry_type_id" readonly="1"/>
                             <field name="name" readonly="1"/>
                             <field name="number_of_days" readonly="1" sum="Totaal Dagen"/>

@@ -12,7 +12,7 @@
                     string="Jaaropgave PDF"
                     type="object"
                     class="oe_stat_button"
-                    icon="fa-file-text-o"
+                    icon="fa-file-lines"
                     invisible="not id"
                     groups="hr_payroll.group_hr_payroll_user"
                     help="Genereer een jaarlijkse SR-loonopgave voor deze werknemer."/>
