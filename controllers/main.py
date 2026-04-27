@@ -5,6 +5,7 @@ from datetime import date
 from decimal import Decimal
 
 from odoo import http
+from odoo.exceptions import AccessError
 from odoo.http import request
 
 from ..models import sr_artikel14_calculator as calc
@@ -68,8 +69,18 @@ class SrPayrollHelpController(http.Controller):
     @http.route('/sr_payroll/help', type='http', auth='user', csrf=False)
     def sr_help_page(self, **kwargs):
         """Render de help & documentatie pagina."""
+        user = request.env.user
+        allowed_groups = (
+            'hr_payroll.group_hr_payroll_user',
+            'hr_payroll.group_hr_payroll_manager',
+            'l10n_sr_hr_payroll.group_sr_payroll_accountant_export',
+            'base.group_system',
+        )
+        if not any(user.has_group(group) for group in allowed_groups):
+            raise AccessError('Je hebt geen toegang tot deze SR payroll help-pagina.')
+
         # Haal actuele parameterwaarden op voor weergave
-        env = request.env
+        env = request.env.sudo()
         today = date.today()
 
         params = {}
@@ -95,7 +106,7 @@ class SrPayrollHelpController(http.Controller):
             ('SR_KINDBIJ_MAX_KIND_MAAND', 'Kinderbijslag max/kind'),
             ('SR_KINDBIJ_MAX_MAAND', 'Kinderbijslag max/maand'),
         ]
-        RuleParam = env['hr.rule.parameter'].sudo()
+        RuleParam = env['hr.rule.parameter']
         extra_lb_codes = sorted(
             {
                 param.code for param in RuleParam.search([('code', 'like', 'SR_%')])
