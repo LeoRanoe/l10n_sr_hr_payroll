@@ -60,6 +60,97 @@ Zonder actieve parameterwaarde beïnvloeden die placeholders de huidige berekeni
 
 ## Installatie en automatisering
 
+### Test-VM setup vanaf `origin/staging`
+
+Voor een test-VM is de veiligste flow:
+
+1. zorg dat `git` beschikbaar is op de VM
+2. gebruik een aparte testdatabase
+3. laat de modulecode altijd syncen vanaf alleen `origin/staging`
+4. draai daarna een Odoo `install` of `update` headless met `--stop-after-init`
+
+Voor Windows is daar nu een wrapper voor:
+
+`scripts/sync_from_staging.ps1`
+
+Het script doet dit in vaste volgorde:
+
+- clone of update van de repo vanaf alleen `origin/staging`
+- checkout naar lokale branch `staging`
+- fast-forward pull vanaf `origin/staging`
+- optioneel afdwingen van een schone worktree met `-ForceClean`
+- Odoo module `install` of `update` via het bestaande `scripts/install_module.py`
+- automatische `--data-dir` onder `%TEMP%`, zodat tijdelijke test-runs niet vastlopen op schrijfrechten onder `Program Files`
+- optionele Windows Scheduled Task die periodiek op nieuwe commits controleert en alleen dan een Odoo update uitvoert
+
+#### Eenmalige installatie met alleen plakken in PowerShell
+
+Als deze bestanden al naar `origin/staging` zijn gepusht, kun je op een schone test-VM dit plakken in een verhoogde PowerShell:
+
+```powershell
+$scriptUrl = "https://raw.githubusercontent.com/LeoRanoe/l10n_sr_hr_payroll/staging/scripts/sync_from_staging.ps1"
+$localScript = Join-Path $env:TEMP "sync_from_staging.ps1"
+Invoke-WebRequest -UseBasicParsing -Uri $scriptUrl -OutFile $localScript
+
+& powershell.exe -NoProfile -ExecutionPolicy Bypass -File $localScript `
+	-AddonsRoot "C:\Program Files\Odoo 18.0e.20260407\sessions\addons\18.0" `
+	-OdooRoot "C:\Program Files\Odoo 18.0e.20260407" `
+	-Database "sr_payroll_test" `
+	-Action install `
+	-RegisterScheduledTask `
+	-CheckEveryMinutes 15
+```
+
+Wat dit precies doet:
+
+- downloadt alleen de bootstrap-wrapper
+- cloned de module naar de addons-map als die nog ontbreekt
+- forceert lokale branch `staging` met remote `origin/staging`
+- voert een headless Odoo installatie uit op database `sr_payroll_test`
+- registreert een Scheduled Task die elke 15 minuten nieuwe commits op `origin/staging` zoekt
+
+#### Handmatige update-run vanaf de repo op de VM
+
+Als de repo al op de VM staat:
+
+```powershell
+Set-Location "C:\Program Files\Odoo 18.0e.20260407\sessions\addons\18.0\l10n_sr_hr_payroll"
+.\scripts\sync_from_staging.ps1 `
+	-Database "sr_payroll_test" `
+	-Action update
+```
+
+Die update-run doet alleen een Odoo `-u l10n_sr_hr_payroll` als er echt nieuwe commits op `origin/staging` zijn binnengekomen.
+
+#### Force-clean voor strikt testgebruik
+
+Als je op de VM nooit lokale handmatige wijzigingen bewaart, kun je updates volledig branch-gestuurd maken:
+
+```powershell
+.\scripts\sync_from_staging.ps1 `
+	-Database "sr_payroll_test" `
+	-Action update `
+	-ForceClean
+```
+
+Gebruik `-ForceClean` alleen op een test-VM, want lokale niet-gecommitte wijzigingen in de modulemap worden dan verwijderd.
+
+#### Scheduled Task opnieuw aanmaken of wijzigen
+
+Dit registreert of overschrijft de updater-taak opnieuw:
+
+```powershell
+.\scripts\sync_from_staging.ps1 `
+	-Database "sr_payroll_test" `
+	-Action update `
+	-RegisterScheduledTask `
+	-CheckEveryMinutes 15
+```
+
+De taak draait als `SYSTEM`, dus voer dit uit in een verhoogde PowerShell. Dat is bewust gekozen zodat de taak ook zonder ingelogde gebruiker kan blijven updaten.
+
+De wrapper ondersteunt bewust geen branch-override. Elke run haalt alleen code op uit `origin/staging`.
+
 ### Databasegedrag bij installatie
 
 Ja. Een installatie of update van `l10n_sr_hr_payroll` wijzigt de database.
