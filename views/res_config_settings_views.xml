@@ -106,6 +106,29 @@
                                     Belastingoverzichten en jaaropgaven worden los geëxporteerd vanuit payroll, niet meer via deze medewerkerslayout.
                                 </div>
                             </page>
+                            <page string="Valuta &amp; Wisselkoers">
+                                <group>
+                                    <group string="Dagkoersen (SRD)">
+                                        <field name="sr_exchange_rate_usd"
+                                               string="1 USD ="
+                                               help="Dagkoers USD → SRD. Wordt bevroren op de loonstrook bij berekening."/>
+                                        <field name="sr_exchange_rate_eur"
+                                               string="1 EUR ="
+                                               help="Dagkoers EUR → SRD. Wordt bevroren op de loonstrook bij berekening."/>
+                                    </group>
+                                    <group string="Netto Weergave">
+                                        <field name="sr_netto_display_mode"
+                                               widget="radio"
+                                               string="Netto tonen in"
+                                               help="Bepaalt of het nettoloon uitsluitend in SRD of ook in de contractvaluta wordt getoond."/>
+                                    </group>
+                                </group>
+                                <div class="alert alert-info mt-3 mb-0" role="alert">
+                                    <strong>Let op:</strong> Pas de koersen aan <em>vóór</em> het berekenen van de loonstroken.
+                                    De wisselkoers wordt per loonstrook bevroren op het moment van berekening en wijzigingen
+                                    achteraf hebben geen effect op reeds berekende loonstroken.
+                                </div>
+                            </page>
                             <page string="Technisch / Audit" groups="base.group_system">
                                 <group>
                                     <group string="Beheerde heffingskorting">

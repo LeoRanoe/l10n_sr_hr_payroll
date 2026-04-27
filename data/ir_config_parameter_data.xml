@@ -97,5 +97,17 @@
             <field name="key">sr_payroll.overwerk_factor_200</field>
             <field name="value">2.0</field>
         </record>
+        <record id="sr_payroll_config_exchange_rate_usd" model="ir.config_parameter">
+            <field name="key">sr_payroll.exchange_rate_usd</field>
+            <field name="value">36.5000</field>
+        </record>
+        <record id="sr_payroll_config_exchange_rate_eur" model="ir.config_parameter">
+            <field name="key">sr_payroll.exchange_rate_eur</field>
+            <field name="value">39.0000</field>
+        </record>
+        <record id="sr_payroll_config_netto_display_mode" model="ir.config_parameter">
+            <field name="key">sr_payroll.netto_display_mode</field>
+            <field name="value">srd</field>
+        </record>
     </data>
 </odoo>

@@ -2,20 +2,24 @@
 
 from datetime import date as dt_date, datetime, time, timedelta
 from decimal import Decimal, ROUND_HALF_UP
+import psycopg2
+import threading
 
 from odoo import api, fields, models
 from odoo.exceptions import UserError
 
 from . import sr_artikel14_calculator as calc
 
-# Module-level cache for Art. 14 calculations per compute cycle.
-# Keyed on (payslip_id, gross, aftrek_bv). Cleared before each compute_sheet.
-_sr_calc_cache = {}
+# Thread-local cache for Art. 14 calculations per compute cycle.
+# Keyed on (payslip_id, gross, aftrek_bv) and isolated per request thread.
+_sr_calc_thread_local = threading.local()
 _SR_MONEY_QUANT = Decimal('0.01')
 _SR_HOURLY_RATE_QUANT = Decimal('0.000001')
 _SR_PAYSLIP_LAYOUT_DEFAULT = 'employee_simple'
 _SR_PAYSLIP_LAYOUT_CONFIG_KEY = 'sr_payroll.sr_default_payslip_layout'
 _SR_PAYSLIP_LAYOUT_LEGACY_CONFIG_KEY = 'sr_payroll.default_payslip_layout'
+_SR_DISPLAY_MODE_CONFIG_KEY = 'sr_payroll.netto_display_mode'
+_SR_DISPLAY_MODE_DEFAULT = 'srd'
 _SR_PAYSLIP_LAYOUTS = [
     ('employee_simple', 'Klassiek Debet / Credit'),
     ('compact', 'Compact Netto-overzicht'),
@@ -49,6 +53,18 @@ SR_FN_2026_PERIODS = (
     {'indicator': '202625', 'label': '2026FN25', 'date_from': dt_date(2026, 12, 3), 'date_to': dt_date(2026, 12, 16)},
     {'indicator': '202626', 'label': '2026FN26', 'date_from': dt_date(2026, 12, 17), 'date_to': dt_date(2026, 12, 30)},
 )
+
+
+def _get_sr_calc_cache():
+    cache = getattr(_sr_calc_thread_local, 'sr_calc_cache', None)
+    if cache is None:
+        cache = {}
+        _sr_calc_thread_local.sr_calc_cache = cache
+    return cache
+
+
+def _clear_sr_calc_cache():
+    _get_sr_calc_cache().clear()
 
 
 class HrPayslip(models.Model):
@@ -140,6 +156,58 @@ class HrPayslip(models.Model):
         compute_sudo=True,
     )
 
+    # ── Multi-Currency: bevroren snapshot (kopie bij compute_sheet) ───────
+    sr_frozen_contract_currency_id = fields.Many2one(
+        'res.currency',
+        string='Contract Valuta (Bevroren)',
+        readonly=True,
+        copy=False,
+        help='Contractvaluta bevroren op het moment van loonberekening.',
+    )
+    sr_frozen_exchange_rate = fields.Float(
+        string='Technische Wisselkoerssnapshot',
+        digits=(16, 6),
+        store=True,
+        readonly=True,
+        copy=False,
+        help='Technisch compatibiliteitsveld voor oudere data. Gebruik sr_exchange_rate voor alle actuele payroll-logica.',
+    )
+    sr_exchange_rate = fields.Float(
+        related='sr_frozen_exchange_rate',
+        string='Wisselkoers bij Berekening',
+        digits=(16, 6),
+        store=True,
+        readonly=True,
+        copy=False,
+        help='Persistente alias voor de bevroren wisselkoers op deze loonstrook.',
+    )
+    sr_frozen_netto_display_mode = fields.Selection(
+        selection=[
+            ('srd', 'Altijd in SRD'),
+            ('contract_currency', 'Toon ook in Contractvaluta'),
+        ],
+        string='Netto Weergavemodus (Bevroren)',
+        readonly=True,
+        copy=False,
+        help='Netto weergavemodus bevroren op het moment van loonberekening.',
+    )
+    sr_netto_bronvaluta = fields.Float(
+        string='Netto Loon (Bronvaluta)',
+        digits=(16, 2),
+        store=True,
+        readonly=True,
+        copy=False,
+        help='Nettoloon omgerekend naar de contractvaluta. Gelijk aan Netto SRD als contractvaluta = SRD.',
+    )
+    sr_belastingvrij_periode_srd = fields.Float(
+        string='Belastingvrije Voet / Periode (SRD)',
+        digits=(16, 2),
+        store=True,
+        readonly=True,
+        copy=False,
+        help='Bevroren belastingvrije voet per periode op basis van de actieve parameters tijdens berekening.',
+    )
+
     @api.model
     def _default_sr_payslip_layout(self):
         params = self.env['ir.config_parameter'].sudo()
@@ -206,34 +274,61 @@ class HrPayslip(models.Model):
             slip.sr_netto_totaal_display = _line_total('NET')
 
     def compute_sheet(self):
-        """Clear Art. 14 calculation cache before computing salary rules."""
-        global _sr_calc_cache
-        _sr_calc_cache.clear()
-        sr_struct = self.env.ref('l10n_sr_hr_payroll.sr_payroll_structure', raise_if_not_found=False)
-        locked_slips = self.filtered(
-            lambda slip: sr_struct and slip.struct_id == sr_struct and slip.state in ('done', 'paid')
-        )
-        if locked_slips and not self.env.context.get('sr_allow_confirmed_recompute'):
-            raise UserError(
-                'Bevestigde SR-loonstroken zijn bevroren. Zet de loonstrook eerst terug naar concept '
-                'of gebruik expliciet technische override-context voor herberekening.'
+        """Clear the thread-local Art. 14 cache before computing salary rules."""
+        _clear_sr_calc_cache()
+        try:
+            self._sr_lock_for_update()
+            sr_struct = self.env.ref('l10n_sr_hr_payroll.sr_payroll_structure', raise_if_not_found=False)
+            locked_slips = self.filtered(
+                lambda slip: sr_struct and slip.struct_id == sr_struct and slip.state in ('done', 'paid')
             )
-        for slip in self:
-            slip._sr_validate_contract_period_integrity()
-            slip._sr_validate_fn_period_2026()
-            slip._sr_require_positive_contract_wage()
-            slip._sr_sync_overtime_inputs_from_work_entries()
-            slip._sr_store_work_entry_snapshot()
-        res = super().compute_sheet()
-        _sr_calc_cache.clear()
-        return res
+            if locked_slips and not self.env.context.get('sr_allow_confirmed_recompute'):
+                raise UserError(
+                    'Bevestigde SR-loonstroken zijn bevroren. Zet de loonstrook eerst terug naar concept '
+                    'of gebruik expliciet technische override-context voor herberekening.'
+                )
+            for slip in self:
+                slip._sr_validate_contract_period_integrity()
+                slip._sr_validate_fn_period_2026()
+                slip._sr_require_positive_contract_wage()
+                slip._sr_freeze_currency_snapshot()
+
+            work_entries_by_slip = self._sr_get_period_work_entries_batch()
+            self._sr_sync_overtime_inputs_batch(work_entries_by_slip=work_entries_by_slip)
+            self._sr_store_work_entry_snapshots_batch(work_entries_by_slip=work_entries_by_slip)
+
+            res = super().compute_sheet()
+            for slip in self:
+                slip._sr_store_currency_totals()
+            return res
+        finally:
+            _clear_sr_calc_cache()
 
     def action_payslip_done(self):
+        self._sr_lock_for_update()
         for slip in self:
             slip._sr_validate_contract_period_integrity()
             slip._sr_require_positive_contract_wage()
-            slip._sr_store_work_entry_snapshot()
-        return super().action_payslip_done()
+            slip._sr_freeze_currency_snapshot()
+        self._sr_store_work_entry_snapshots_batch()
+        result = super().action_payslip_done()
+        for slip in self:
+            slip._sr_store_currency_totals()
+        return result
+
+    def write(self, vals):
+        locked_snapshot_fields = {
+            'sr_frozen_contract_currency_id',
+            'sr_frozen_exchange_rate',
+            'sr_frozen_netto_display_mode',
+        }
+        if locked_snapshot_fields.intersection(vals) and not self.env.context.get('sr_allow_locked_currency_update'):
+            locked_slips = self.filtered(lambda slip: slip.state in ('done', 'paid'))
+            if locked_slips:
+                raise UserError(
+                    'De bevroren valuta-snapshot van een bevestigde SR-loonstrook mag niet meer worden gewijzigd.'
+                )
+        return super().write(vals)
 
     def _sr_require_positive_contract_wage(self):
         self.ensure_one()
@@ -267,8 +362,43 @@ class HrPayslip(models.Model):
             ('contract_id', '=', self.contract_id.id),
             ('date_start', '<', period_stop),
             ('date_stop', '>', period_start),
-            ('state', '=', 'validated'),
+            # Odoo can flip already-consumed entries to conflict after the first compute;
+            # keep them in scope so repeated compute_sheet stays idempotent.
+            ('state', 'in', ('validated', 'conflict')),
         ], order='date_start, id')
+
+    def _sr_get_period_work_entries_batch(self):
+        work_entry_model = self.env['hr.work.entry']
+        grouped_entries = {slip.id: work_entry_model for slip in self}
+        sr_struct = self.env.ref('l10n_sr_hr_payroll.sr_payroll_structure', raise_if_not_found=False)
+        valid_slips = self.filtered(
+            lambda slip: sr_struct and slip.struct_id == sr_struct and slip.contract_id and slip.date_from and slip.date_to
+        )
+        if not valid_slips:
+            return grouped_entries
+
+        search_start = datetime.combine(min(valid_slips.mapped('date_from')), time.min)
+        search_stop = datetime.combine(max(valid_slips.mapped('date_to')) + timedelta(days=1), time.min)
+        contract_entries = {
+            contract.id: work_entry_model
+            for contract in valid_slips.mapped('contract_id')
+        }
+
+        work_entries = work_entry_model.search([
+            ('contract_id', 'in', list(contract_entries)),
+            ('date_start', '<', search_stop),
+            ('date_stop', '>', search_start),
+            ('state', 'in', ('validated', 'conflict')),
+        ], order='date_start, id')
+        for entry in work_entries:
+            contract_entries[entry.contract_id.id] |= entry
+
+        for slip in valid_slips:
+            period_start, period_stop = slip._sr_get_period_bounds()
+            grouped_entries[slip.id] = contract_entries.get(slip.contract_id.id, work_entry_model).filtered(
+                lambda entry: entry.date_start < period_stop and entry.date_stop > period_start
+            )
+        return grouped_entries
 
     def _sr_build_work_entry_snapshot(self, work_entries=None):
         self.ensure_one()
@@ -308,9 +438,9 @@ class HrPayslip(models.Model):
         summary['total_worked_days'] = float(len(worked_days))
         return summary
 
-    def _sr_store_work_entry_snapshot(self):
+    def _sr_store_work_entry_snapshot(self, work_entries=None):
         self.ensure_one()
-        summary = self._sr_build_work_entry_snapshot()
+        summary = self._sr_build_work_entry_snapshot(work_entries=work_entries)
         self.update({
             'sr_regular_hours': summary['regular_hours'],
             'sr_overtime_hours_150': summary['overtime_hours_150'],
@@ -320,8 +450,121 @@ class HrPayslip(models.Model):
             'sr_total_worked_days': summary['total_worked_days'],
         })
 
+    def _sr_store_work_entry_snapshots_batch(self, work_entries_by_slip=None):
+        work_entries_by_slip = work_entries_by_slip or self._sr_get_period_work_entries_batch()
+        for slip in self:
+            slip._sr_store_work_entry_snapshot(work_entries=work_entries_by_slip.get(slip.id))
+
+    def _sr_get_config_exchange_rate(self, currency=None, params=None):
+        self.ensure_one()
+        contract = self.contract_id
+        currency = currency or (contract.sr_contract_currency if contract else False)
+        if not currency or currency.name == 'SRD':
+            return 1.0
+        if params is None:
+            params = self.env['ir.config_parameter'].sudo()
+        if currency.name == 'USD':
+            try:
+                return float(params.get_param('sr_payroll.exchange_rate_usd', default='36.5000'))
+            except (TypeError, ValueError):
+                return 36.5
+        if currency.name == 'EUR':
+            try:
+                return float(params.get_param('sr_payroll.exchange_rate_eur', default='39.0000'))
+            except (TypeError, ValueError):
+                return 39.0
+        return 1.0
+
+    def _sr_freeze_currency_snapshot(self, force=False):
+        """
+        Bevriест de contractvaluta, wisselkoers en display-modus op de loonstrook.
+
+        Wordt aangeroepen aan het begin van compute_sheet(), vóór de salarisregels,
+        zodat _sr_wage_in_srd() en _sr_get_hourly_rate() de bevroren waarden kunnen lezen.
+        """
+        self.ensure_one()
+        if not force and self.sr_frozen_contract_currency_id and self.sr_exchange_rate:
+            return
+
+        contract = self.contract_id
+        if not contract:
+            return
+
+        # Contractvaluta van het contract lezen
+        currency = contract.sr_contract_currency
+        if not currency:
+            currency = self.env['res.currency'].search([('name', '=', 'SRD')], limit=1)
+
+        # Wisselkoers ophalen uit ir.config_parameter
+        params = self.env['ir.config_parameter'].sudo()
+        rate = self._sr_get_config_exchange_rate(currency=currency, params=params)
+
+        # Display modus ophalen
+        display_mode = params.get_param(_SR_DISPLAY_MODE_CONFIG_KEY, default=_SR_DISPLAY_MODE_DEFAULT)
+        if display_mode not in ('srd', 'contract_currency'):
+            display_mode = _SR_DISPLAY_MODE_DEFAULT
+
+        self.update({
+            'sr_frozen_contract_currency_id': currency.id if currency else False,
+            'sr_frozen_exchange_rate': rate,
+            'sr_frozen_netto_display_mode': display_mode,
+        })
+
+    def _sr_store_currency_totals(self):
+        self.ensure_one()
+        if not self.line_ids:
+            return
+
+        def _line_total(*codes):
+            return sum(
+                line.total or 0.0
+                for line in self.line_ids
+                if line.code in codes
+            )
+
+        netto_srd = _line_total('NET')
+        rate = self.sr_exchange_rate or 1.0
+        currency = self.sr_frozen_contract_currency_id
+        if currency and currency.name not in ('SRD', False, '') and rate > 0:
+            netto_bronvaluta = Decimal(str(netto_srd)) / Decimal(str(rate))
+        else:
+            netto_bronvaluta = Decimal(str(netto_srd))
+
+        belastingvrij_jaar = Decimal(str(self._rule_parameter('SR_BELASTINGVRIJ_JAAR') or 0.0))
+        periodes = Decimal(str(self._sr_get_periodes() or 0))
+        belastingvrij_periode = Decimal('0.0')
+        if periodes > 0:
+            belastingvrij_periode = belastingvrij_jaar / periodes
+
+        self.update({
+            'sr_netto_bronvaluta': float(netto_bronvaluta.quantize(_SR_MONEY_QUANT, rounding=ROUND_HALF_UP)),
+            'sr_belastingvrij_periode_srd': float(
+                belastingvrij_periode.quantize(_SR_MONEY_QUANT, rounding=ROUND_HALF_UP)
+            ),
+        })
+
+    def _sr_wage_in_srd(self):
+        """
+        Geeft het contractloon terug in SRD.
+
+        Voor SRD-contracten: direct contract.wage.
+        Voor USD/EUR-contracten: contract.wage × sr_exchange_rate.
+        De bevroren wisselkoers wordt gebruikt zodat herberekening consistent blijft.
+        """
+        self.ensure_one()
+        wage = self.contract_id.wage or 0.0
+        if not wage:
+            return 0.0
+        rate = self.sr_exchange_rate or 1.0
+        currency = self.sr_frozen_contract_currency_id
+        if currency and currency.name not in ('SRD', False, ''):
+            result = Decimal(str(wage)) * Decimal(str(rate))
+            return float(result.quantize(_SR_MONEY_QUANT, rounding=ROUND_HALF_UP))
+        return wage
+
     def _rule_parameter(self, code):
         self.ensure_one()
+        ref_date = self.date_to or self.date_from or dt_date.today()
         try:
             value = super()._rule_parameter(code)
         except (UserError, KeyError, TypeError, ValueError):
@@ -339,7 +582,11 @@ class HrPayslip(models.Model):
             default = calc.get_config_parameter_default(code)
             if default is not None:
                 return default
-        return super()._rule_parameter(code)
+        return calc.get_sr_parameter_value(
+            self.env, code, ref_date,
+            default=None,
+            raise_if_not_found=True,
+        )
 
     def _sr_get_layout_label(self):
         self.ensure_one()
@@ -390,49 +637,31 @@ class HrPayslip(models.Model):
 
     def _sr_get_hourly_rate(self):
         self.ensure_one()
-        wage = self.contract_id.wage or 0.0
-        if not wage:
+        wage_srd = self._sr_wage_in_srd()
+        if not wage_srd:
             return 0.0
         divisor = Decimal('80') if self._sr_get_periodes() == 26 else Decimal('173.333333')
-        hourly_rate = Decimal(str(wage)) / divisor
+        hourly_rate = Decimal(str(wage_srd)) / divisor
         return float(hourly_rate.quantize(_SR_HOURLY_RATE_QUANT, rounding=ROUND_HALF_UP))
 
-    def _sr_sync_overtime_inputs_from_work_entries(self):
-        """
-        Synchroniseer overwerk payslip-inputs vanuit gevalideerde work entries.
-
-        Nieuwe aanpak (v3.1+):
-          - Leest sr_overtime_150 en sr_overtime_200 buckets van elke work entry
-          - Maakt aparte inputs aan voor SR_IN_OVERWERK_150 en SR_IN_OVERWERK_200
-          - Multipliers (1,5× en 2,0×) worden gelezen uit ir.config_parameter
-          - Medewerkers zonder overwerkrecht (sr_has_overtime_right=False) worden overgeslagen
-
-        Backward-compat pad:
-          - Entries met sr_is_overtime=True maar zonder gevulde buckets worden
-            verwerkt via het originele sr_overtime_multiplier-mechanisme.
-        """
+    def _sr_prepare_overtime_inputs_from_work_entries(self, work_entries=None):
+        """Bouw nog niet opgeslagen overwerk-inputs voor deze loonstrook."""
         self.ensure_one()
-
-        generated_inputs = self.input_line_ids.filtered('sr_generated_from_work_entry')
-        if generated_inputs:
-            generated_inputs.unlink()
 
         sr_struct = self.env.ref('l10n_sr_hr_payroll.sr_payroll_structure', raise_if_not_found=False)
         if self.struct_id != sr_struct or not self.contract_id or not self.date_from or not self.date_to:
-            return
+            return []
 
         # Medewerkers zonder overwerkrecht krijgen geen variabele overwerkinput
         if not self.contract_id.sr_has_overtime_right:
-            return
+            return []
 
         hourly_rate = self._sr_get_hourly_rate()
         if hourly_rate <= 0:
-            return
-
-        period_start, period_stop = self._sr_get_period_bounds()
+            return []
 
         # Zoek alle gevalideerde work entries in de loonperiode
-        work_entries = self._sr_get_period_work_entries()
+        work_entries = work_entries if work_entries is not None else self._sr_get_period_work_entries()
 
         # Lees multiplier-factors uit configuratie
         config = self.env['ir.config_parameter'].sudo()
@@ -443,6 +672,7 @@ class HrPayslip(models.Model):
         total_ot_150 = Decimal('0')
         total_ot_200 = Decimal('0')
         legacy_entries = []
+        inputs_to_create = []
 
         for entry in work_entries:
             has_buckets = (entry.sr_overtime_150 or 0.0) > 0 or (entry.sr_overtime_200 or 0.0) > 0
@@ -464,7 +694,7 @@ class HrPayslip(models.Model):
                 ))
                 if amount > 0:
                     hrs = float(total_ot_150)
-                    self.env['hr.payslip.input'].create({
+                    inputs_to_create.append({
                         'payslip_id': self.id,
                         'name': f'Overwerk 150% ({hrs:.2f}u \u00d7 SRD {hourly_rate:.4f}/u \u00d7 {factor_150})',
                         'input_type_id': ot_type_150.id,
@@ -482,7 +712,7 @@ class HrPayslip(models.Model):
                 ))
                 if amount > 0:
                     hrs = float(total_ot_200)
-                    self.env['hr.payslip.input'].create({
+                    inputs_to_create.append({
                         'payslip_id': self.id,
                         'name': f'Overwerk 200% ({hrs:.2f}u \u00d7 SRD {hourly_rate:.4f}/u \u00d7 {factor_200})',
                         'input_type_id': ot_type_200.id,
@@ -492,6 +722,7 @@ class HrPayslip(models.Model):
 
         # ── Backward-compat: legacy overtime entries (geen buckets) ────────
         if legacy_entries:
+            period_start, period_stop = self._sr_get_period_bounds()
             overtime_type = self.env.ref(
                 'l10n_sr_hr_payroll.sr_input_overwerk', raise_if_not_found=False
             )
@@ -508,7 +739,7 @@ class HrPayslip(models.Model):
                     ))
                     if amount <= 0:
                         continue
-                    self.env['hr.payslip.input'].create({
+                    inputs_to_create.append({
                         'payslip_id': self.id,
                         'name': f'{entry.work_entry_type_id.name} ({hours:.2f}u)',
                         'input_type_id': overtime_type.id,
@@ -517,11 +748,64 @@ class HrPayslip(models.Model):
                         'sr_work_entry_id': entry.id,
                     })
 
+        return inputs_to_create
+
+    def _sr_sync_overtime_inputs_from_work_entries(self, work_entries=None):
+        """Synchroniseer overwerk payslip-inputs voor één loonstrook."""
+        self.ensure_one()
+        generated_inputs = self._sr_get_generated_overtime_inputs()
+        if generated_inputs:
+            generated_inputs.unlink()
+
+        inputs_to_create = self._sr_prepare_overtime_inputs_from_work_entries(work_entries=work_entries)
+        if inputs_to_create:
+            self.env['hr.payslip.input'].create(inputs_to_create)
+
+    def _sr_sync_overtime_inputs_batch(self, work_entries_by_slip=None):
+        generated_inputs = self._sr_get_generated_overtime_inputs()
+        if generated_inputs:
+            generated_inputs.unlink()
+
+        work_entries_by_slip = work_entries_by_slip or self._sr_get_period_work_entries_batch()
+        inputs_to_create = []
+        for slip in self:
+            inputs_to_create.extend(
+                slip._sr_prepare_overtime_inputs_from_work_entries(work_entries=work_entries_by_slip.get(slip.id))
+            )
+
+        if inputs_to_create:
+            self.env['hr.payslip.input'].create(inputs_to_create)
+
+    def _sr_get_generated_overtime_inputs(self):
+        if not self.ids:
+            return self.env['hr.payslip.input']
+        return self.env['hr.payslip.input'].search([
+            ('payslip_id', 'in', self.ids),
+            ('sr_generated_from_work_entry', '=', True),
+        ])
+
+    def _sr_lock_for_update(self):
+        if not self.ids:
+            return
+        try:
+            with self.env.cr.savepoint(flush=False):
+                self.env.cr.execute(
+                    f'SELECT id FROM {self._table} WHERE id IN %s FOR UPDATE NOWAIT',
+                    [tuple(self.ids)],
+                )
+        except psycopg2.errors.LockNotAvailable:
+            raise UserError(
+                'Een van de geselecteerde loonstroken wordt al door een andere berekening verwerkt. '
+                'Wacht tot die berekening klaar is en probeer daarna opnieuw.'
+            ) from None
+
     def _sr_get_periodes(self):
         """Bepaalt het aantal periodes per jaar: 12 (maandloon) of 26 (fortnight)."""
         self.ensure_one()
         contract = self.contract_id
-        return 26 if getattr(contract, 'sr_salary_type', 'monthly') == 'fn' else 12
+        if not contract:
+            return 12
+        return 26 if contract.sr_salary_type == 'fn' else 12
 
     def _sr_get_fn_period_2026(self):
         """Geeft het 2026 fortnight-tijdvak terug volgens de modulecontext."""
@@ -537,7 +821,7 @@ class HrPayslip(models.Model):
         """Forceer voor 2026 exact de 26 gedocumenteerde fortnight-periodes."""
         self.ensure_one()
         contract = self.contract_id
-        if getattr(contract, 'sr_salary_type', 'monthly') != 'fn':
+        if not contract or contract.sr_salary_type != 'fn':
             return
         if not self.date_from or not self.date_to:
             return
@@ -553,26 +837,26 @@ class HrPayslip(models.Model):
     def _sr_get_cached_result(self, gross_per_periode, aftrek_bv=0.0):
         """
         Berekent Artikel 14 één keer per (payslip, gross, aftrek_bv) combinatie
-        en cached het resultaat in een module-level dict om redundante
+        en cached het resultaat in thread-local opslag om redundante
         berekeningen te voorkomen wanneer SR_LB en SR_AOV regels
         achtereenvolgens dezelfde waarden opvragen.
         """
         self.ensure_one()
-        global _sr_calc_cache
+        cache = _get_sr_calc_cache()
         cache_key = (
             self.id,
             str(self._sr_money_quantize(gross_per_periode)),
             str(self._sr_money_quantize(aftrek_bv)),
         )
-        if cache_key in _sr_calc_cache:
-            return _sr_calc_cache[cache_key]
+        if cache_key in cache:
+            return cache[cache_key]
         params = calc.fetch_params_from_payslip(self)
         periodes = self._sr_get_periodes()
         result = calc.calculate_lb(
             gross_per_periode, periodes, params,
             aftrek_bv_per_periode=aftrek_bv,
         )
-        _sr_calc_cache[cache_key] = result
+        cache[cache_key] = result
         return result
 
     def _sr_artikel14_lb(self, gross_per_periode, aftrek_bv=0.0):
@@ -964,7 +1248,7 @@ class HrPayslip(models.Model):
             'employment_start_date': employment_start_date,
             'bank_account_number': bank_account_number,
             'bank_name': bank_name,
-            'hourly_wage': getattr(contract, 'sr_hourly_wage', 0.0),
+            'hourly_wage': contract.sr_hourly_wage if contract else 0.0,
             'basic': basic,
             'toelagen': toelagen,
             'kinderbijslag': kinderbijslag,
