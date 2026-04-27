@@ -17,6 +17,8 @@ Deze override:
 """
 
 from odoo import api, models, _
+from odoo import fields
+from datetime import timedelta
 
 
 class HrWorkEntryRegenerationWizardSr(models.TransientModel):
@@ -34,10 +36,12 @@ class HrWorkEntryRegenerationWizardSr(models.TransientModel):
         for wizard in self:
             validated_work_entry_ids = self.env['hr.work.entry']
             if wizard.search_criteria_completed:
+                range_start = fields.Datetime.to_datetime(wizard.date_from)
+                range_stop = fields.Datetime.to_datetime(wizard.date_to) + timedelta(days=1)
                 search_domain = [
                     ('employee_id', 'in', wizard.employee_ids.ids),
-                    ('date_start', '<=', wizard.date_to),
-                    ('date_stop', '>=', wizard.date_from),
+                    ('date_start', '<', range_stop),
+                    ('date_stop', '>', range_start),
                     ('state', '=', 'validated'),
                 ]
                 validated_work_entry_ids = self.env['hr.work.entry'].search(search_domain, order='date_start')

@@ -27,7 +27,7 @@ class HrRuleParameter(models.Model):
                 default=None,
                 raise_if_not_found=False,
             )
-            parameter.sr_current_value = str(value) if value not in (None, False, '') else False
+            parameter.sr_current_value = str(value) if not calc.is_missing_parameter_value(value) else False
 
     def _sr_sync_current_config_override(self):
         if self.env.context.get('install_mode'):

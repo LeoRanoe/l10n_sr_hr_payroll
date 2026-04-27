@@ -76,10 +76,14 @@ WHOLE_QUANT = Decimal('1')
 ZERO = Decimal('0')
 
 
+def is_missing_parameter_value(value):
+    return value is None or value is False or value == ''
+
+
 def _to_decimal(value):
     if isinstance(value, Decimal):
         return value
-    if value in (None, False, ''):
+    if is_missing_parameter_value(value):
         return ZERO
     return Decimal(str(value))
 
@@ -121,7 +125,7 @@ def get_config_parameter_value(env, code, default=None):
 
     fallback = get_config_parameter_default(code) if default is None else default
     value = env['ir.config_parameter'].sudo().get_param(config_key)
-    if value in (None, False, ''):
+    if is_missing_parameter_value(value):
         return fallback
     try:
         return float(value)
@@ -133,7 +137,7 @@ def get_sr_parameter_value(env, code, ref_date, default=None, raise_if_not_found
     value = env['hr.rule.parameter']._get_parameter_from_code(
         code, ref_date, raise_if_not_found=False,
     )
-    if value not in (None, False, ''):
+    if not is_missing_parameter_value(value):
         return value
 
     config_value = get_config_parameter_value(env, code, default=None)
@@ -144,7 +148,7 @@ def get_sr_parameter_value(env, code, ref_date, default=None, raise_if_not_found
         return default
     if raise_if_not_found:
         raise UserError(f'Missing parameter: {code}')
-    if value in (None, False, ''):
+    if is_missing_parameter_value(value):
         return default
     return value
 

@@ -58,7 +58,7 @@ class ResConfigSettings(models.TransientModel):
         config_key = self._fields[field_name].config_parameter
         value = params.get_param(config_key)
         default = self._sr_config_default_for_field(field_name)
-        if value in (None, False, ''):
+        if calc.is_missing_parameter_value(value):
             return default
         try:
             return float(value)
@@ -122,7 +122,7 @@ class ResConfigSettings(models.TransientModel):
         for field_name in _SR_MANAGED_CONFIG_FIELDS:
             config_key = self._fields[field_name].config_parameter
             value = self[field_name]
-            if value in (None, False, ''):
+            if calc.is_missing_parameter_value(value):
                 params.search([('key', '=', config_key)], limit=1).unlink()
                 continue
             params.set_param(config_key, value)
