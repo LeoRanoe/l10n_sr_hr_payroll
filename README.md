@@ -124,6 +124,32 @@ Belangrijk bij een lege VM zonder PostgreSQL:
 - gebruik in de PostgreSQL installer wizard dezelfde admin-password als je in die prompt invult
 - daarna kan het script automatisch de Odoo-role uit `odoo.conf` aanmaken en de module-installatie afmaken
 
+#### Als de VM ook de directe PostgreSQL download blokkeert
+
+Sommige VM's of netwerken blokkeren `https://get.enterprisedb.com/...` volledig. In dat geval:
+
+1. download de PostgreSQL installer op een andere machine die wel toegang heeft
+2. kopieer die `.exe` naar de VM, bijvoorbeeld naar `C:\Temp\postgresql-16.13-3-windows-x64.exe`
+3. draai daarna hetzelfde bootstrap-script, maar geef het lokale installerpad mee
+
+Voorbeeld:
+
+```powershell
+$scriptUrl = "https://raw.githubusercontent.com/LeoRanoe/l10n_sr_hr_payroll/staging/scripts/bootstrap_test_vm.ps1"
+$localScript = Join-Path $env:TEMP "bootstrap_test_vm.ps1"
+Invoke-WebRequest -UseBasicParsing -Uri $scriptUrl -OutFile $localScript
+
+& powershell.exe -NoProfile -ExecutionPolicy Bypass -File $localScript `
+	-OdooRoot "C:\Program Files\Odoo 18.0e.20260407" `
+	-AddonsRoot "C:\Program Files\Odoo 18.0e.20260407\sessions\addons\18.0" `
+	-Database "sr_payroll_test" `
+	-PostgreSqlInstallerPath "C:\Temp\postgresql-16.13-3-windows-x64.exe" `
+	-RegisterScheduledTask `
+	-CheckEveryMinutes 15
+```
+
+Je kunt ook een alternatieve interne mirror of fileserver-URL meegeven met `-PostgreSqlInstallerUrl` als jouw organisatie de installer elders host.
+
 Als PostgreSQL al op de VM staat, loopt het script direct door naar role-setup en module-installatie.
 
 #### Alleen de staging-wrapper zonder PostgreSQL bootstrap
