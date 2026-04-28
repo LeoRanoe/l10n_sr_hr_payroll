@@ -132,6 +132,97 @@ function Test-IsAdministrator {
 }
 
 
+function Get-IniSetting {
+    param(
+        [string]$FilePath,
+        [string]$Name
+    )
+
+    if (-not (Test-Path -LiteralPath $FilePath)) {
+        return $null
+    }
+
+    $pattern = '^\s*' + [Regex]::Escape($Name) + '\s*=\s*(.*)$'
+    foreach ($line in Get-Content -LiteralPath $FilePath) {
+        if ($line -match $pattern) {
+            return $Matches[1].Trim()
+        }
+    }
+
+    return $null
+}
+
+
+function Test-TcpEndpoint {
+    param(
+        [string]$HostName,
+        [int]$Port,
+        [int]$TimeoutMilliseconds = 2000
+    )
+
+    $tcpClient = New-Object System.Net.Sockets.TcpClient
+    try {
+        $asyncResult = $tcpClient.BeginConnect($HostName, $Port, $null, $null)
+        if (-not $asyncResult.AsyncWaitHandle.WaitOne($TimeoutMilliseconds, $false)) {
+            return $false
+        }
+
+        $tcpClient.EndConnect($asyncResult)
+        return $true
+    }
+    catch {
+        return $false
+    }
+    finally {
+        $tcpClient.Dispose()
+    }
+}
+
+
+function Assert-PostgreSqlReady {
+    param([string]$ResolvedOdooRoot)
+
+    $configPath = Join-Path $ResolvedOdooRoot "server\odoo.conf"
+    $dbHost = Get-IniSetting -FilePath $configPath -Name "db_host"
+    $dbPortText = Get-IniSetting -FilePath $configPath -Name "db_port"
+
+    if (-not $dbHost -or $dbHost -in @("False", "false")) {
+        $dbHost = "localhost"
+    }
+
+    if (-not $dbPortText -or $dbPortText -in @("False", "false")) {
+        $dbPort = 5432
+    }
+    else {
+        $dbPort = [int]$dbPortText
+    }
+
+    $isLocalPostgres = $dbHost -in @("localhost", "127.0.0.1", "::1")
+    $serviceName = "PostgreSQL_For_Odoo"
+    $bundledPgReady = Join-Path $ResolvedOdooRoot "PostgreSQL\bin\pg_isready.exe"
+
+    if ($isLocalPostgres) {
+        $postgresService = Get-Service -Name $serviceName -ErrorAction SilentlyContinue
+
+        if ((-not $postgresService) -and (-not (Test-Path -LiteralPath $bundledPgReady))) {
+            throw "PostgreSQL was not found on this machine. Odoo is configured to use ${dbHost}:$dbPort in $configPath, but the service '$serviceName' and bundled PostgreSQL tools are both missing. Install PostgreSQL on the VM or point odoo.conf to an existing PostgreSQL server before rerunning setup."
+        }
+
+        if ($postgresService -and ($postgresService.Status -ne 'Running')) {
+            throw "PostgreSQL service '$serviceName' is installed but not running. Start it with Start-Service $serviceName and rerun setup."
+        }
+    }
+
+    if (-not (Test-TcpEndpoint -HostName $dbHost -Port $dbPort)) {
+        if ($isLocalPostgres) {
+            throw "Could not connect to local PostgreSQL at ${dbHost}:$dbPort. Check that PostgreSQL is installed, running, and accepting TCP connections before rerunning setup."
+        }
+
+        throw "Could not connect to PostgreSQL at ${dbHost}:$dbPort from $configPath. Update the Odoo database settings or make that PostgreSQL server reachable before rerunning setup."
+    }
+}
+
+
 function Register-UpdateTask {
     param(
         [string]$ScriptPath,
@@ -379,6 +470,8 @@ if (-not $SkipOdoo) {
         Write-Step "No new staging commits found. Skipping Odoo module update."
     }
     else {
+        Assert-PostgreSqlReady -ResolvedOdooRoot $OdooRoot
+
         $pythonPath = Join-Path $OdooRoot "python\python.exe"
         if (-not (Test-Path -LiteralPath $pythonPath)) {
             $pythonPath = (Get-Command python -ErrorAction Stop).Source
