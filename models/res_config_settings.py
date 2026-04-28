@@ -58,8 +58,13 @@ class ResConfigSettings(models.TransientModel):
         config_key = self._fields[field_name].config_parameter
         value = params.get_param(config_key)
         default = self._sr_config_default_for_field(field_name)
+        code = _SR_CONFIG_FIELD_CODES.get(field_name)
         if calc.is_missing_parameter_value(value):
             return default
+        if code:
+            normalized_value = calc.normalize_config_parameter_value(code, value)
+            if not calc.is_missing_parameter_value(normalized_value):
+                return float(normalized_value)
         try:
             return float(value)
         except (TypeError, ValueError):
@@ -167,7 +172,11 @@ class ResConfigSettings(models.TransientModel):
         string='Belastingvrije voet (SRD / jaar)',
         config_parameter='sr_payroll.belastingvrij_jaar',
         default=lambda self: self._sr_default_param('SR_BELASTINGVRIJ_JAAR'),
-        help='Jaarlijkse belastingvrije voet volgens de Surinaamse loonbelasting. Een verhoging verlaagt de LB per periode voor alle nieuw berekende loonstroken.',
+        help=(
+            'Jaarlijkse belastingvrije voet volgens de Surinaamse loonbelasting. '
+            'Voor de 2026-regelset staat deze standaard op SRD 0,00 omdat de vrijstelling '
+            'geïntegreerd wordt toegepast in de actuele payroll-opzet.'
+        ),
     )
     forfaitaire_pct = fields.Float(
         string='Forfaitaire aftrek % (decimaal)',

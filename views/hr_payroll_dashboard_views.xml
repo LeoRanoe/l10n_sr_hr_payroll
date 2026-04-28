@@ -215,6 +215,9 @@
         <field name="arch" type="xml">
             <xpath expr="//page[@name='salary_computation']" position="after">
                 <page string="SR Fiscaal Overzicht" name="sr_fiscal_overview" invisible="not sr_is_sr_struct">
+                    <div class="alert alert-info small mb-3" role="status">
+                        Deze samenvatting toont opgeslagen loonstrookwaarden uit de database. Herbereken de loonstrook na contract- of inputwijzigingen om de snapshot te verversen.
+                    </div>
                     <group col="4">
                         <group string="Bruto / Netto Samenvatting" class="o_form_fw_labels">
                             <field name="sr_bruto_totaal_display" widget="monetary" readonly="1"/>

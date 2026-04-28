@@ -7,10 +7,10 @@
 -->
 <odoo>
     <data>
-        <!-- ═══════════════════════════════════════════════════════════
-             BELASTINGVRIJE VOET
-             Artikel 14 lid 1: SRD 108.000 per jaar (= SRD 9.000/maand)
-             ═══════════════════════════════════════════════════════════ -->
+           <!-- ═══════════════════════════════════════════════════════════
+               BELASTINGVRIJE VOET
+               2026: geïntegreerd in de actuele SR-regelset, daarom standaard SRD 0 per jaar.
+               ═══════════════════════════════════════════════════════════ -->
         <record id="sr_param_belastingvrij_jaar" model="hr.rule.parameter">
             <field name="name">SR — Belastingvrije voet — Art. 14 lid 1 (SRD / jaar)</field>
             <field name="code">SR_BELASTINGVRIJ_JAAR</field>
@@ -19,7 +19,7 @@
         <record id="sr_param_belastingvrij_jaar_2026" model="hr.rule.parameter.value">
             <field name="rule_parameter_id" ref="sr_param_belastingvrij_jaar"/>
             <field name="date_from" eval="datetime(2026, 1, 1).date()"/>
-            <field name="parameter_value">108000.0</field>
+            <field name="parameter_value">0.0</field>
         </record>
 
         <!-- ═══════════════════════════════════════════════════════════
