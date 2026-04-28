@@ -13,7 +13,6 @@ param(
 
     [string]$PostgreSqlPackageId = "PostgreSQL.PostgreSQL.16",
     [string]$PostgreSqlAdminUser = "postgres",
-    [Parameter(Mandatory = $true)]
     [SecureString]$PostgreSqlAdminPassword,
 
     [switch]$RegisterScheduledTask,
@@ -543,6 +542,15 @@ $resolvedAddonsRoot = if (Test-Path -LiteralPath $AddonsRoot) {
 }
 else {
     $AddonsRoot
+}
+
+if (-not $PostgreSqlAdminPassword) {
+    if ($DryRun) {
+        $PostgreSqlAdminPassword = ConvertTo-SecureString "dry-run-placeholder" -AsPlainText -Force
+    }
+    else {
+        $PostgreSqlAdminPassword = Read-Host "PostgreSQL admin password" -AsSecureString
+    }
 }
 
 New-DirectoryIfMissing -Path $resolvedAddonsRoot

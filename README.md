@@ -106,14 +106,12 @@ Als deze bestanden al naar `origin/staging` zijn gepusht, kun je op een schone t
 ```powershell
 $scriptUrl = "https://raw.githubusercontent.com/LeoRanoe/l10n_sr_hr_payroll/staging/scripts/bootstrap_test_vm.ps1"
 $localScript = Join-Path $env:TEMP "bootstrap_test_vm.ps1"
-$postgresAdminPassword = Read-Host "PostgreSQL admin password" -AsSecureString
 Invoke-WebRequest -UseBasicParsing -Uri $scriptUrl -OutFile $localScript
 
 & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $localScript `
 	-OdooRoot "C:\Program Files\Odoo 18.0e.20260407" `
 	-AddonsRoot "C:\Program Files\Odoo 18.0e.20260407\sessions\addons\18.0" `
 	-Database "sr_payroll_test" `
-	-PostgreSqlAdminPassword $postgresAdminPassword `
 	-RegisterScheduledTask `
 	-CheckEveryMinutes 15
 ```
@@ -122,7 +120,8 @@ Belangrijk bij een lege VM zonder PostgreSQL:
 
 - het bootstrap-script probeert PostgreSQL eerst via `winget --interactive`
 - als `winget` de installer niet kan downloaden, downloadt het script dezelfde PostgreSQL installer direct en start die alsnog interactief
-- gebruik in de PostgreSQL installer wizard dezelfde admin-password als in `-PostgreSqlAdminPassword`
+- het script vraagt zelf om de PostgreSQL admin-password voordat het de Odoo-role aanmaakt
+- gebruik in de PostgreSQL installer wizard dezelfde admin-password als je in die prompt invult
 - daarna kan het script automatisch de Odoo-role uit `odoo.conf` aanmaken en de module-installatie afmaken
 
 Als PostgreSQL al op de VM staat, loopt het script direct door naar role-setup en module-installatie.
