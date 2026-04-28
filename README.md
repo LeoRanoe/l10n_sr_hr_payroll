@@ -99,6 +99,15 @@ Het script doet dit in vaste volgorde:
 - automatische `--data-dir` onder `%TEMP%`, zodat tijdelijke test-runs niet vastlopen op schrijfrechten onder `Program Files`
 - optionele Windows Scheduled Task die periodiek op nieuwe commits controleert en alleen dan een Odoo update uitvoert
 
+Belangrijk: deze automation doet bewust een headless Odoo-run met `--stop-after-init --no-http`. Dat betekent dat de module wel wordt geïnstalleerd of geüpdatet, maar dat er daarna geen blijvende webserver op `http://localhost:8069` draait.
+
+Start Odoo daarna apart, bijvoorbeeld zo:
+
+```powershell
+Set-Location "C:\Program Files\Odoo 18.0e.20260407\server"
+..\python\python.exe .\odoo-bin -c .\odoo.conf -d sr_payroll_test
+```
+
 #### Eenmalige installatie met alleen plakken in PowerShell
 
 Als deze bestanden al naar `origin/staging` zijn gepusht, kun je op een schone test-VM dit plakken in een verhoogde PowerShell:

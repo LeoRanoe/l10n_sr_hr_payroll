@@ -715,6 +715,28 @@ function Invoke-StagingSync {
 }
 
 
+function Show-OdooStartInstructions {
+    param(
+        [string]$ResolvedOdooRoot,
+        [string]$TargetDatabase
+    )
+
+    $pythonPath = Join-Path $ResolvedOdooRoot "python\python.exe"
+    $odooBinPath = Join-Path $ResolvedOdooRoot "server\odoo-bin"
+    $configPath = Join-Path $ResolvedOdooRoot "server\odoo.conf"
+    $startArguments = @(
+        $odooBinPath,
+        "-c", $configPath,
+        "-d", $TargetDatabase
+    )
+
+    Write-Host ""
+    Write-Host "Bootstrap finished. The module install ran headless with --stop-after-init --no-http, so Odoo is not listening on http://localhost:8069 yet." -ForegroundColor Yellow
+    Write-Host "Start the web server with:" -ForegroundColor Yellow
+    Write-Host (Format-Command -FilePath $pythonPath -Arguments $startArguments)
+}
+
+
 if (-not (Test-IsAdministrator)) {
     if ($DryRun) {
         Write-Host "[dry-run] Skipping elevation check. A real run must use an elevated PowerShell window." -ForegroundColor Yellow
@@ -756,3 +778,4 @@ if (-not $psqlPath) {
 
 Set-OdooDatabaseRole -ResolvedOdooRoot $resolvedOdooRoot -PsqlPath $psqlPath
 Invoke-StagingSync -ResolvedAddonsRoot $resolvedAddonsRoot
+Show-OdooStartInstructions -ResolvedOdooRoot $resolvedOdooRoot -TargetDatabase $Database
