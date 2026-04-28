@@ -14,6 +14,8 @@ param(
     [string]$PostgreSqlPackageId = "PostgreSQL.PostgreSQL.16",
     [string]$PostgreSqlAdminUser = "postgres",
     [SecureString]$PostgreSqlAdminPassword,
+    [string]$PostgreSqlInstallerPath,
+    [string]$PostgreSqlInstallerUrl,
 
     [switch]$RegisterScheduledTask,
     [ValidateRange(5, 1440)]
@@ -251,32 +253,67 @@ function Get-WingetInstallerMetadata {
 function Install-PostgreSqlViaDirectDownload {
     param([string]$PackageId)
 
-    $metadata = Get-WingetInstallerMetadata -PackageId $PackageId
-    $downloadDir = Join-Path $env:TEMP "l10n_sr_hr_payroll-bootstrap"
-    $installerFileName = [System.IO.Path]::GetFileName(([Uri]$metadata.Url).AbsolutePath)
-    $installerPath = Join-Path $downloadDir $installerFileName
+    $installerPath = $null
+    $expectedSha256 = $null
 
-    New-DirectoryIfMissing -Path $downloadDir
-
-    Write-Step "Downloading PostgreSQL installer directly"
-    Invoke-ExternalCommand `
-        -FilePath "curl.exe" `
-        -Arguments @("-L", "--fail", "--retry", "3", "--output", $installerPath, $metadata.Url) `
-        -Description "curl PostgreSQL installer"
-
-    if ($metadata.Sha256) {
-        if ($DryRun) {
-            Write-Host "[dry-run] Get-FileHash -Algorithm SHA256 -Path $installerPath"
+    if ($PostgreSqlInstallerPath) {
+        $installerPath = if (Test-Path -LiteralPath $PostgreSqlInstallerPath) {
+            Resolve-UnresolvedPath -PathValue $PostgreSqlInstallerPath
         }
         else {
-            $downloadHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $installerPath).Hash.ToUpperInvariant()
-            if ($downloadHash -ne $metadata.Sha256) {
-                throw "Downloaded PostgreSQL installer hash '$downloadHash' does not match expected '$($metadata.Sha256)'."
+            $PostgreSqlInstallerPath
+        }
+
+        if ((-not $DryRun) -and (-not (Test-Path -LiteralPath $installerPath))) {
+            throw "The PostgreSQL installer path '$installerPath' was not found. Copy the installer to the VM first or pass -PostgreSqlInstallerUrl with a reachable mirror URL."
+        }
+    }
+    else {
+        $metadata = $null
+        if ($PostgreSqlInstallerUrl) {
+            $installerUrl = $PostgreSqlInstallerUrl
+        }
+        else {
+            $metadata = Get-WingetInstallerMetadata -PackageId $PackageId
+            $installerUrl = $metadata.Url
+            $expectedSha256 = $metadata.Sha256
+        }
+
+        $downloadDir = Join-Path $env:TEMP "l10n_sr_hr_payroll-bootstrap"
+        $installerFileName = [System.IO.Path]::GetFileName(([Uri]$installerUrl).AbsolutePath)
+        $installerPath = Join-Path $downloadDir $installerFileName
+
+        New-DirectoryIfMissing -Path $downloadDir
+
+        Write-Step "Downloading PostgreSQL installer directly"
+        try {
+            Invoke-ExternalCommand `
+                -FilePath "curl.exe" `
+                -Arguments @("-L", "--fail", "--retry", "3", "--output", $installerPath, $installerUrl) `
+                -Description "curl PostgreSQL installer"
+        }
+        catch {
+            throw "Direct download of the PostgreSQL installer failed from '$installerUrl'. On this VM, copy the installer exe from another machine or internal share and rerun with -PostgreSqlInstallerPath, or provide a reachable mirror with -PostgreSqlInstallerUrl. Original error: $($_.Exception.Message)"
+        }
+
+        if ($expectedSha256) {
+            if ($DryRun) {
+                Write-Host "[dry-run] Get-FileHash -Algorithm SHA256 -Path $installerPath"
+            }
+            else {
+                $downloadHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $installerPath).Hash.ToUpperInvariant()
+                if ($downloadHash -ne $expectedSha256) {
+                    throw "Downloaded PostgreSQL installer hash '$downloadHash' does not match expected '$expectedSha256'."
+                }
             }
         }
     }
 
     Write-Host "If the PostgreSQL installer asks for an admin password, use the same value you passed in -PostgreSqlAdminPassword." -ForegroundColor Yellow
+
+    if ($PostgreSqlInstallerPath) {
+        Write-Step "Using PostgreSQL installer from $installerPath"
+    }
 
     Write-Step "Launching PostgreSQL installer directly"
     if ($DryRun) {
