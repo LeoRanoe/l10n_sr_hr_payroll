@@ -579,17 +579,20 @@ function Set-OdooDatabaseRole {
         throw "db_password is not set in $configPath."
     }
 
-    $sql = @"
-DO $$
+    $dbUserSqlLiteral = $dbUser.Replace("'", "''")
+    $dbPasswordSqlLiteral = $dbPassword.Replace("'", "''")
+
+    $sql = @'
+DO $do$
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = '$dbUser') THEN
-        EXECUTE format('CREATE ROLE %I WITH LOGIN PASSWORD %L CREATEDB', '$dbUser', '$dbPassword');
+    IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = '{0}') THEN
+        EXECUTE format('CREATE ROLE %I WITH LOGIN PASSWORD %L CREATEDB', '{0}', '{1}');
     ELSE
-        EXECUTE format('ALTER ROLE %I WITH LOGIN PASSWORD %L CREATEDB', '$dbUser', '$dbPassword');
+        EXECUTE format('ALTER ROLE %I WITH LOGIN PASSWORD %L CREATEDB', '{0}', '{1}');
     END IF;
 END
-$$;
-"@
+$do$;
+'@ -f $dbUserSqlLiteral, $dbPasswordSqlLiteral
 
     $sqlFile = Join-Path $env:TEMP "ensure_odoo_role_$($ModuleName).sql"
 
