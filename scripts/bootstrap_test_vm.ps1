@@ -484,17 +484,32 @@ $$;
     $previousPassword = $env:PGPASSWORD
     try {
         $env:PGPASSWORD = $adminPasswordPlainText
-        Invoke-ExternalCommand `
-            -FilePath $PsqlPath `
-            -Arguments @(
-                "-h", $dbHost,
-                "-p", $dbPort,
-                "-U", $PostgreSqlAdminUser,
-                "-d", "postgres",
-                "-v", "ON_ERROR_STOP=1",
-                "-f", $sqlFile
-            ) `
-            -Description "psql role bootstrap"
+        $psqlArguments = @(
+            "-h", $dbHost,
+            "-p", $dbPort,
+            "-U", $PostgreSqlAdminUser,
+            "-d", "postgres",
+            "-v", "ON_ERROR_STOP=1",
+            "-f", $sqlFile
+        )
+
+        if ($DryRun) {
+            Write-Host "[dry-run] $(Format-Command -FilePath $PsqlPath -Arguments $psqlArguments)"
+        }
+        else {
+            $psqlOutput = & $PsqlPath @psqlArguments 2>&1
+            $exitCode = $LASTEXITCODE
+            if ($exitCode -ne 0) {
+                $outputText = ($psqlOutput | ForEach-Object { $_.ToString() }) -join [Environment]::NewLine
+                $psqlOutput | ForEach-Object { Write-Host $_ }
+
+                if ($outputText -match 'password authentication failed for user') {
+                    throw "PostgreSQL admin authentication failed for user '$PostgreSqlAdminUser'. Enter the PostgreSQL superuser password you chose during installation, not the Odoo db_password from odoo.conf. If your PostgreSQL superuser name is not '$PostgreSqlAdminUser', rerun the bootstrap with -PostgreSqlAdminUser <actual_user>."
+                }
+
+                throw "psql role bootstrap failed with exit code $exitCode."
+            }
+        }
     }
     finally {
         $adminPasswordPlainText = $null
