@@ -121,8 +121,27 @@ Belangrijk bij een lege VM zonder PostgreSQL:
 - het bootstrap-script probeert PostgreSQL eerst via `winget --interactive`
 - als `winget` de installer niet kan downloaden, downloadt het script dezelfde PostgreSQL installer direct en start die alsnog interactief
 - het script vraagt zelf om de PostgreSQL admin-password voordat het de Odoo-role aanmaakt
+- die PostgreSQL admin-password is niet hetzelfde als `db_password` uit `odoo.conf`; `db_password` hoort bij Odoo gebruiker `openpg`
 - gebruik in de PostgreSQL installer wizard dezelfde admin-password als je in die prompt invult
 - daarna kan het script automatisch de Odoo-role uit `odoo.conf` aanmaken en de module-installatie afmaken
+
+Als de bootstrap meldt `password authentication failed for user "postgres"`, dan betekent dat meestal een van deze twee dingen:
+
+1. je hebt niet de PostgreSQL superuser-password ingevoerd die je tijdens de installer koos
+2. jouw PostgreSQL superuser heet niet `postgres`
+
+In dat tweede geval kun je de bootstrap opnieuw draaien met bijvoorbeeld:
+
+```powershell
+& powershell.exe -NoProfile -ExecutionPolicy Bypass -File $localScript `
+	-OdooRoot "C:\Program Files\Odoo 18.0e.20260407" `
+	-AddonsRoot "C:\Program Files\Odoo 18.0e.20260407\sessions\addons\18.0" `
+	-Database "sr_payroll_test" `
+	-PostgreSqlInstallerPath "C:\Temp\PostgreSQL 16_16.13-3_Machine_X64_exe_en-US.exe" `
+	-PostgreSqlAdminUser "jouw_admin_user" `
+	-RegisterScheduledTask `
+	-CheckEveryMinutes 15
+```
 
 #### Als de VM ook de directe PostgreSQL download blokkeert
 
