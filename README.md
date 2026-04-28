@@ -171,6 +171,31 @@ Je kunt ook een alternatieve interne mirror of fileserver-URL meegeven met `-Pos
 
 Als PostgreSQL al op de VM staat, loopt het script direct door naar role-setup en module-installatie.
 
+#### Als je de PostgreSQL superuser-password niet weet
+
+Voor een geïsoleerde test-VM kun je ook een volledig geautomatiseerde fallback gebruiken die tijdelijk alleen voor localhost `trust` toevoegt in `pg_hba.conf`, PostgreSQL herstart, de Odoo-role aanmaakt en daarna de originele auth-config direct terugzet.
+
+Gebruik dit alleen op een afgesloten test-VM waar jij beheerder bent.
+
+Voorbeeld:
+
+```powershell
+$scriptUrl = "https://raw.githubusercontent.com/LeoRanoe/l10n_sr_hr_payroll/staging/scripts/bootstrap_test_vm.ps1"
+$localScript = Join-Path $env:TEMP "bootstrap_test_vm.ps1"
+Invoke-WebRequest -UseBasicParsing -Uri $scriptUrl -OutFile $localScript
+
+& powershell.exe -NoProfile -ExecutionPolicy Bypass -File $localScript `
+	-OdooRoot "C:\Program Files\Odoo 18.0e.20260407" `
+	-AddonsRoot "C:\Program Files\Odoo 18.0e.20260407\sessions\addons\18.0" `
+	-Database "sr_payroll_test" `
+	-PostgreSqlInstallerPath "C:\Temp\PostgreSQL 16_16.13-3_Machine_X64_exe_en-US.exe" `
+	-UseTemporaryLocalTrustBootstrap `
+	-RegisterScheduledTask `
+	-CheckEveryMinutes 15
+```
+
+Met deze optie hoef je geen PostgreSQL superuser-password in te voeren. Het script gebruikt dan alleen tijdelijk lokale trust-authenticatie om gebruiker `openpg` met het wachtwoord uit `odoo.conf` aan te maken of bij te werken.
+
 #### Alleen de staging-wrapper zonder PostgreSQL bootstrap
 
 Als Git en PostgreSQL al correct aanwezig zijn op de VM, kun je ook alleen de staging-wrapper gebruiken:

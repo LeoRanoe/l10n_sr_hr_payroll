@@ -16,6 +16,7 @@ param(
     [SecureString]$PostgreSqlAdminPassword,
     [string]$PostgreSqlInstallerPath,
     [string]$PostgreSqlInstallerUrl,
+    [switch]$UseTemporaryLocalTrustBootstrap,
 
     [switch]$RegisterScheduledTask,
     [ValidateRange(5, 1440)]
@@ -176,6 +177,32 @@ function Get-PostgreSqlService {
     }
 
     return $services | Sort-Object Name | Select-Object -First 1
+}
+
+
+function Get-PostgreSqlServiceInfo {
+    $service = Get-CimInstance Win32_Service | Where-Object {
+        $_.Name -match 'postgres' -or $_.DisplayName -match 'postgres'
+    } | Select-Object -First 1
+
+    if (-not $service) {
+        return $null
+    }
+
+    $dataDirectory = $null
+    if ($service.PathName -match '-D\s+"([^"]+)"') {
+        $dataDirectory = $Matches[1]
+    }
+    elseif ($service.PathName -match '-D\s+([^\s]+)') {
+        $dataDirectory = $Matches[1]
+    }
+
+    return [pscustomobject]@{
+        Name = $service.Name
+        DisplayName = $service.DisplayName
+        PathName = $service.PathName
+        DataDirectory = $dataDirectory
+    }
 }
 
 
@@ -428,6 +455,101 @@ function Start-PostgreSqlServiceIfNeeded {
 }
 
 
+function Restart-PostgreSqlService {
+    param(
+        [string]$ServiceName,
+        [string]$Reason
+    )
+
+    Write-Step $Reason
+
+    if ($DryRun) {
+        Write-Host "[dry-run] Restart-Service -Name $ServiceName -Force"
+        return
+    }
+
+    Restart-Service -Name $ServiceName -Force
+    $service = Get-Service -Name $ServiceName
+    $service.WaitForStatus('Running', [TimeSpan]::FromMinutes(2))
+}
+
+
+function Invoke-TemporaryLocalTrustRoleBootstrap {
+    param(
+        [string]$PsqlPath,
+        [string]$DbPort,
+        [string]$SqlFile
+    )
+
+    $serviceInfo = Get-PostgreSqlServiceInfo
+    if (-not $serviceInfo) {
+        throw "PostgreSQL service metadata could not be resolved, so temporary local-trust bootstrap is not available."
+    }
+
+    if (-not $serviceInfo.DataDirectory) {
+        throw "Could not determine the PostgreSQL data directory from service '$($serviceInfo.Name)'. Temporary local-trust bootstrap is not available."
+    }
+
+    $pgHbaPath = Join-Path $serviceInfo.DataDirectory "pg_hba.conf"
+    $backupPath = "$pgHbaPath.l10n_sr_hr_payroll.bak"
+
+    if ((-not $DryRun) -and (Test-Path -LiteralPath $backupPath)) {
+        throw "Found an existing pg_hba backup at '$backupPath'. Restore or remove that backup before rerunning the temporary local-trust bootstrap."
+    }
+
+    $trustBlock = @"
+# l10n_sr_hr_payroll temporary bootstrap start
+host    all             all             127.0.0.1/32            trust
+host    all             all             ::1/128                 trust
+# l10n_sr_hr_payroll temporary bootstrap end
+
+"@
+
+    if ($DryRun) {
+        Write-Host "[dry-run] Copy-Item -LiteralPath $pgHbaPath -Destination $backupPath -Force"
+        Write-Host "[dry-run] Prepend temporary localhost trust rules to $pgHbaPath"
+        Restart-PostgreSqlService -ServiceName $serviceInfo.Name -Reason "Restarting PostgreSQL with temporary localhost trust authentication"
+        Write-Host "[dry-run] $(Format-Command -FilePath $PsqlPath -Arguments @('-h', '127.0.0.1', '-p', $DbPort, '-U', $PostgreSqlAdminUser, '-d', 'postgres', '-v', 'ON_ERROR_STOP=1', '-f', $SqlFile))"
+        Write-Host "[dry-run] Restore $pgHbaPath from $backupPath"
+        Restart-PostgreSqlService -ServiceName $serviceInfo.Name -Reason "Restoring the original PostgreSQL authentication configuration"
+        return
+    }
+
+    if (-not (Test-Path -LiteralPath $pgHbaPath)) {
+        throw "Could not find pg_hba.conf at '$pgHbaPath'. Temporary local-trust bootstrap is not available."
+    }
+
+    Copy-Item -LiteralPath $pgHbaPath -Destination $backupPath -Force
+    $originalContent = Get-Content -LiteralPath $pgHbaPath -Raw
+    Set-Content -LiteralPath $pgHbaPath -Value ($trustBlock + $originalContent) -Encoding ASCII
+
+    try {
+        Restart-PostgreSqlService -ServiceName $serviceInfo.Name -Reason "Restarting PostgreSQL with temporary localhost trust authentication"
+
+        $psqlOutput = & $PsqlPath @(
+            '-h', '127.0.0.1',
+            '-p', $DbPort,
+            '-U', $PostgreSqlAdminUser,
+            '-d', 'postgres',
+            '-v', 'ON_ERROR_STOP=1',
+            '-f', $SqlFile
+        ) 2>&1
+        $exitCode = $LASTEXITCODE
+        if ($exitCode -ne 0) {
+            $psqlOutput | ForEach-Object { Write-Host $_ }
+            throw "Temporary local-trust PostgreSQL bootstrap failed with exit code $exitCode."
+        }
+    }
+    finally {
+        if (Test-Path -LiteralPath $backupPath) {
+            Copy-Item -LiteralPath $backupPath -Destination $pgHbaPath -Force
+            Remove-Item -LiteralPath $backupPath -Force
+            Restart-PostgreSqlService -ServiceName $serviceInfo.Name -Reason "Restoring the original PostgreSQL authentication configuration"
+        }
+    }
+}
+
+
 function Set-OdooDatabaseRole {
     param(
         [string]$ResolvedOdooRoot,
@@ -480,6 +602,11 @@ $$;
 
     Write-Step "Ensuring PostgreSQL role '$dbUser' matches Odoo config"
 
+    if ($UseTemporaryLocalTrustBootstrap -and (-not $PostgreSqlAdminPassword)) {
+        Invoke-TemporaryLocalTrustRoleBootstrap -PsqlPath $PsqlPath -DbPort $dbPort -SqlFile $sqlFile
+        return
+    }
+
     $adminPasswordPlainText = Convert-SecureStringToPlainText -Value $PostgreSqlAdminPassword
     $previousPassword = $env:PGPASSWORD
     try {
@@ -504,6 +631,12 @@ $$;
                 $psqlOutput | ForEach-Object { Write-Host $_ }
 
                 if ($outputText -match 'password authentication failed for user') {
+                    if ($UseTemporaryLocalTrustBootstrap) {
+                        Write-Host "Falling back to temporary localhost trust authentication because PostgreSQL superuser password authentication failed." -ForegroundColor Yellow
+                        Invoke-TemporaryLocalTrustRoleBootstrap -PsqlPath $PsqlPath -DbPort $dbPort -SqlFile $sqlFile
+                        return
+                    }
+
                     throw "PostgreSQL admin authentication failed for user '$PostgreSqlAdminUser'. Enter the PostgreSQL superuser password you chose during installation, not the Odoo db_password from odoo.conf. If your PostgreSQL superuser name is not '$PostgreSqlAdminUser', rerun the bootstrap with -PostgreSqlAdminUser <actual_user>."
                 }
 
@@ -597,7 +730,10 @@ else {
 }
 
 if (-not $PostgreSqlAdminPassword) {
-    if ($DryRun) {
+    if ($UseTemporaryLocalTrustBootstrap) {
+        $PostgreSqlAdminPassword = $null
+    }
+    elseif ($DryRun) {
         $PostgreSqlAdminPassword = ConvertTo-SecureString "dry-run-placeholder" -AsPlainText -Force
     }
     else {
