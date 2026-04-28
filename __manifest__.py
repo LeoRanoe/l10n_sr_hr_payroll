@@ -20,7 +20,7 @@ Ondersteunde verloningstypes:
 Berekeningen:
 - Bruto loon (maandloon + belastbare toelagen)
 - Forfaitaire beroepskosten aftrek (4%% van bruto, max SRD 4.800/jaar)
-- Belastingvrije voet (SRD 108.000/jaar)
+- Geïntegreerde belastingvrije voet (2026 standaard SRD 0/jaar)
 - Belastbaar jaarloon (na aftrekken)
 - Loonbelasting Artikel 14 (progressieve schijven via SR-parameters)
 - AOV bijdrage (actief tarief en franchise via SR-parameters)

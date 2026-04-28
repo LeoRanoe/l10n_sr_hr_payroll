@@ -1076,10 +1076,10 @@ class TestQAAudit2026(common.TransactionCase):
             12,
             params,
             aftrek_bv_per_periode=212.50,
+            heffingskorting_per_periode=750.0,
         )
         expected_net = float(payslip._sr_money_quantize(
             20255.60 + 1300.0 + 1250.0 + expected_overtime_gross
-            + 750.0
             - article14_result['lb_per_periode']
             - article14_result['aov_per_periode']
             - 212.50

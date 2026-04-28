@@ -67,11 +67,11 @@ result = payslip._sr_wage_in_srd()
             <field name="sequence">20</field>
             <field name="condition_select">python</field>
             <field name="condition_python">
-result = contract._sr_resolve_regels('belastbaar') > 0
+result = contract._sr_resolve_regels('belastbaar', exchange_rate=payslip.sr_exchange_rate or 1.0) > 0
             </field>
             <field name="amount_select">code</field>
             <field name="amount_python_compute">
-result = contract._sr_resolve_regels('belastbaar')
+result = contract._sr_resolve_regels('belastbaar', exchange_rate=payslip.sr_exchange_rate or 1.0)
             </field>
         </record>
 
@@ -115,7 +115,7 @@ result = kb['belastbaar']
             <field name="condition_select">none</field>
             <field name="amount_select">code</field>
             <field name="amount_python_compute">
-result = categories['BASIC'] + categories['ALW']
+result = categories['BASIC'] + result_rules['SR_ALW']['total']
             </field>
         </record>
 
@@ -140,16 +140,17 @@ result = categories['BASIC'] + categories['ALW']
             <field name="amount_select">code</field>
             <field name="amount_python_compute">
 # Artikel 14 LB per periode
-aftrek_bv = contract._sr_resolve_regels('aftrek_belastingvrij')
+aftrek_bv = contract._sr_resolve_regels('aftrek_belastingvrij', exchange_rate=payslip.sr_exchange_rate or 1.0)
 result = -float_round(payslip._sr_artikel14_lb(categories['GROSS'], aftrek_bv=aftrek_bv), precision_digits=2)
             </field>
         </record>
 
         <!-- ─────────────────────────────────────────────────────────
-             55 — SR_HK: Heffingskorting (aparte nettocredit)
+             55 — SR_HK: Heffingskorting (informatieve regel)
              ─────────────────────────────────────────────────────────
-             Wordt na GROSS toegepast zodat de Art. 14 grondslag, de
-             schijven en AOV ongewijzigd blijven. Voor FN wordt de
+             Wordt na GROSS berekend voor snapshot/reporting. De echte
+             fiscale toepassing gebeurt in SR_LB, waar heffingskorting
+             de in te houden loonbelasting verlaagt. Voor FN wordt de
              maandwaarde pro-rata omgerekend naar 12/26.
              ───────────────────────────────────────────────────────── -->
         <record id="sr_rule_heffingskorting" model="hr.salary.rule">
@@ -159,6 +160,7 @@ result = -float_round(payslip._sr_artikel14_lb(categories['GROSS'], aftrek_bv=af
             <field name="code">SR_HK</field>
             <field name="sequence">55</field>
             <field name="active" eval="True"/>
+            <field name="appears_on_payslip" eval="False"/>
             <field name="condition_select">python</field>
             <field name="condition_python">
 heffingskorting = contract._sr_get_heffingskorting_per_periode(payslip._rule_parameter('SR_HEFFINGSKORTING'))
@@ -187,7 +189,7 @@ result = float_round(heffingskorting, precision_digits=2)
             <field name="amount_select">code</field>
             <field name="amount_python_compute">
 # AOV berekening — ook gecorrigeerd voor aftrek belastingvrij (Art. 10f)
-aftrek_bv = contract._sr_resolve_regels('aftrek_belastingvrij')
+aftrek_bv = contract._sr_resolve_regels('aftrek_belastingvrij', exchange_rate=payslip.sr_exchange_rate or 1.0)
 result = -float_round(payslip._sr_artikel14_aov(categories['GROSS'], aftrek_bv=aftrek_bv), precision_digits=2)
             </field>
         </record>
@@ -207,11 +209,11 @@ result = -float_round(payslip._sr_artikel14_aov(categories['GROSS'], aftrek_bv=a
             <field name="sequence">65</field>
             <field name="condition_select">python</field>
             <field name="condition_python">
-result = contract._sr_resolve_regels('aftrek_belastingvrij') > 0
+result = contract._sr_resolve_regels('aftrek_belastingvrij', exchange_rate=payslip.sr_exchange_rate or 1.0) > 0
             </field>
             <field name="amount_select">code</field>
             <field name="amount_python_compute">
-result = -contract._sr_resolve_regels('aftrek_belastingvrij')
+result = -contract._sr_resolve_regels('aftrek_belastingvrij', exchange_rate=payslip.sr_exchange_rate or 1.0)
             </field>
         </record>
 
@@ -228,11 +230,11 @@ result = -contract._sr_resolve_regels('aftrek_belastingvrij')
             <field name="sequence">70</field>
             <field name="condition_select">python</field>
             <field name="condition_python">
-result = contract._sr_resolve_regels('inhouding') > 0
+result = contract._sr_resolve_regels('inhouding', exchange_rate=payslip.sr_exchange_rate or 1.0) > 0
             </field>
             <field name="amount_select">code</field>
             <field name="amount_python_compute">
-result = -contract._sr_resolve_regels('inhouding')
+result = -contract._sr_resolve_regels('inhouding', exchange_rate=payslip.sr_exchange_rate or 1.0)
             </field>
         </record>
 
@@ -260,7 +262,7 @@ result = any(
             <field name="amount_select">code</field>
             <field name="amount_python_compute">
 result = sum(
-    contract._sr_resolve_line_amount(r) for r in contract.sr_vaste_regels
+    contract._sr_resolve_line_amount(r, exchange_rate=payslip.sr_exchange_rate or 1.0) for r in contract.sr_vaste_regels
     if r._sr_effective_category() == 'vrijgesteld'
     and not r._is_sr_kindbijslag_line()
 )
@@ -298,7 +300,8 @@ result = kb['vrijgesteld']
         <!-- ─────────────────────────────────────────────────────────
              250 — NET: Nettoloon
              BASIC + ALW (bruto + toelagen + kinderbijslag) + DED
-             (loonbelasting + AOV + pensioen zijn negatief) + SR_VRIJ
+             (loonbelasting + AOV + pensioen zijn negatief) + SR_VRIJ,
+             exclusief SR_HK omdat die korting al verwerkt is in SR_LB.
              Seq=250 (> 200) zodat deze regel de standaard NET-regel
              van Odoo (seq=200) overschrijft met de juiste formule.
              ───────────────────────────────────────────────────────── -->
@@ -312,7 +315,7 @@ result = kb['vrijgesteld']
             <field name="condition_select">none</field>
             <field name="amount_select">code</field>
             <field name="amount_python_compute">
-result = categories['BASIC'] + categories['ALW'] + categories['DED'] + categories['SR_VRIJ']
+result = categories['BASIC'] + categories['ALW'] + categories['DED'] + categories['SR_VRIJ'] - (result_rules['SR_HK']['total'] if 'SR_HK' in result_rules else 0.0)
             </field>
         </record>
 
@@ -664,7 +667,7 @@ if belastbaar_bijz_totaal &lt;= 0:
 else:
     periodes = 12 if contract.sr_salary_type == 'monthly' else 26
     gross_per_tijdvak = categories['GROSS']
-    aftrek_bv = contract._sr_resolve_regels('aftrek_belastingvrij')
+    aftrek_bv = contract._sr_resolve_regels('aftrek_belastingvrij', exchange_rate=payslip.sr_exchange_rate or 1.0)
 
     lb_normaal = payslip._sr_artikel14_lb(gross_per_tijdvak, aftrek_bv=aftrek_bv)
     gemiddelde = belastbaar_bijz_totaal / periodes
