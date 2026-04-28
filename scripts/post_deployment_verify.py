@@ -12,7 +12,7 @@ if 'env' not in globals():
 
 
 PARAM_KEYS = {
-    'sr_payroll.belastingvrij_jaar': 108000.0,
+    'sr_payroll.belastingvrij_jaar': 0.0,
     'sr_payroll.heffingskorting': 750.0,
     'sr_payroll.akb_per_kind': 250.0,
     'sr_payroll.akb_max_bedrag': 1000.0,
@@ -21,7 +21,7 @@ PARAM_KEYS = {
 }
 
 RULE_VALUE_XMLIDS = {
-    'sr_param_belastingvrij_jaar_2026': 108000.0,
+    'sr_param_belastingvrij_jaar_2026': 0.0,
     'sr_param_heffingskorting_2026': 750.0,
     'sr_param_kindbij_max_kind_maand_2026': 250.0,
     'sr_param_kindbij_max_maand_2026': 1000.0,

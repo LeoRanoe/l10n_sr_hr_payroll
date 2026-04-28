@@ -613,26 +613,34 @@
                     </thead>
                     <tbody>
                         <tr>
-                            <td style="width:75%;">
-                                Bruto belastbaar loon per jaar
-                                <span class="text-muted" style="font-size:8pt;">
-                                    (<t t-esc="bd.get('periodes', 12)"/> periodes x
-                                    <t t-esc="'SRD {:,.2f}'.format(bd.get('bruto_per_periode', 0))"/>)
-                                </span>
-                            </td>
-                            <td class="text-end"><t t-esc="'SRD {:,.2f}'.format(bd.get('bruto_jaarloon', 0))"/></td>
-                        </tr>
-                        <tr class="text-muted">
-                            <td>- Belastingvrije som (Art. 13)</td>
-                            <td class="text-end"><t t-esc="'SRD {:,.2f}'.format(bd.get('belastingvrij_jaar', 0))"/></td>
+                            <td style="width:75%;">Bruto loon per periode</td>
+                            <td class="text-end"><t t-esc="'SRD {:,.2f}'.format(bd.get('bruto_per_periode', 0))"/></td>
                         </tr>
                         <tr class="text-muted">
                             <td>
                                 - Forfaitaire beroepskosten (Art. 12) -
                                 <t t-esc="'{:.0f}'.format(bd.get('forfaitaire_pct', 4))"/>%,
-                                max SRD <t t-esc="'{:,.0f}'.format(bd.get('forfaitaire_max_jaar', 4800))"/>/jaar
+                                max <t t-esc="'SRD {:,.2f}'.format(bd.get('forfaitaire_max_per_periode', 0))"/>/periode
                             </td>
-                            <td class="text-end"><t t-esc="'SRD {:,.2f}'.format(bd.get('forfaitaire_jaar', 0))"/></td>
+                            <td class="text-end"><t t-esc="'SRD {:,.2f}'.format(bd.get('forfaitaire_per_periode', 0))"/></td>
+                        </tr>
+                        <tr class="fw-bold table-light">
+                            <td>= Grondslag voor Belasting</td>
+                            <td class="text-end"><t t-esc="'SRD {:,.2f}'.format(bd.get('grondslag_belasting_per_periode', 0))"/></td>
+                        </tr>
+                        <tr>
+                            <td>
+                                Grondslag voor Belasting per jaar
+                                <span class="text-muted" style="font-size:8pt;">
+                                    (<t t-esc="bd.get('periodes', 12)"/> periodes x
+                                    <t t-esc="'SRD {:,.2f}'.format(bd.get('grondslag_belasting_per_periode', 0))"/>)
+                                </span>
+                            </td>
+                            <td class="text-end"><t t-esc="'SRD {:,.2f}'.format(bd.get('grondslag_belasting_jaar', 0))"/></td>
+                        </tr>
+                        <tr t-if="bd.get('belastingvrij_jaar', 0) != 0" class="text-muted">
+                            <td>- Belastingvrije som (Art. 13)</td>
+                            <td class="text-end"><t t-esc="'SRD {:,.2f}'.format(bd.get('belastingvrij_jaar', 0))"/></td>
                         </tr>
                         <tr class="fw-bold table-light">
                             <td>= Belastbaar Jaarloon</td>
@@ -666,11 +674,15 @@
                             </tr>
                         </t>
                         <tr>
-                            <td>Loonbelasting per jaar</td>
-                            <td class="text-end"><t t-esc="'SRD {:,.2f}'.format(bd.get('lb_jaar', 0))"/></td>
+                            <td>Loonbelasting per jaar vóór heffingskorting</td>
+                            <td class="text-end"><t t-esc="'SRD {:,.2f}'.format(bd.get('lb_voor_heffingskorting_jaar', 0))"/></td>
+                        </tr>
+                        <tr t-if="bd.get('heffingskorting_per_periode', 0)">
+                            <td>- Heffingskorting per periode</td>
+                            <td class="text-end"><t t-esc="'SRD {:,.2f}'.format(bd.get('heffingskorting_per_periode', 0))"/></td>
                         </tr>
                         <tr class="fw-bold text-danger">
-                            <td>Loonbelasting per periode (/ <t t-esc="bd.get('periodes', 12)"/>)</td>
+                            <td>In te houden Loonbelasting (/ <t t-esc="bd.get('periodes', 12)"/>)</td>
                             <td class="text-end">- <t t-esc="'SRD {:,.2f}'.format(bd.get('lb_per_periode', 0))"/></td>
                         </tr>
                     </tbody>
@@ -684,8 +696,16 @@
                     </thead>
                     <tbody>
                         <tr>
-                            <td style="width:75%;">Bruto loon per periode</td>
+                            <td style="width:75%;">Bruto belastbaar loon per periode</td>
                             <td class="text-end"><t t-esc="'SRD {:,.2f}'.format(bd.get('bruto_per_periode', 0))"/></td>
+                        </tr>
+                        <tr t-if="bd.get('aftrek_bv', 0)">
+                            <td>- Aftrek belastingvrij (Art. 10f)</td>
+                            <td class="text-end"><t t-esc="'SRD {:,.2f}'.format(bd.get('aftrek_bv', 0))"/></td>
+                        </tr>
+                        <tr>
+                            <td>Belastbaar loon vóór franchise</td>
+                            <td class="text-end"><t t-esc="'SRD {:,.2f}'.format(bd.get('adjusted_bruto_per_periode', bd.get('bruto_per_periode', 0)))"/></td>
                         </tr>
                         <tr t-if="not bd.get('is_fn')" class="text-muted">
                             <td>- Franchise (maandloon)</td>
@@ -700,7 +720,7 @@
                             <td class="text-end"><t t-esc="'SRD {:,.2f}'.format(bd.get('aov_grondslag', 0))"/></td>
                         </tr>
                         <tr class="fw-bold text-danger">
-                            <td>AOV (<t t-esc="'{:.0f}'.format(bd.get('aov_tarief_pct', 4))"/>%)</td>
+                            <td>AOV Inhouding (<t t-esc="'{:.0f}'.format(bd.get('aov_tarief_pct', 4))"/>%)</td>
                             <td class="text-end">- <t t-esc="'SRD {:,.2f}'.format(bd.get('aov_per_periode', 0))"/></td>
                         </tr>
                     </tbody>
@@ -716,10 +736,6 @@
                         <tr>
                             <td style="width:70%;">Totaal Bruto Loon</td>
                             <td class="text-end"><t t-esc="'SRD {:,.2f}'.format(bd.get('bruto_totaal', 0))"/></td>
-                        </tr>
-                        <tr t-if="bd.get('heffingskorting', 0) &gt; 0" class="text-success">
-                            <td>+ Heffingskorting</td>
-                            <td class="text-end"><t t-esc="'SRD {:,.2f}'.format(bd.get('heffingskorting', 0))"/></td>
                         </tr>
                         <tr class="text-danger">
                             <td>- Loonbelasting (Art. 14 WLB)</td>
@@ -762,7 +778,7 @@
                             <td class="text-end"><t t-esc="'SRD {:,.2f}'.format(inhouding_input.get('amount', 0))"/></td>
                         </tr>
                         <tr t-if="bd.get('aftrek_bv', 0) &gt; 0" class="text-danger">
-                            <td>- Aftrek Bedrijfsvoorheffing</td>
+                            <td>- Aftrek belastingvrij (Art. 10f)</td>
                             <td class="text-end"><t t-esc="'SRD {:,.2f}'.format(bd.get('aftrek_bv', 0))"/></td>
                         </tr>
                         <tr class="fw-bold table-dark">

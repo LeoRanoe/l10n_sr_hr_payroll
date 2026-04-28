@@ -14,6 +14,7 @@ class HrContract(models.Model):
     _inherit = 'hr.contract'
 
     SR_AKB_MAX_CHILDREN = 4
+    SR_FOREIGN_WAGE_WARNING_THRESHOLD = 1000.0
     SR_CONTRACT_LINE_FIELD_MAP = {
         'sr_kinderbijslag_bedrag': {
             'code': 'KINDBIJ',
@@ -171,6 +172,12 @@ class HrContract(models.Model):
         compute='_compute_sr_preview',
         store=False,
     )
+    sr_preview_belastinggrondslag = fields.Monetary(
+        string='Grondslag voor Belasting',
+        currency_field='currency_id',
+        compute='_compute_sr_preview',
+        store=False,
+    )
     sr_preview_lb_periode = fields.Monetary(
         string='Loonbelasting per Periode',
         currency_field='currency_id',
@@ -233,35 +240,36 @@ class HrContract(models.Model):
             periodes = 26 if contract.sr_salary_type == 'fn' else 12
             heffingskorting = contract._sr_get_heffingskorting_per_periode()
 
-            belastbaar_toelagen = contract._sr_resolve_regels('belastbaar')
-            vrijgesteld_toelagen = contract._sr_resolve_other_vrijgestelde_regels()
-            inhoudingen = contract._sr_resolve_regels('inhouding')
-            aftrek_bv = contract._sr_resolve_regels('aftrek_belastingvrij')
+            rate = contract._sr_get_current_exchange_rate(config_params)
+            belastbaar_toelagen = contract._sr_resolve_regels('belastbaar', exchange_rate=rate)
+            vrijgesteld_toelagen = contract._sr_resolve_other_vrijgestelde_regels(exchange_rate=rate)
+            inhoudingen = contract._sr_resolve_regels('inhouding', exchange_rate=rate)
+            aftrek_bv = contract._sr_resolve_regels('aftrek_belastingvrij', exchange_rate=rate)
 
             # Kinderbijslag splitsing (Art. 10h)
-            kb_split = contract._sr_kinderbijslag_split()
+            kb_split = contract._sr_kinderbijslag_split(exchange_rate=rate)
             kb_belastbaar = kb_split['belastbaar']
             kb_vrijgesteld = kb_split['vrijgesteld']
 
             # Basisloon omrekenen naar SRD voor fiscale berekening
-            rate = contract._sr_get_current_exchange_rate(config_params)
-            wage_srd = float(Decimal(str(contract.wage or 0.0)) * Decimal(str(rate)))
+            wage_srd = contract._sr_get_wage_in_srd(exchange_rate=rate)
 
-            # Bruto belastbaar = salaris (SRD) + belastbare toelagen + KB belastbaar
-            bruto_belastbaar = wage_srd + belastbaar_toelagen + kb_belastbaar
+            # Bruto belastbaar = basisloon (SRD) + vaste belastbare toelagen
+            bruto_belastbaar = wage_srd + belastbaar_toelagen
             result = calc.calculate_lb(
                 bruto_belastbaar, periodes, params,
                 aftrek_bv_per_periode=aftrek_bv,
+                heffingskorting_per_periode=heffingskorting,
             )
 
             bruto_totaal = wage_srd + belastbaar_toelagen + kb_belastbaar + kb_vrijgesteld + vrijgesteld_toelagen
-            contract.sr_preview_bruto = bruto_totaal
+            contract.sr_preview_bruto = calc.round_money(bruto_totaal)
+            contract.sr_preview_belastinggrondslag = result['grondslag_belasting_per_periode']
             contract.sr_preview_belastbaar_jaar = result['belastbaar_jaar']
             contract.sr_preview_lb_periode = result['lb_per_periode']
             contract.sr_preview_aov_periode = result['aov_per_periode']
-            contract.sr_preview_netto = (
+            contract.sr_preview_netto = calc.round_money(
                 bruto_totaal
-                + heffingskorting
                 - result['lb_per_periode']
                 - result['aov_per_periode']
                 - inhoudingen
@@ -304,8 +312,9 @@ class HrContract(models.Model):
                 }
             }
 
-    @api.onchange('wage')
-    def _onchange_wage_non_negative(self):
+    @api.onchange('wage', 'sr_contract_currency')
+    def _onchange_wage(self):
+        self.ensure_one()
         if self.wage is not False and self.wage < 0:
             self.wage = 0.0
             return {
@@ -314,6 +323,36 @@ class HrContract(models.Model):
                     'message': 'Negatieve lonen zijn niet toegestaan. Het basisloon is teruggezet naar SRD 0,00.',
                 }
             }
+
+        currency = self.sr_contract_currency
+        if not currency or currency.name in ('SRD', False, '') or not self.wage:
+            return False
+
+        rate = self._sr_get_current_exchange_rate()
+        wage_srd = self._sr_get_wage_in_srd(exchange_rate=rate)
+        warning_title = 'Controleer basisloon in vreemde valuta'
+        if self.wage >= self.SR_FOREIGN_WAGE_WARNING_THRESHOLD:
+            warning_message = (
+                f'Dit contract gebruikt {currency.name}. Tegen de actuele 2026 payrollkoers van {rate:,.4f} '
+                f'wordt {self.wage:,.2f} {currency.name} omgerekend naar {calc.format_srd(wage_srd)}. '
+                'Controleer of het ingevoerde bedrag niet al in SRD is opgegeven. '
+                'De definitieve loonstrook bevriest deze koers later in sr_exchange_rate.'
+            )
+        else:
+            warning_message = (
+                f'Dit contract gebruikt {currency.name}. Tegen de actuele 2026 payrollkoers van {rate:,.4f} '
+                f'wordt het basisloon voorlopig omgerekend naar {calc.format_srd(wage_srd)}. '
+                'De definitieve loonstrook bevriest deze koers later in sr_exchange_rate.'
+            )
+        return {
+            'warning': {
+                'title': warning_title,
+                'message': warning_message,
+            }
+        }
+
+    def _onchange_wage_non_negative(self):
+        return self._onchange_wage()
 
     @api.constrains('wage')
     def _check_non_negative_wage(self):
@@ -346,9 +385,9 @@ class HrContract(models.Model):
                         'title': 'Vreemde Valuta Geselecteerd',
                         'message': (
                             f'Het basisloon wordt nu ingevoerd in {currency.name} ({currency.symbol or currency.name}). '
-                            f'Controleer dat het loodbedrag in de nieuwe valuta is ingevoerd. '
-                            f'De wisselkoers uit SR Payroll Instellingen (Valuta & Wisselkoers) '
-                            f'wordt bij elke loonrun gebruikt voor omrekening naar SRD.'
+                            f'Controleer dat het loonbedrag in de nieuwe valuta is ingevoerd. '
+                            f'De contractpreview gebruikt de actuele koers uit SR Payroll Instellingen, '
+                            f'maar de loonstrook bevriest later een aparte sr_exchange_rate snapshot.'
                         ),
                     }
                 }
@@ -358,18 +397,27 @@ class HrContract(models.Model):
         """Berekent het bruto uurloon in SRD: basisloon (omgerekend) ÷ 173,33 (maandloon) of ÷ 80 (fortnight)."""
         params = self.env['ir.config_parameter'].sudo()
         for contract in self:
-            wage = contract.wage or 0.0
-            if not wage:
+            if not contract.wage:
                 contract.sr_hourly_wage = 0.0
                 continue
             # Wisselkoers ophalen voor vreemde valuta
             rate = contract._sr_get_current_exchange_rate(params)
-            wage_srd = Decimal(str(wage)) * Decimal(str(rate))
+            wage_srd = Decimal(str(contract._sr_get_wage_in_srd(exchange_rate=rate)))
             divisor = Decimal('80.0') if contract.sr_salary_type == 'fn' else Decimal('173.333333')
             hourly = wage_srd / divisor
             contract.sr_hourly_wage = float(
                 hourly.quantize(Decimal('0.0001'), rounding=ROUND_HALF_UP)
             )
+
+    def _sr_get_wage_in_srd(self, exchange_rate=None):
+        """Zet het contractloon om naar SRD met dezelfde afronding als de payslip snapshot."""
+        self.ensure_one()
+        wage = Decimal(str(self.wage or 0.0))
+        if not wage:
+            return 0.0
+        rate = Decimal(str(exchange_rate if exchange_rate is not None else self._sr_get_current_exchange_rate()))
+        wage_srd = wage * rate
+        return float(wage_srd.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP))
 
     def _sr_get_current_exchange_rate(self, params=None):
         """Leest de actuele wisselkoers voor de contractvaluta (voor preview/display)."""
@@ -532,7 +580,7 @@ class HrContract(models.Model):
             return calc.round_money(heffingskorting_maand)
         return calc.round_money(heffingskorting_maand * 12.0 / 26.0)
 
-    def _sr_resolve_line_amount(self, line):
+    def _sr_resolve_line_amount(self, line, exchange_rate=None):
         """
         Berekent het effectieve bedrag van een vaste loon regel.
 
@@ -540,37 +588,38 @@ class HrContract(models.Model):
         Bij percentage: berekend over basisloon of bruto belastbaar.
         """
         if line.amount_type == 'percentage' and line.percentage:
+            wage_srd = self._sr_get_wage_in_srd(exchange_rate=exchange_rate)
             if line.percentage_base == 'bruto_belastbaar':
-                base = (self.wage or 0.0) + sum(
-                    l.amount or 0.0 for l in self.sr_vaste_regels
+                base = wage_srd + sum(
+                    self._sr_resolve_line_amount(l, exchange_rate=exchange_rate) for l in self.sr_vaste_regels
                     if l._sr_effective_category() == 'belastbaar'
                     and l.amount_type != 'percentage'
                     and l.id != line.id
                 )
             else:
-                base = self.wage or 0.0
-            return base * (line.percentage / 100.0)
-        return line.amount or 0.0
+                base = wage_srd
+            return calc.round_money(base * (line.percentage / 100.0))
+        return calc.round_money(line.amount or 0.0)
 
-    def _sr_resolve_regels(self, categorie):
+    def _sr_resolve_regels(self, categorie, exchange_rate=None):
         """
         Totale bedrag van vaste regels voor een bepaalde categorie.
 
         Handelt percentages automatisch af via _sr_resolve_line_amount.
         """
-        return sum(
-            self._sr_resolve_line_amount(r) for r in self.sr_vaste_regels
+        return calc.round_money(sum(
+            self._sr_resolve_line_amount(r, exchange_rate=exchange_rate) for r in self.sr_vaste_regels
             if r._sr_effective_category() == categorie
-        )
+        ))
 
-    def _sr_resolve_other_vrijgestelde_regels(self):
+    def _sr_resolve_other_vrijgestelde_regels(self, exchange_rate=None):
         """Totale vrijgestelde contractregels exclusief kinderbijslag (Art. 10h)."""
-        return sum(
-            self._sr_resolve_line_amount(r) for r in self.sr_vaste_regels
+        return calc.round_money(sum(
+            self._sr_resolve_line_amount(r, exchange_rate=exchange_rate) for r in self.sr_vaste_regels
             if r._sr_effective_category() == 'vrijgesteld' and not r._is_sr_kindbijslag_line()
-        )
+        ))
 
-    def _sr_kinderbijslag_split(self, max_kind_maand=None, max_maand=None):
+    def _sr_kinderbijslag_split(self, max_kind_maand=None, max_maand=None, exchange_rate=None):
         """
         Splitst kinderbijslag in belastbaar en vrijgesteld deel (Art. 10h).
 
@@ -599,7 +648,7 @@ class HrContract(models.Model):
             r for r in self.sr_vaste_regels
             if r._is_sr_kindbijslag_line()
         ]
-        total_kb = sum(self._sr_resolve_line_amount(r) for r in kb_lines) if kb_lines else 0.0
+        total_kb = sum(self._sr_resolve_line_amount(r, exchange_rate=exchange_rate) for r in kb_lines) if kb_lines else 0.0
 
         if total_kb <= 0:
             return {'belastbaar': 0.0, 'vrijgesteld': 0.0}
@@ -616,7 +665,10 @@ class HrContract(models.Model):
         kb_exempt = min(total_kb, exempt_per_periode)
         kb_belastbaar = max(0.0, total_kb - exempt_per_periode)
 
-        return {'belastbaar': kb_belastbaar, 'vrijgesteld': kb_exempt}
+        return {
+            'belastbaar': calc.round_money(kb_belastbaar),
+            'vrijgesteld': calc.round_money(kb_exempt),
+        }
 
     def generate_work_entries(self, date_start, date_stop, force=False):
         """

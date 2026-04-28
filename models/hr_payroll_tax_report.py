@@ -142,8 +142,8 @@ class HrPayrollTaxReport(models.Model):
         help='Toegepaste heffingskorting (belastingvermindering toegepast op werknemer)',
     )
     amount_pensioen_srd = fields.Float(
-        string='Pensioenfonds (SRD)', digits=(16, 2), readonly=True, aggregator='sum',
-        help='Pensioenfonds inhouding per periode',
+        string='Andere inhoudingen (SRD)', digits=(16, 2), readonly=True, aggregator='sum',
+        help='Geaggregeerde netto inhoudingen uit contract en payslip per periode',
     )
 
     def _raise_readonly_view_error(self):

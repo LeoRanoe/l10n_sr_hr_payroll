@@ -65,13 +65,29 @@ Zonder actieve parameterwaarde beïnvloeden die placeholders de huidige berekeni
 Voor een test-VM is de veiligste flow:
 
 1. zorg dat `git` beschikbaar is op de VM
+2. zorg dat PostgreSQL op de VM is geinstalleerd en bereikbaar is op de host/poort uit `server/odoo.conf`
 2. gebruik een aparte testdatabase
 3. laat de modulecode altijd syncen vanaf alleen `origin/staging`
 4. draai daarna een Odoo `install` of `update` headless met `--stop-after-init`
 
+Als PostgreSQL ontbreekt op de VM, stopt `sync_from_staging.ps1` nu vroeg met een duidelijke prereq-fout in plaats van pas later met een Odoo stacktrace.
+
 Voor Windows is daar nu een wrapper voor:
 
 `scripts/sync_from_staging.ps1`
+
+Voor een volledigere test-VM bootstrap is er nu ook:
+
+`scripts/bootstrap_test_vm.ps1`
+
+Dat script automatiseert extra stappen rond een nieuwe VM:
+
+- installeert Git via `winget` als `git` nog ontbreekt
+- installeert PostgreSQL via `winget` als PostgreSQL nog ontbreekt
+- start de PostgreSQL service
+- leest `db_host`, `db_port`, `db_user` en `db_password` uit `server/odoo.conf`
+- maakt of herstelt automatisch de Odoo database-role in PostgreSQL met `CREATEDB`
+- roept daarna `scripts/sync_from_staging.ps1` aan om de module vanaf alleen `origin/staging` te installeren en optioneel een Scheduled Task te registreren
 
 Het script doet dit in vaste volgorde:
 
@@ -86,6 +102,32 @@ Het script doet dit in vaste volgorde:
 #### Eenmalige installatie met alleen plakken in PowerShell
 
 Als deze bestanden al naar `origin/staging` zijn gepusht, kun je op een schone test-VM dit plakken in een verhoogde PowerShell:
+
+```powershell
+$scriptUrl = "https://raw.githubusercontent.com/LeoRanoe/l10n_sr_hr_payroll/staging/scripts/bootstrap_test_vm.ps1"
+$localScript = Join-Path $env:TEMP "bootstrap_test_vm.ps1"
+Invoke-WebRequest -UseBasicParsing -Uri $scriptUrl -OutFile $localScript
+
+& powershell.exe -NoProfile -ExecutionPolicy Bypass -File $localScript `
+	-OdooRoot "C:\Program Files\Odoo 18.0e.20260407" `
+	-AddonsRoot "C:\Program Files\Odoo 18.0e.20260407\sessions\addons\18.0" `
+	-Database "sr_payroll_test" `
+	-PostgreSqlAdminPassword "KiesHierDezelfdePostgresAdminPassword" `
+	-RegisterScheduledTask `
+	-CheckEveryMinutes 15
+```
+
+Belangrijk bij een lege VM zonder PostgreSQL:
+
+- het bootstrap-script gebruikt voor PostgreSQL bewust `winget --interactive`
+- gebruik in de PostgreSQL installer wizard dezelfde admin-password als in `-PostgreSqlAdminPassword`
+- daarna kan het script automatisch de Odoo-role uit `odoo.conf` aanmaken en de module-installatie afmaken
+
+Als PostgreSQL al op de VM staat, loopt het script direct door naar role-setup en module-installatie.
+
+#### Alleen de staging-wrapper zonder PostgreSQL bootstrap
+
+Als Git en PostgreSQL al correct aanwezig zijn op de VM, kun je ook alleen de staging-wrapper gebruiken:
 
 ```powershell
 $scriptUrl = "https://raw.githubusercontent.com/LeoRanoe/l10n_sr_hr_payroll/staging/scripts/sync_from_staging.ps1"

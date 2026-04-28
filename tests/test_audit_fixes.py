@@ -35,9 +35,10 @@ class TestAuditFixes(common.TransactionCase):
         cls.hourly_structure_type = cls.env.ref('l10n_sr_hr_payroll.sr_payroll_structure_type_hourly')
         cls.kindbijslag_type = cls.env.ref('l10n_sr_hr_payroll.sr_line_type_kinderbijslag')
         cls.overwerk_input_type = cls.env.ref('l10n_sr_hr_payroll.sr_input_overwerk')
+        cls.usd_currency = cls.env.ref('base.USD')
 
-    def _make_contract(self, wage=20000.0, salary_type='monthly', sr_aantal_kinderen=0, sr_vaste_regels=None, structure_type=None):
-        return self.env['hr.contract'].create({
+    def _make_contract(self, wage=20000.0, salary_type='monthly', sr_aantal_kinderen=0, sr_vaste_regels=None, structure_type=None, **extra_vals):
+        vals = {
             'name': 'Audit Fix Contract',
             'employee_id': self.employee.id,
             'company_id': self.company.id,
@@ -48,7 +49,9 @@ class TestAuditFixes(common.TransactionCase):
             'sr_vaste_regels': sr_vaste_regels or [],
             'date_start': date(2026, 1, 1),
             'state': 'open',
-        })
+        }
+        vals.update(extra_vals)
+        return self.env['hr.contract'].create(vals)
 
     def _make_payslip(self, contract, structure=None):
         payslip = self.env['hr.payslip'].create({
@@ -123,6 +126,190 @@ class TestAuditFixes(common.TransactionCase):
 
         self.assertEqual(contract.wage, 0.0)
         self.assertIn('Negatieve lonen', warning['warning']['message'])
+
+    def test_2026_belastingvrij_parameter_defaults_to_zero(self):
+        params = calc.fetch_params_from_rule_parameter(self.env, date(2026, 5, 1))
+
+        self.assertEqual(params['belastingvrij_jaar'], 0.0)
+        self.assertEqual(
+            calc.get_config_parameter_value(self.env, 'SR_BELASTINGVRIJ_JAAR'),
+            0.0,
+        )
+
+    def test_contract_view_renders_wage_in_contract_currency(self):
+        view = self.env.ref('l10n_sr_hr_payroll.hr_contract_sr_view_form')
+
+        self.assertIn("options=\"{'currency_field': 'sr_contract_currency'}\"", view.arch_db)
+
+    def test_foreign_currency_onchange_warns_with_exchange_rate_snapshot_context(self):
+        contract = self.env['hr.contract'].new({
+            'wage': 1500.0,
+            'sr_contract_currency': self.usd_currency.id,
+        })
+
+        warning = contract._onchange_wage()
+
+        self.assertTrue(warning)
+        self.assertIn('36.5000', warning['warning']['message'])
+        self.assertIn('sr_exchange_rate', warning['warning']['message'])
+
+    def test_usd_preview_bruto_matches_rounded_payslip_basic(self):
+        contract = self._make_contract(
+            wage=123.456,
+            sr_contract_currency=self.usd_currency.id,
+        )
+
+        payslip = self._make_payslip(contract)
+
+        self.assertAlmostEqual(contract.sr_preview_bruto, self._line_total(payslip, 'BASIC'), places=2)
+
+    def test_percentage_contract_rule_uses_srd_basis_for_foreign_currency(self):
+        contract = self._make_contract(
+            wage=100.0,
+            sr_contract_currency=self.usd_currency.id,
+            sr_vaste_regels=[(0, 0, {
+                'name': '10% Toelage',
+                'sr_categorie': 'belastbaar',
+                'amount_type': 'percentage',
+                'percentage': 10.0,
+                'percentage_base': 'basisloon',
+            })],
+        )
+
+        payslip = self._make_payslip(contract)
+
+        self.assertAlmostEqual(self._line_total(payslip, 'SR_ALW'), 365.0, places=2)
+
+    def test_gross_only_contains_basic_plus_taxable_contract_allowances(self):
+        contract = self._make_contract(
+            wage=20000.0,
+            sr_aantal_kinderen=5,
+            sr_vaste_regels=[
+                (0, 0, {
+                    'name': 'Belastbare Toelage',
+                    'sr_categorie': 'belastbaar',
+                    'amount': 300.0,
+                }),
+                (0, 0, {
+                    'name': 'Kinderbijslag',
+                    'type_id': self.kindbijslag_type.id,
+                    'sr_categorie': 'vrijgesteld',
+                    'amount': 1250.0,
+                }),
+            ],
+        )
+
+        payslip = self._make_payslip(contract)
+
+        self.assertAlmostEqual(self._line_total(payslip, 'SR_ALW'), 300.0, places=2)
+        self.assertAlmostEqual(self._line_total(payslip, 'SR_KB_BELAST'), 250.0, places=2)
+        self.assertAlmostEqual(self._line_total(payslip, 'GROSS'), 20300.0, places=2)
+
+    def test_contract_preview_lb_stays_aligned_with_gross_without_taxable_child_allowance(self):
+        contract = self._make_contract(
+            wage=20000.0,
+            sr_aantal_kinderen=5,
+            sr_vaste_regels=[
+                (0, 0, {
+                    'name': 'Belastbare Toelage',
+                    'sr_categorie': 'belastbaar',
+                    'amount': 300.0,
+                }),
+                (0, 0, {
+                    'name': 'Kinderbijslag',
+                    'type_id': self.kindbijslag_type.id,
+                    'sr_categorie': 'vrijgesteld',
+                    'amount': 1250.0,
+                }),
+            ],
+        )
+
+        payslip = self._make_payslip(contract)
+
+        self.assertAlmostEqual(contract.sr_preview_lb_periode, abs(self._line_total(payslip, 'SR_LB')), places=2)
+
+    def test_contract_preview_exposes_period_tax_base_after_forfaitaire(self):
+        contract = self._make_contract(
+            wage=20000.0,
+            sr_vaste_regels=[(0, 0, {
+                'name': 'Belastbare Toelage',
+                'sr_categorie': 'belastbaar',
+                'amount': 300.0,
+            })],
+        )
+
+        payslip = self._make_payslip(contract)
+        breakdown = payslip._get_sr_artikel14_breakdown()
+
+        self.assertAlmostEqual(contract.sr_preview_belastinggrondslag, 19900.0, places=2)
+        self.assertAlmostEqual(
+            contract.sr_preview_belastinggrondslag,
+            breakdown['grondslag_belasting_per_periode'],
+            places=2,
+        )
+
+    def test_calculator_applies_heffingskorting_to_withheld_lb(self):
+        params = calc.fetch_params_from_rule_parameter(self.env, date(2026, 5, 1))
+
+        result = calc.calculate_lb(10000.0, 12, params, heffingskorting_per_periode=750.0)
+
+        self.assertAlmostEqual(result['lb_voor_heffingskorting_per_periode'], 1638.0, places=2)
+        self.assertAlmostEqual(result['heffingskorting_per_periode'], 750.0, places=2)
+        self.assertAlmostEqual(result['lb_per_periode'], 888.0, places=2)
+
+    def test_contract_preview_lb_is_after_heffingskorting(self):
+        contract = self._make_contract(wage=20255.60)
+        payslip = self._make_payslip(contract)
+        breakdown = payslip._get_sr_artikel14_breakdown()
+
+        self.assertAlmostEqual(
+            breakdown['lb_voor_heffingskorting_per_periode'],
+            breakdown['lb_per_periode'] + breakdown['heffingskorting_per_periode'],
+            places=2,
+        )
+        self.assertAlmostEqual(contract.sr_preview_lb_periode, abs(self._line_total(payslip, 'SR_LB')), places=2)
+        self.assertAlmostEqual(contract.sr_preview_lb_periode, breakdown['lb_per_periode'], places=2)
+
+    def test_preview_breakdown_aov_shows_aftrek_bv_before_franchise(self):
+        contract = self._make_contract(
+            wage=5000.0,
+            sr_vaste_regels=[(0, 0, {
+                'type_id': self.env.ref('l10n_sr_hr_payroll.sr_line_type_pensioen').id,
+                'amount': 1000.0,
+            })],
+        )
+
+        self.assertIn('Aftrek belastingvrij (Art. 10f)', contract.sr_preview_breakdown_html)
+        self.assertIn('Belastbaar loon vóór franchise', contract.sr_preview_breakdown_html)
+        self.assertIn('AOV inhouding per periode', contract.sr_preview_breakdown_html)
+
+    def test_detailed_report_summary_no_longer_shows_heffingskorting_as_net_plus(self):
+        report_view = self.env.ref('l10n_sr_hr_payroll.report_payslip_sr_detailed')
+
+        self.assertNotIn('+ Heffingskorting', report_view.arch_db)
+        self.assertIn('Aftrek belastingvrij (Art. 10f)', report_view.arch_db)
+
+    def test_other_deductions_labels_are_generic_in_year_reports(self):
+        annual_view = self.env.ref('l10n_sr_hr_payroll.report_sr_annual_statement')
+        deduction_field = self.env['hr.payroll.tax.report']._fields['amount_pensioen_srd']
+
+        self.assertIn('Andere Inhoudingen', annual_view.arch_db)
+        self.assertIn('ANDERE INHOUDINGEN', annual_view.arch_db)
+        self.assertEqual(deduction_field.string, 'Andere inhoudingen (SRD)')
+
+    def test_payslip_summary_fields_are_stored_snapshots(self):
+        payslip_model = self.env['hr.payslip']
+        field_names = [
+            'sr_bruto_totaal_display',
+            'sr_heffingskorting_display',
+            'sr_lb_totaal_display',
+            'sr_aov_totaal_display',
+            'sr_inhoudingen_totaal_display',
+            'sr_netto_totaal_display',
+        ]
+
+        for field_name in field_names:
+            self.assertTrue(payslip_model._fields[field_name].store, field_name)
 
     def test_negative_payslip_input_is_rejected(self):
         contract = self._make_contract()
@@ -262,6 +449,16 @@ class TestAuditFixes(common.TransactionCase):
         self.assertEqual(result['bruto_per_periode'], 1234.56)
         self.assertIn('SRD 1.234,56', html)
         self.assertNotIn('1.234.56', html)
+
+    def test_calculator_exposes_period_tax_base_after_forfaitaire(self):
+        params = calc.fetch_params_from_rule_parameter(self.env, date(2026, 5, 1))
+
+        result = calc.calculate_lb(10000.0, 12, params)
+
+        self.assertAlmostEqual(result['forfaitaire_per_periode'], 400.0, places=2)
+        self.assertAlmostEqual(result['forfaitaire_max_per_periode'], 400.0, places=2)
+        self.assertAlmostEqual(result['grondslag_belasting_per_periode'], 9600.0, places=2)
+        self.assertAlmostEqual(result['grondslag_belasting_jaar'], 115200.0, places=2)
 
     def test_sr_payslip_rejects_period_spanning_contract_change(self):
         self._make_contract(
