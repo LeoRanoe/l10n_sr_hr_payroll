@@ -14,7 +14,7 @@ param(
     [string]$PostgreSqlPackageId = "PostgreSQL.PostgreSQL.16",
     [string]$PostgreSqlAdminUser = "postgres",
     [Parameter(Mandatory = $true)]
-    [string]$PostgreSqlAdminPassword,
+    [SecureString]$PostgreSqlAdminPassword,
 
     [switch]$RegisterScheduledTask,
     [ValidateRange(5, 1440)]
@@ -134,7 +134,7 @@ function Get-IniSetting {
 }
 
 
-function Ensure-Directory {
+function New-DirectoryIfMissing {
     param([string]$Path)
 
     if (Test-Path -LiteralPath $Path) {
@@ -147,6 +147,21 @@ function Ensure-Directory {
     }
 
     New-Item -ItemType Directory -Path $Path -Force | Out-Null
+}
+
+
+function Convert-SecureStringToPlainText {
+    param([SecureString]$Value)
+
+    $bstr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($Value)
+    try {
+        return [Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr)
+    }
+    finally {
+        if ($bstr -ne [IntPtr]::Zero) {
+            [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr)
+        }
+    }
 }
 
 
@@ -195,7 +210,89 @@ function Get-PsqlPath {
 }
 
 
-function Ensure-GitInstalled {
+function Get-WingetInstallerMetadata {
+    param([string]$PackageId)
+
+    $wingetPath = (Get-Command winget -ErrorAction SilentlyContinue).Source
+    if (-not $wingetPath) {
+        throw "winget is not available, so the PostgreSQL installer metadata cannot be resolved automatically."
+    }
+
+    $output = Invoke-ExternalCommand `
+        -FilePath $wingetPath `
+        -Arguments @("show", "--id", $PackageId, "--accept-source-agreements") `
+        -Description "winget show $PackageId" `
+        -CaptureOutput
+
+    $url = $null
+    $sha256 = $null
+
+    foreach ($line in ($output -split [Environment]::NewLine)) {
+        if (-not $url -and ($line -match '^\s*Installer Url:\s*(\S+)\s*$')) {
+            $url = $Matches[1]
+            continue
+        }
+
+        if (-not $sha256 -and ($line -match '^\s*Installer SHA256:\s*([A-Fa-f0-9]+)\s*$')) {
+            $sha256 = $Matches[1].ToUpperInvariant()
+        }
+    }
+
+    if (-not $url) {
+        throw "Could not read the PostgreSQL installer URL from winget metadata for package '$PackageId'."
+    }
+
+    return [pscustomobject]@{
+        Url = $url
+        Sha256 = $sha256
+    }
+}
+
+
+function Install-PostgreSqlViaDirectDownload {
+    param([string]$PackageId)
+
+    $metadata = Get-WingetInstallerMetadata -PackageId $PackageId
+    $downloadDir = Join-Path $env:TEMP "l10n_sr_hr_payroll-bootstrap"
+    $installerFileName = [System.IO.Path]::GetFileName(([Uri]$metadata.Url).AbsolutePath)
+    $installerPath = Join-Path $downloadDir $installerFileName
+
+    New-DirectoryIfMissing -Path $downloadDir
+
+    Write-Step "Downloading PostgreSQL installer directly"
+    Invoke-ExternalCommand `
+        -FilePath "curl.exe" `
+        -Arguments @("-L", "--fail", "--retry", "3", "--output", $installerPath, $metadata.Url) `
+        -Description "curl PostgreSQL installer"
+
+    if ($metadata.Sha256) {
+        if ($DryRun) {
+            Write-Host "[dry-run] Get-FileHash -Algorithm SHA256 -Path $installerPath"
+        }
+        else {
+            $downloadHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $installerPath).Hash.ToUpperInvariant()
+            if ($downloadHash -ne $metadata.Sha256) {
+                throw "Downloaded PostgreSQL installer hash '$downloadHash' does not match expected '$($metadata.Sha256)'."
+            }
+        }
+    }
+
+    Write-Host "If the PostgreSQL installer asks for an admin password, use the same value you passed in -PostgreSqlAdminPassword." -ForegroundColor Yellow
+
+    Write-Step "Launching PostgreSQL installer directly"
+    if ($DryRun) {
+        Write-Host "[dry-run] Start-Process -FilePath $installerPath -Wait"
+        return
+    }
+
+    $process = Start-Process -FilePath $installerPath -PassThru -Wait
+    if ($process.ExitCode -ne 0) {
+        throw "Direct PostgreSQL installer exited with code $($process.ExitCode)."
+    }
+}
+
+
+function Install-GitIfMissing {
     if (Get-Command git -ErrorAction SilentlyContinue) {
         return
     }
@@ -228,7 +325,7 @@ function Ensure-GitInstalled {
 }
 
 
-function Ensure-PostgreSqlInstalled {
+function Install-PostgreSqlIfMissing {
     param([string]$ResolvedOdooRoot)
 
     $service = Get-PostgreSqlService
@@ -248,24 +345,31 @@ function Ensure-PostgreSqlInstalled {
     }
 
     Write-Step "Installing PostgreSQL with winget"
-    Invoke-ExternalCommand `
-        -FilePath $wingetPath `
-        -Arguments @(
-            "install",
-            "--id", $PostgreSqlPackageId,
-            "--exact",
-            "--interactive",
-            "--accept-source-agreements",
-            "--accept-package-agreements"
-        ) `
-        -Description "winget install $PostgreSqlPackageId"
+    try {
+        Invoke-ExternalCommand `
+            -FilePath $wingetPath `
+            -Arguments @(
+                "install",
+                "--id", $PostgreSqlPackageId,
+                "--exact",
+                "--interactive",
+                "--accept-source-agreements",
+                "--accept-package-agreements"
+            ) `
+            -Description "winget install $PostgreSqlPackageId"
+    }
+    catch {
+        Write-Host "winget install failed: $($_.Exception.Message)" -ForegroundColor Yellow
+        Write-Host "Falling back to a direct PostgreSQL installer download because the winget download step can fail with HTTP 403 on some VMs." -ForegroundColor Yellow
+        Install-PostgreSqlViaDirectDownload -PackageId $PostgreSqlPackageId
+    }
 
     $script:postInstallMessage = "During the PostgreSQL installer wizard, use the same admin password you passed in -PostgreSqlAdminPassword so the rest of this script can create the Odoo role automatically."
     Write-Host $script:postInstallMessage -ForegroundColor Yellow
 }
 
 
-function Ensure-PostgreSqlRunning {
+function Start-PostgreSqlServiceIfNeeded {
     $service = Get-PostgreSqlService
     if (-not $service) {
         throw "PostgreSQL does not appear to be installed. No Windows service with 'postgres' in the name was found after installation."
@@ -288,7 +392,7 @@ function Ensure-PostgreSqlRunning {
 }
 
 
-function Ensure-OdooDatabaseRole {
+function Set-OdooDatabaseRole {
     param(
         [string]$ResolvedOdooRoot,
         [string]$PsqlPath
@@ -340,9 +444,10 @@ $$;
 
     Write-Step "Ensuring PostgreSQL role '$dbUser' matches Odoo config"
 
+    $adminPasswordPlainText = Convert-SecureStringToPlainText -Value $PostgreSqlAdminPassword
     $previousPassword = $env:PGPASSWORD
     try {
-        $env:PGPASSWORD = $PostgreSqlAdminPassword
+        $env:PGPASSWORD = $adminPasswordPlainText
         Invoke-ExternalCommand `
             -FilePath $PsqlPath `
             -Arguments @(
@@ -356,6 +461,7 @@ $$;
             -Description "psql role bootstrap"
     }
     finally {
+        $adminPasswordPlainText = $null
         $env:PGPASSWORD = $previousPassword
         if ((-not $DryRun) -and (Test-Path -LiteralPath $sqlFile)) {
             Remove-Item -LiteralPath $sqlFile -Force
@@ -439,15 +545,15 @@ else {
     $AddonsRoot
 }
 
-Ensure-Directory -Path $resolvedAddonsRoot
-Ensure-GitInstalled
-Ensure-PostgreSqlInstalled -ResolvedOdooRoot $resolvedOdooRoot
-$postgresServiceName = Ensure-PostgreSqlRunning
+New-DirectoryIfMissing -Path $resolvedAddonsRoot
+Install-GitIfMissing
+Install-PostgreSqlIfMissing -ResolvedOdooRoot $resolvedOdooRoot
+$postgresServiceName = Start-PostgreSqlServiceIfNeeded
 $psqlPath = Get-PsqlPath -ResolvedOdooRoot $resolvedOdooRoot
 
 if (-not $psqlPath) {
     throw "PostgreSQL service '$postgresServiceName' is running, but psql.exe could not be found. Install PostgreSQL client tools or rerun after opening a new PowerShell session."
 }
 
-Ensure-OdooDatabaseRole -ResolvedOdooRoot $resolvedOdooRoot -PsqlPath $psqlPath
+Set-OdooDatabaseRole -ResolvedOdooRoot $resolvedOdooRoot -PsqlPath $psqlPath
 Invoke-StagingSync -ResolvedAddonsRoot $resolvedAddonsRoot

@@ -83,7 +83,7 @@ Voor een volledigere test-VM bootstrap is er nu ook:
 Dat script automatiseert extra stappen rond een nieuwe VM:
 
 - installeert Git via `winget` als `git` nog ontbreekt
-- installeert PostgreSQL via `winget` als PostgreSQL nog ontbreekt
+- probeert PostgreSQL eerst via `winget` te installeren en valt daarna terug op een directe download van de officiële installer als `winget` op de VM een 403-downloadfout geeft
 - start de PostgreSQL service
 - leest `db_host`, `db_port`, `db_user` en `db_password` uit `server/odoo.conf`
 - maakt of herstelt automatisch de Odoo database-role in PostgreSQL met `CREATEDB`
@@ -106,20 +106,22 @@ Als deze bestanden al naar `origin/staging` zijn gepusht, kun je op een schone t
 ```powershell
 $scriptUrl = "https://raw.githubusercontent.com/LeoRanoe/l10n_sr_hr_payroll/staging/scripts/bootstrap_test_vm.ps1"
 $localScript = Join-Path $env:TEMP "bootstrap_test_vm.ps1"
+$postgresAdminPassword = Read-Host "PostgreSQL admin password" -AsSecureString
 Invoke-WebRequest -UseBasicParsing -Uri $scriptUrl -OutFile $localScript
 
 & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $localScript `
 	-OdooRoot "C:\Program Files\Odoo 18.0e.20260407" `
 	-AddonsRoot "C:\Program Files\Odoo 18.0e.20260407\sessions\addons\18.0" `
 	-Database "sr_payroll_test" `
-	-PostgreSqlAdminPassword "KiesHierDezelfdePostgresAdminPassword" `
+	-PostgreSqlAdminPassword $postgresAdminPassword `
 	-RegisterScheduledTask `
 	-CheckEveryMinutes 15
 ```
 
 Belangrijk bij een lege VM zonder PostgreSQL:
 
-- het bootstrap-script gebruikt voor PostgreSQL bewust `winget --interactive`
+- het bootstrap-script probeert PostgreSQL eerst via `winget --interactive`
+- als `winget` de installer niet kan downloaden, downloadt het script dezelfde PostgreSQL installer direct en start die alsnog interactief
 - gebruik in de PostgreSQL installer wizard dezelfde admin-password als in `-PostgreSqlAdminPassword`
 - daarna kan het script automatisch de Odoo-role uit `odoo.conf` aanmaken en de module-installatie afmaken
 
