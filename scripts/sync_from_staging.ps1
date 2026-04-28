@@ -469,12 +469,77 @@ $remoteHead = Invoke-ExternalCommand `
     -CaptureOutput
 
 if ($localHead -ne $remoteHead) {
+    $syncScriptWasUpdated = Invoke-ExternalCommand `
+        -FilePath $gitPath `
+        -Arguments @("-C", $ModuleRoot, "diff", "--name-only", $localHead, $remoteHead, "--", "scripts/sync_from_staging.ps1") `
+        -Description "git diff --name-only" `
+        -CaptureOutput
+
     Write-Step "Fast-forwarding local $branch to origin/$branch"
     Invoke-ExternalCommand `
         -FilePath $gitPath `
         -Arguments @("-C", $ModuleRoot, "pull", "--ff-only", "origin", $branch) `
         -Description "git pull --ff-only"
     $changesDetected = $true
+
+    if ($syncScriptWasUpdated -and (-not $env:L10N_SR_SYNC_REEXEC)) {
+        $relaunchArgs = @(
+            "-NoProfile",
+            "-ExecutionPolicy", "Bypass",
+            "-File", (Join-Path $ModuleRoot "scripts\sync_from_staging.ps1"),
+            "-Database", $Database,
+            "-Action", $Action,
+            "-RepoUrl", $RepoUrl,
+            "-ModuleName", $ModuleName,
+            "-AddonsRoot", $AddonsRoot,
+            "-ModuleRoot", $ModuleRoot
+        )
+
+        if ($OdooRoot) {
+            $relaunchArgs += @("-OdooRoot", $OdooRoot)
+        }
+
+        if ($DataDir) {
+            $relaunchArgs += @("-DataDir", $DataDir)
+        }
+
+        if ($RunTests) {
+            $relaunchArgs += "-RunTests"
+        }
+
+        if ($SkipOdoo) {
+            $relaunchArgs += "-SkipOdoo"
+        }
+
+        if ($RegisterScheduledTask) {
+            $relaunchArgs += "-RegisterScheduledTask"
+            $relaunchArgs += @("-CheckEveryMinutes", "$CheckEveryMinutes", "-TaskName", $TaskName)
+        }
+
+        if ($ForceClean) {
+            $relaunchArgs += "-ForceClean"
+        }
+
+        if ($DryRun) {
+            $relaunchArgs += "-DryRun"
+        }
+
+        Write-Step "Restarting staging sync to use the freshly pulled script version"
+
+        $previousReexecFlag = $env:L10N_SR_SYNC_REEXEC
+        try {
+            $env:L10N_SR_SYNC_REEXEC = "1"
+            Invoke-ExternalCommand `
+                -FilePath (Join-Path $env:SystemRoot "System32\WindowsPowerShell\v1.0\powershell.exe") `
+                -Arguments $relaunchArgs `
+                -Description "relaunch sync_from_staging.ps1"
+        }
+        finally {
+            $env:L10N_SR_SYNC_REEXEC = $previousReexecFlag
+        }
+
+        return
+    }
 }
 
 $currentCommit = Invoke-ExternalCommand `
