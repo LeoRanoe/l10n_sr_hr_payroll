@@ -179,6 +179,51 @@ function Test-TcpEndpoint {
 }
 
 
+function Get-PostgreSqlService {
+    $services = @(Get-Service -ErrorAction SilentlyContinue | Where-Object {
+        $_.Name -match 'postgres' -or $_.DisplayName -match 'postgres'
+    })
+
+    if ($services.Count -eq 0) {
+        return $null
+    }
+
+    return $services | Sort-Object Name | Select-Object -First 1
+}
+
+
+function Get-PgIsReadyPath {
+    param([string]$ResolvedOdooRoot)
+
+    $candidates = @(
+        (Join-Path $ResolvedOdooRoot "PostgreSQL\bin\pg_isready.exe")
+    )
+
+    $versionRoots = @(
+        "C:\Program Files\PostgreSQL",
+        "C:\Program Files (x86)\PostgreSQL"
+    )
+
+    foreach ($root in $versionRoots) {
+        if (-not (Test-Path -LiteralPath $root)) {
+            continue
+        }
+
+        $candidate = Get-ChildItem -LiteralPath $root -Directory -ErrorAction SilentlyContinue |
+            Sort-Object Name -Descending |
+            ForEach-Object { Join-Path $_.FullName "bin\pg_isready.exe" } |
+            Where-Object { Test-Path -LiteralPath $_ } |
+            Select-Object -First 1
+
+        if ($candidate) {
+            $candidates += $candidate
+        }
+    }
+
+    return $candidates | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
+}
+
+
 function Assert-PostgreSqlReady {
     param([string]$ResolvedOdooRoot)
 
@@ -198,28 +243,26 @@ function Assert-PostgreSqlReady {
     }
 
     $isLocalPostgres = $dbHost -in @("localhost", "127.0.0.1", "::1")
-    $serviceName = "PostgreSQL_For_Odoo"
-    $bundledPgReady = Join-Path $ResolvedOdooRoot "PostgreSQL\bin\pg_isready.exe"
+    $postgresService = if ($isLocalPostgres) { Get-PostgreSqlService } else { $null }
+    $pgIsReadyPath = if ($isLocalPostgres) { Get-PgIsReadyPath -ResolvedOdooRoot $ResolvedOdooRoot } else { $null }
+
+    if (Test-TcpEndpoint -HostName $dbHost -Port $dbPort) {
+        return
+    }
 
     if ($isLocalPostgres) {
-        $postgresService = Get-Service -Name $serviceName -ErrorAction SilentlyContinue
-
-        if ((-not $postgresService) -and (-not (Test-Path -LiteralPath $bundledPgReady))) {
-            throw "PostgreSQL was not found on this machine. Odoo is configured to use ${dbHost}:$dbPort in $configPath, but the service '$serviceName' and bundled PostgreSQL tools are both missing. Install PostgreSQL on the VM or point odoo.conf to an existing PostgreSQL server before rerunning setup."
+        if ((-not $postgresService) -and (-not $pgIsReadyPath)) {
+            throw "PostgreSQL was not found on this machine. Odoo is configured to use ${dbHost}:$dbPort in $configPath, but no Windows service with 'postgres' in its name and no PostgreSQL client tools were found. Install PostgreSQL on the VM or point odoo.conf to an existing PostgreSQL server before rerunning setup."
         }
 
         if ($postgresService -and ($postgresService.Status -ne 'Running')) {
-            throw "PostgreSQL service '$serviceName' is installed but not running. Start it with Start-Service $serviceName and rerun setup."
-        }
-    }
-
-    if (-not (Test-TcpEndpoint -HostName $dbHost -Port $dbPort)) {
-        if ($isLocalPostgres) {
-            throw "Could not connect to local PostgreSQL at ${dbHost}:$dbPort. Check that PostgreSQL is installed, running, and accepting TCP connections before rerunning setup."
+            throw "PostgreSQL service '$($postgresService.Name)' is installed but not running. Start it with Start-Service $($postgresService.Name) and rerun setup."
         }
 
-        throw "Could not connect to PostgreSQL at ${dbHost}:$dbPort from $configPath. Update the Odoo database settings or make that PostgreSQL server reachable before rerunning setup."
+        throw "Could not connect to local PostgreSQL at ${dbHost}:$dbPort. Check that PostgreSQL is installed, running, and accepting TCP connections before rerunning setup."
     }
+
+    throw "Could not connect to PostgreSQL at ${dbHost}:$dbPort from $configPath. Update the Odoo database settings or make that PostgreSQL server reachable before rerunning setup."
 }
 
 
