@@ -155,23 +155,25 @@ class TestArtikel14Berekening(common.TransactionCase):
 
     # ──────────────────────────────────────────────────────────────────────
     # Test 2: Maandloon — voorbeeldberekening uit de context
-    # Bruto SRD 20.255,60 → LB ≈ 2.025,13 → AOV ≈ 794,22 → Netto ≈ 17.436,25
+    # Bruto SRD 20.255,60 → LB na HK ≈ 4.695,13 → AOV ≈ 794,22 → Netto ≈ 14.766,25
     # ──────────────────────────────────────────────────────────────────────
     def test_maandloon_voorbeeld_context(self):
         """
         Controleer loonbelasting en AOV voor het voorbeeldsalaris uit de context.
         Bruto maandloon: SRD 20.255,60
-        Bruto jaarloon : SRD 243.067,20
-        Forfaitaire    : 4% × 243.067,20 = 9.722,69 → max SRD 4.800
-        Belastingvrij  : SRD 108.000
-        Belastbaar     : 243.067,20 - 108.000 - 4.800 = 130.267,20
+                Bruto jaarloon : SRD 243.067,20
+                Forfaitaire    : 4% × 243.067,20 = 9.722,69 → max SRD 4.800
+                Belastingvrij  : SRD 0
+                Belastbaar     : 243.067,20 - 0 - 4.800 = 238.267,20
         Schijven       :
           S1: 42.000 × 8%  =  3.360,00
           S2: 42.000 × 18% =  7.560,00
           S3: 42.000 × 28% = 11.760,00
-          S4: (130.267,20 - 126.000) × 38% = 4.267,20 × 38% = 1.621,54
-          Totaal lb jaar  = 24.301,54
-          LB per maand    = 24.301,54 / 12 = 2.025,13
+                    S4: (238.267,20 - 126.000) × 38% = 112.267,20 × 38% = 42.661,54
+                    Totaal lb jaar  = 65.341,54
+                    LB per maand vóór HK = 65.341,54 / 12 = 5.445,13
+                    Heffingskorting = 750,00
+                    In te houden LB = 5.445,13 - 750,00 = 4.695,13
         AOV grondslag   : 20.255,60 - 400 = 19.855,60
         AOV per maand   : 19.855,60 × 4% = 794,22
         """
@@ -199,17 +201,17 @@ class TestArtikel14Berekening(common.TransactionCase):
 
         hk = self._get_line_total(payslip, 'SR_HK')
 
-        # Nettoloon = bruto + LB + AOV + heffingskorting
+        # Heffingskorting verlaagt SR_LB; nettoloon volgt daarna bruto + LB + AOV.
         self.assertAlmostEqual(hk, 750.0, places=2,
                        msg='Heffingskorting moet exact SRD 750 per maand zijn')
-        self.assertAlmostEqual(net, gross + lb + aov + hk, places=2,
+        self.assertAlmostEqual(net, gross + lb + aov, places=2,
                                msg='Nettoloon berekening klopt niet')
 
-        self.assertAlmostEqual(abs(lb), 2025.13, places=2,
+        self.assertAlmostEqual(abs(lb), 4695.13, places=2,
                        msg='LB voor het referentiesalaris wijkt af van het 2026 rekenvoorbeeld')
         self.assertAlmostEqual(abs(aov), 794.22, places=2,
                        msg='AOV voor het referentiesalaris wijkt af van het 2026 rekenvoorbeeld')
-        self.assertAlmostEqual(net, 18186.25, places=2,
+        self.assertAlmostEqual(net, 14766.25, places=2,
                        msg='Nettoloon voor het referentiesalaris moet tot op de cent kloppen')
 
         # Nettoloon moet lager zijn dan brutoloon
@@ -655,14 +657,16 @@ class TestArtikel14Breakdown(common.TransactionCase):
             'period_title', 'employee_reference', 'employment_start_date', 'bank_account_number', 'bank_name', 'hourly_wage',
             'basic', 'toelagen', 'kinderbijslag',
             'bruto_per_periode', 'bruto_totaal', 'bruto_jaarloon',
-            'belastingvrij_jaar', 'forfaitaire_pct', 'forfaitaire_jaar',
+            'grondslag_belasting_per_periode', 'grondslag_belasting_jaar',
+            'belastingvrij_jaar', 'forfaitaire_pct', 'forfaitaire_per_periode', 'forfaitaire_jaar',
+            'forfaitaire_max_per_periode',
             'belastbaar_jaarloon', 's1_grens', 's2_grens', 's3_grens',
             'lb_s1', 'lb_s2', 'lb_s3', 'lb_s4',
             'tax_brackets',
             'lb_jaar', 'lb_per_periode',
             'lb_bijz', 'lb_17a', 'lb_overwerk',
             'aov_bijz', 'aov_17a', 'aov_overwerk',
-            'franchise_periode', 'aov_grondslag', 'aov_tarief_pct', 'aov_per_periode',
+            'adjusted_bruto_per_periode', 'franchise_periode', 'aov_grondslag', 'aov_tarief_pct', 'aov_per_periode',
             'aftrek_bv', 'heffingskorting', 'pensioen', 'contract_inhoudingen', 'input_inhoudingen',
             'earnings_lines', 'deductions_lines', 'summary_cards',
             'payslip_line_rows', 'belasting_line_rows',
@@ -684,8 +688,78 @@ class TestArtikel14Breakdown(common.TransactionCase):
         self.assertEqual(bd['payslip_layout_label'], 'Klassiek Debet / Credit')
         self.assertTrue(any(line['name'] == 'Salaris' for line in bd['earnings_lines']))
         self.assertTrue(any(card['label'] == 'Netto loon' for card in bd['summary_cards']))
+        self.assertFalse(any(card['label'] == 'Heffingskorting' for card in bd['summary_cards']))
         self.assertTrue(any(row['name'] == 'SALARIS' for row in bd['payslip_line_rows']))
         self.assertIsInstance(bd['display_debit_total'], float)
+
+    def test_breakdown_toont_andere_inhoudingen_als_generieke_nettopost(self):
+        """Geaggregeerde contractinhoudingen moeten generiek als andere inhoudingen worden gelabeld."""
+        contract = self.env['hr.contract'].create({
+            'name': 'Breakdown Netto Inhouding Testcontract',
+            'employee_id': self.employee.id,
+            'company_id': self.company.id,
+            'structure_type_id': self.structure_type.id,
+            'wage': 20000.0,
+            'sr_salary_type': 'monthly',
+            'sr_vaste_regels': [(0, 0, {
+                'name': 'Ziektekostenpremie',
+                'sr_categorie': 'inhouding',
+                'amount': 150.0,
+            })],
+            'date_start': date(2026, 1, 1),
+            'state': 'open',
+        })
+        payslip = self.env['hr.payslip'].create({
+            'name': 'Breakdown Netto Inhouding Testloonstrook',
+            'employee_id': self.employee.id,
+            'contract_id': contract.id,
+            'struct_id': self.structure.id,
+            'date_from': date(2026, 5, 1),
+            'date_to': date(2026, 5, 31),
+            'company_id': self.company.id,
+        })
+        payslip.compute_sheet()
+
+        bd = payslip._get_sr_artikel14_breakdown()
+        inhouding_row = next(row for row in bd['payslip_line_rows'] if row['code'] == 'SR_PENSIOEN')
+
+        self.assertEqual(inhouding_row['name'], 'ANDERE INHOUDINGEN')
+        self.assertTrue(any(line['name'] == 'Andere inhoudingen' for line in bd['deductions_lines']))
+
+    def test_breakdown_aov_basis_toont_aftrek_bv_voor_franchise(self):
+        """AOV weergave moet eerst Art. 10f aftrek verwerken en daarna pas de franchise."""
+        contract = self.env['hr.contract'].create({
+            'name': 'Breakdown AOV Aftrek Testcontract',
+            'employee_id': self.employee.id,
+            'company_id': self.company.id,
+            'structure_type_id': self.structure_type.id,
+            'wage': 5000.0,
+            'sr_salary_type': 'monthly',
+            'sr_vaste_regels': [(0, 0, {
+                'type_id': self.env.ref('l10n_sr_hr_payroll.sr_line_type_pensioen').id,
+                'amount': 1000.0,
+            })],
+            'date_start': date(2026, 1, 1),
+            'state': 'open',
+        })
+        payslip = self.env['hr.payslip'].create({
+            'name': 'Breakdown AOV Aftrek Testloonstrook',
+            'employee_id': self.employee.id,
+            'contract_id': contract.id,
+            'struct_id': self.structure.id,
+            'date_from': date(2026, 5, 1),
+            'date_to': date(2026, 5, 31),
+            'company_id': self.company.id,
+        })
+        payslip.compute_sheet()
+
+        bd = payslip._get_sr_artikel14_breakdown()
+
+        self.assertAlmostEqual(bd['bruto_per_periode'], 5000.0, places=2)
+        self.assertAlmostEqual(bd['adjusted_bruto_per_periode'], 4000.0, places=2)
+        self.assertAlmostEqual(bd['franchise_periode'], 400.0, places=2)
+        self.assertAlmostEqual(bd['aov_grondslag'], 3600.0, places=2)
+        self.assertAlmostEqual(bd['aov_per_periode'], 144.0, places=2)
 
     def test_payslip_layout_default_volgt_config_parameter(self):
         """Nieuwe loonstroken moeten de geconfigureerde standaardlayout overnemen."""
@@ -722,8 +796,8 @@ class TestArtikel14Breakdown(common.TransactionCase):
 
     def test_breakdown_actieve_heffingskorting_volgt_payslip_netto(self):
         """
-        De actieve SR_HK-regel moet als afzonderlijke nettocredit zichtbaar zijn,
-        terwijl de wettelijke grondslag zonder HK blijft.
+        Heffingskorting blijft zichtbaar voor audit, maar verlaagt de
+        in te houden loonbelasting in plaats van netto apart te verhogen.
         """
         payslip = self._make_payslip(wage=25000.0)
 
@@ -731,6 +805,11 @@ class TestArtikel14Breakdown(common.TransactionCase):
 
         self.assertAlmostEqual(bd['heffingskorting'], 750.0, delta=0.01)
         self.assertAlmostEqual(bd['bruto_per_periode'], 25000.0, delta=0.01)
+        self.assertAlmostEqual(
+            bd['lb_voor_heffingskorting_per_periode'],
+            bd['lb_per_periode'] + bd['heffingskorting_per_periode'],
+            delta=0.01,
+        )
         self.assertAlmostEqual(
             bd['netto'],
             sum(payslip.line_ids.filtered(lambda l: l.code == 'NET').mapped('total')),

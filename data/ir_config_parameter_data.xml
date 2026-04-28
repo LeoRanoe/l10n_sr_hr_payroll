@@ -7,7 +7,7 @@
         </record>
         <record id="sr_payroll_config_belastingvrij_jaar" model="ir.config_parameter">
             <field name="key">sr_payroll.belastingvrij_jaar</field>
-            <field name="value">108000.0</field>
+            <field name="value">0.0</field>
         </record>
         <record id="sr_payroll_config_forfaitaire_pct" model="ir.config_parameter">
             <field name="key">sr_payroll.forfaitaire_pct</field>

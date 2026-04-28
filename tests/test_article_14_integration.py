@@ -164,7 +164,7 @@ class TestIntegratieVolledigeCyclus(common.TransactionCase):
     # Test 2: Netto = Bruto + alle inhoudingen (balanscontrole)
     # ──────────────────────────────────────────────────────────────────
     def test_netto_is_bruto_min_inhoudingen(self):
-        """NET = GROSS + SR_LB + SR_AOV + SR_HK."""
+        """NET = GROSS + SR_LB + SR_AOV; SR_HK verlaagt SR_LB."""
         contract = self._maak_contract(wage=20000.0)
         payslip = self._maak_loonstrook(contract)
 
@@ -179,8 +179,8 @@ class TestIntegratieVolledigeCyclus(common.TransactionCase):
             msg='SR_HK moet exact SRD 750,00 per maand zijn',
         )
         self.assertAlmostEqual(
-            net, gross + lb + aov + hk, places=2,
-            msg='Nettoloon ≠ Bruto + LB + AOV + SR_HK (saldo klopt niet)',
+            net, gross + lb + aov, places=2,
+            msg='Nettoloon ≠ Bruto + LB + AOV (saldo klopt niet)',
         )
 
     # ──────────────────────────────────────────────────────────────────
@@ -540,10 +540,10 @@ class TestIntegratieContractPreview(common.TransactionCase):
         Wage SRD 20.000/maand:
         Bruto jaar = 240.000
         Forfaitaire = min(240.000 × 4%, 4.800) = 4.800
-        Belastbaar = 240.000 − 108.000 − 4.800 = 127.200
+        Belastbaar = 240.000 − 0 − 4.800 = 235.200
         """
         contract = self._maak_contract(wage=20000.0)
-        verwacht = 20000.0 * 12 - 108000.0 - 4800.0  # = 127.200
+        verwacht = 20000.0 * 12 - 0.0 - 4800.0  # = 235.200
         self.assertAlmostEqual(
             contract.sr_preview_belastbaar_jaar, verwacht, places=2,
             msg='sr_preview_belastbaar_jaar klopt niet',
@@ -649,15 +649,13 @@ class TestIntegratieContractPreview(common.TransactionCase):
     # Test 8: Preview netto = bruto + HK - LB - AOV - pensioen
     # ──────────────────────────────────────────────────────────────────
     def test_preview_netto_berekening(self):
-        """sr_preview_netto = sr_preview_bruto + HK − lb − aov − pensioen."""
+        """sr_preview_netto = sr_preview_bruto − lb − aov − pensioen."""
         pensioen = 800.0
         contract = self._maak_contract(
             wage=20000.0, pensioenpremie=pensioen
         )
-        heffingskorting = contract._sr_get_heffingskorting_per_periode()
         verwacht_netto = (
             contract.sr_preview_bruto
-            + heffingskorting
             - contract.sr_preview_lb_periode
             - contract.sr_preview_aov_periode
             - pensioen

@@ -2,6 +2,7 @@
 
 from . import hr_contract_sr_line_type
 from . import hr_contract_sr_line
+from . import hr_salary_rule
 from . import hr_contract
 from . import hr_employee
 from . import hr_rule_parameter

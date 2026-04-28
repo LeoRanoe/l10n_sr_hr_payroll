@@ -41,7 +41,7 @@
                                            options="{'no_create': True, 'no_open': True}"
                                            string="Contractvaluta"
                                            help="Kies de valuta van het basisloon. Wordt omgerekend naar SRD via de dagkoers in de Payroll Instellingen."/>
-                                    <field name="wage" widget="monetary" options="{'currency_field': 'currency_id'}" required="1"/>
+                                     <field name="wage" widget="monetary" options="{'currency_field': 'sr_contract_currency'}" required="1"/>
                                     <field name="sr_salary_type"
                                            widget="radio"
                                            string="Belastingtype"
@@ -52,7 +52,7 @@
                                 <group>
                                     <div class="alert alert-warning border mb-0" role="alert"
                                          invisible="sr_contract_currency == False or sr_contract_currency.name == 'SRD'">
-                                        Basisloon is in vreemde valuta. Bij loonberekening wordt omgerekend naar SRD via de dagkoers in de Payroll Instellingen (Valuta &amp;amp; Wisselkoers). Controleer of de koers actueel is.
+                                        Basisloon is in vreemde valuta. De contractpreview gebruikt de actuele koers uit SR Payroll Instellingen; de definitieve loonstrook bewaart daarna een bevroren `sr_exchange_rate` snapshot. Controleer of de koers actueel is.
                                     </div>
                                     <div class="alert alert-danger border mb-0" role="alert" invisible="wage &gt; 0">
                                         Een actief SR payroll-contract vereist een positief basisloon. Zonder loon worden uurloon, overwerk en LB/AOV geblokkeerd.
@@ -185,11 +185,12 @@
                                 </div>
                                 <group string="Bruto &amp; Belastbaar">
                                     <field name="sr_preview_bruto" readonly="1" widget="monetary" string="Bruto Loon (incl. vaste toelagen)"/>
+                                    <field name="sr_preview_belastinggrondslag" readonly="1" widget="monetary" string="Grondslag voor Belasting"/>
                                     <field name="sr_preview_belastbaar_jaar" readonly="1" widget="monetary" string="Belastbaar Jaarloon (Art. 14)"/>
                                 </group>
                                 <group string="Geschatte Inhoudingen &amp; Netto">
-                                    <field name="sr_preview_lb_periode" readonly="1" widget="monetary" string="Loonbelasting per Periode (Art. 14)"/>
-                                    <field name="sr_preview_aov_periode" readonly="1" widget="monetary" string="AOV per Periode (4%)"/>
+                                    <field name="sr_preview_lb_periode" readonly="1" widget="monetary" string="In te houden Loonbelasting (Art. 14)"/>
+                                    <field name="sr_preview_aov_periode" readonly="1" widget="monetary" string="AOV Inhouding per Periode (4%)"/>
                                     <field name="sr_preview_netto" readonly="1" widget="monetary" string="Geschat Nettoloon" class="fw-bold text-success"/>
                                 </group>
                             </group>

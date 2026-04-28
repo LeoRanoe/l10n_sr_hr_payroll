@@ -124,36 +124,42 @@ class HrPayslip(models.Model):
         currency_field='currency_id',
         compute='_compute_sr_summary_display',
         compute_sudo=True,
+        store=True,
     )
     sr_heffingskorting_display = fields.Monetary(
         string='Heffingskorting',
         currency_field='currency_id',
         compute='_compute_sr_summary_display',
         compute_sudo=True,
+        store=True,
     )
     sr_lb_totaal_display = fields.Monetary(
         string='Totale LB',
         currency_field='currency_id',
         compute='_compute_sr_summary_display',
         compute_sudo=True,
+        store=True,
     )
     sr_aov_totaal_display = fields.Monetary(
         string='Totale AOV',
         currency_field='currency_id',
         compute='_compute_sr_summary_display',
         compute_sudo=True,
+        store=True,
     )
     sr_inhoudingen_totaal_display = fields.Monetary(
         string='Totale Inhoudingen',
         currency_field='currency_id',
         compute='_compute_sr_summary_display',
         compute_sudo=True,
+        store=True,
     )
     sr_netto_totaal_display = fields.Monetary(
         string='Netto Totaal',
         currency_field='currency_id',
         compute='_compute_sr_summary_display',
         compute_sudo=True,
+        store=True,
     )
 
     # ── Multi-Currency: bevroren snapshot (kopie bij compute_sheet) ───────
@@ -238,11 +244,12 @@ class HrPayslip(models.Model):
     def _compute_sr_summary_display(self):
         for slip in self:
             def _line_total(*codes):
-                return sum(
-                    line.total or 0.0
+                total = sum((
+                    Decimal(str(line.total or 0.0))
                     for line in slip.line_ids
                     if line.code in codes
-                )
+                ), Decimal('0'))
+                return float(total.quantize(_SR_MONEY_QUANT, rounding=ROUND_HALF_UP))
 
             basic = _line_total('BASIC')
             toelagen = _line_total('SR_ALW')
@@ -257,14 +264,14 @@ class HrPayslip(models.Model):
             uitkering_ineens = _line_total('SR_UITK_INEENS')
             heffingskorting = _line_total('SR_HK')
 
-            bruto_totaal = (
+            bruto_totaal = float(Decimal(str(
                 basic + toelagen + kinderbijslag + vrijgesteld_contract
                 + input_belastbaar + input_vrijgesteld + overwerk
                 + vakantie + gratificatie + bijz_beloning + uitkering_ineens
-            )
-            totaal_lb = abs(_line_total('SR_LB', 'SR_LB_BIJZ', 'SR_LB_17A', 'SR_LB_OVERWERK'))
-            totaal_aov = abs(_line_total('SR_AOV', 'SR_AOV_BIJZ', 'SR_AOV_17A', 'SR_AOV_OVERWERK'))
-            overige_inhoudingen = abs(_line_total('SR_PENSIOEN', 'SR_INPUT_AFTREK', 'SR_AFTREK_BV'))
+            )).quantize(_SR_MONEY_QUANT, rounding=ROUND_HALF_UP))
+            totaal_lb = float(Decimal(str(abs(_line_total('SR_LB', 'SR_LB_BIJZ', 'SR_LB_17A', 'SR_LB_OVERWERK')))).quantize(_SR_MONEY_QUANT, rounding=ROUND_HALF_UP))
+            totaal_aov = float(Decimal(str(abs(_line_total('SR_AOV', 'SR_AOV_BIJZ', 'SR_AOV_17A', 'SR_AOV_OVERWERK')))).quantize(_SR_MONEY_QUANT, rounding=ROUND_HALF_UP))
+            overige_inhoudingen = float(Decimal(str(abs(_line_total('SR_PENSIOEN', 'SR_INPUT_AFTREK', 'SR_AFTREK_BV')))).quantize(_SR_MONEY_QUANT, rounding=ROUND_HALF_UP))
 
             slip.sr_bruto_totaal_display = bruto_totaal
             slip.sr_heffingskorting_display = heffingskorting
@@ -573,12 +580,9 @@ class HrPayslip(models.Model):
             return value
         config_key = calc.get_config_parameter_key(code)
         if config_key:
-            value = self.env['ir.config_parameter'].sudo().get_param(config_key)
-            if not calc.is_missing_parameter_value(value):
-                try:
-                    return float(value)
-                except (TypeError, ValueError):
-                    pass
+            config_value = calc.get_config_parameter_value(self.env, code, default=None)
+            if config_value is not None:
+                return config_value
             default = calc.get_config_parameter_default(code)
             if default is not None:
                 return default
@@ -834,7 +838,7 @@ class HrPayslip(models.Model):
             'gedocumenteerde 26 tijdvakken uit de Suriname context.'
         )
 
-    def _sr_get_cached_result(self, gross_per_periode, aftrek_bv=0.0):
+    def _sr_get_cached_result(self, gross_per_periode, aftrek_bv=0.0, heffingskorting=0.0):
         """
         Berekent Artikel 14 één keer per (payslip, gross, aftrek_bv) combinatie
         en cached het resultaat in thread-local opslag om redundante
@@ -847,6 +851,7 @@ class HrPayslip(models.Model):
             self.id,
             str(self._sr_money_quantize(gross_per_periode)),
             str(self._sr_money_quantize(aftrek_bv)),
+            str(self._sr_money_quantize(heffingskorting)),
         )
         if cache_key in cache:
             return cache[cache_key]
@@ -855,6 +860,7 @@ class HrPayslip(models.Model):
         result = calc.calculate_lb(
             gross_per_periode, periodes, params,
             aftrek_bv_per_periode=aftrek_bv,
+            heffingskorting_per_periode=heffingskorting,
         )
         cache[cache_key] = result
         return result
@@ -871,7 +877,14 @@ class HrPayslip(models.Model):
         :param aftrek_bv: Aftrek belastingvrij per periode (Art. 10f, bijv. pensioenpremie)
         :returns: positief bedrag loonbelasting per periode
         """
-        return self._sr_get_cached_result(gross_per_periode, aftrek_bv)['lb_per_periode']
+        heffingskorting = self.contract_id._sr_get_heffingskorting_per_periode(
+            self._rule_parameter('SR_HEFFINGSKORTING')
+        ) if self.contract_id else 0.0
+        return self._sr_get_cached_result(
+            gross_per_periode,
+            aftrek_bv,
+            heffingskorting=heffingskorting,
+        )['lb_per_periode']
 
     def _sr_artikel14_aov(self, gross_per_periode, aftrek_bv=0.0):
         """
@@ -883,7 +896,14 @@ class HrPayslip(models.Model):
         :param aftrek_bv: Aftrek belastingvrij per periode (Art. 10f)
         :returns: positief bedrag AOV per periode
         """
-        return self._sr_get_cached_result(gross_per_periode, aftrek_bv)['aov_per_periode']
+        heffingskorting = self.contract_id._sr_get_heffingskorting_per_periode(
+            self._rule_parameter('SR_HEFFINGSKORTING')
+        ) if self.contract_id else 0.0
+        return self._sr_get_cached_result(
+            gross_per_periode,
+            aftrek_bv,
+            heffingskorting=heffingskorting,
+        )['aov_per_periode']
 
     def _sr_bijz_gratificatie_cap(self, vrijstelling_max):
         """Berekent de slip-specifieke gratificatievrijstelling met pro-rata dienstjaar."""
@@ -1045,9 +1065,20 @@ class HrPayslip(models.Model):
         # Herleid de wettelijke Art. 14 grondslag uit de expliciete belastbare
         # looncomponenten. Historische SR_HK-regels kunnen het GROSS/NET totaal
         # op bestaande slips verhogen, maar horen niet in de LB/AOV-grondslag.
-        gross = basic + toelagen + kb_belastbaar + input_belastbaar
+        gross = basic + toelagen
         params = calc.fetch_params_from_payslip(self)
-        r = calc.calculate_lb(gross, periodes, params, aftrek_bv_per_periode=aftrek_bv)
+        heffingskorting_calc = heffingskorting
+        if abs(heffingskorting_calc) < 0.005 and contract:
+            heffingskorting_calc = contract._sr_get_heffingskorting_per_periode(
+                self._rule_parameter('SR_HEFFINGSKORTING')
+            )
+        r = calc.calculate_lb(
+            gross,
+            periodes,
+            params,
+            aftrek_bv_per_periode=aftrek_bv,
+            heffingskorting_per_periode=heffingskorting_calc,
+        )
 
         # Totalen van alle feitelijke debet-regels
         totaal_lb = lb_per_periode + lb_bijz + lb_17a + lb_overwerk
@@ -1061,11 +1092,12 @@ class HrPayslip(models.Model):
             + input_belastbaar + input_vrijgesteld
             + overwerk + vakantie + gratificatie + bijz_beloning + uitkering_ineens
         )
-        netto = bruto_totaal + heffingskorting - totaal_inhoudingen - aftrek_bv
+        netto = bruto_totaal - totaal_inhoudingen - aftrek_bv
 
         contract_inhoudingen = []
+        rule_exchange_rate = self.sr_exchange_rate or 1.0
         for line in contract.sr_vaste_regels.filtered(lambda record: record._sr_effective_category() == 'inhouding'):
-            amount = contract._sr_resolve_line_amount(line)
+            amount = contract._sr_resolve_line_amount(line, exchange_rate=rule_exchange_rate)
             if amount > 0:
                 contract_inhoudingen.append({'name': line.name, 'amount': amount})
 
@@ -1110,8 +1142,8 @@ class HrPayslip(models.Model):
         _append_amount_line(deductions_lines, 'AOV bijzondere beloningen', aov_bijz, 'tax')
         _append_amount_line(deductions_lines, 'AOV uitkering ineens', aov_17a, 'tax')
         _append_amount_line(deductions_lines, 'AOV overwerk', aov_overwerk, 'tax')
-        _append_amount_line(deductions_lines, 'Pensioenfonds', pensioen)
-        _append_amount_line(deductions_lines, 'Aftrek bedrijfsvoorheffing', aftrek_bv)
+        _append_amount_line(deductions_lines, 'Andere inhoudingen', pensioen)
+        _append_amount_line(deductions_lines, 'Aftrek belastingvrij (Art. 10f)', aftrek_bv)
         for inhouding in contract_inhoudingen:
             _append_amount_line(deductions_lines, inhouding['name'], inhouding['amount'])
         for inhouding in input_inhoudingen:
@@ -1122,9 +1154,6 @@ class HrPayslip(models.Model):
             {'label': 'Totale inhoudingen', 'amount': totaal_inhoudingen + aftrek_bv, 'tone': 'danger'},
             {'label': 'Netto loon', 'amount': netto, 'tone': 'success'},
         ]
-        if heffingskorting > 0:
-            summary_cards.insert(1, {'label': 'Heffingskorting', 'amount': heffingskorting, 'tone': 'positive'})
-
         employee = self.employee_id
         bank_account = employee.bank_account_id
         employment_start_date = getattr(employee, 'first_contract_date', False) or contract.date_start
@@ -1185,15 +1214,15 @@ class HrPayslip(models.Model):
             'SR_AOV_BIJZ': 'PREMIE AOV BIJZ.',
             'SR_AOV_17A': 'PREMIE AOV 17A',
             'SR_AOV_OVERWERK': 'PREMIE AOV OVERWERK',
-            'SR_PENSIOEN': 'PENSIOENFONDS',
-            'SR_INPUT_AFTREK': 'INHOUDING PAYSLIP',
-            'SR_AFTREK_BV': 'AFTREK BEDRIJFSVOORHEFFING',
+            'SR_PENSIOEN': 'ANDERE INHOUDINGEN',
+            'SR_INPUT_AFTREK': 'ANDERE INHOUDINGEN (PAYSLIP)',
+            'SR_AFTREK_BV': 'AFTREK BELASTINGVRIJ',
             'SR_HK': 'HEFFINGSKORTING',
         }
 
         payslip_line_rows = []
         belasting_line_rows = []
-        display_line_codes_to_skip = {'GROSS', 'NET'}
+        display_line_codes_to_skip = {'GROSS', 'NET', 'SR_HK'}
         for line in self.line_ids.sorted(lambda record: (record.sequence, record.code or '', record.id)):
             total = line.total or 0.0
             if line.code in display_line_codes_to_skip or not line.appears_on_payslip or abs(total) < 0.005:
@@ -1255,7 +1284,7 @@ class HrPayslip(models.Model):
             'kb_belastbaar': kb_belastbaar,
             'kb_vrijgesteld': kb_vrijgesteld,
             'vrijgesteld_contract': vrijgesteld_contract,
-            'heffingskorting': heffingskorting,
+            'heffingskorting': heffingskorting_calc,
             'overwerk': overwerk,
             'vakantie': vakantie,
             'gratificatie': gratificatie,
@@ -1264,12 +1293,20 @@ class HrPayslip(models.Model):
             'bruto_per_periode': gross,
             'bruto_totaal': bruto_totaal,
             # Artikel 14 stappen
+            'grondslag_belasting_per_periode': r['grondslag_belasting_per_periode'],
+            'grondslag_belasting_jaar': r['grondslag_belasting_jaar'],
             'bruto_jaarloon': r['bruto_jaar'],
             'belastingvrij_jaar': r['belastingvrij_jaar'],
             'forfaitaire_pct': r['forfaitaire_pct'] * 100,
+            'forfaitaire_per_periode': r['forfaitaire_per_periode'],
             'forfaitaire_jaar': r['forfaitaire_jaar'],
+            'forfaitaire_max_per_periode': r['forfaitaire_max_per_periode'],
             'forfaitaire_max_jaar': params.get('forfaitaire_max', 4800),
             'belastbaar_jaarloon': r['belastbaar_jaar'],
+            'lb_voor_heffingskorting_jaar': r['lb_voor_heffingskorting_jaar'],
+            'lb_voor_heffingskorting_per_periode': r['lb_voor_heffingskorting_per_periode'],
+            'heffingskorting_per_periode': r['heffingskorting_per_periode'],
+            'heffingskorting_jaar': r['heffingskorting_jaar'],
             'tax_brackets': r.get('tax_brackets', []),
             # Schijfgrenzen
             's1_grens': r['s1'],
@@ -1299,6 +1336,7 @@ class HrPayslip(models.Model):
             'aov_17a': aov_17a,
             'aov_overwerk': aov_overwerk,
             # AOV
+            'adjusted_bruto_per_periode': r['adjusted_bruto_per_periode'],
             'franchise_periode': r['franchise_periode'],
             'aov_grondslag': r['aov_grondslag'],
             'aov_tarief_pct': r['aov_tarief'] * 100,
