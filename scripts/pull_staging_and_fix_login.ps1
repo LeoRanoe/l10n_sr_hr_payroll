@@ -23,6 +23,68 @@ function Write-Step {
 }
 
 
+function Invoke-GitCommand {
+    param([string[]]$Arguments)
+
+    $stdoutPath = Join-Path $env:TEMP ("git_stdout_{0}.log" -f [Guid]::NewGuid())
+    $stderrPath = Join-Path $env:TEMP ("git_stderr_{0}.log" -f [Guid]::NewGuid())
+
+    try {
+        $process = Start-Process `
+            -FilePath $gitPath `
+            -ArgumentList $Arguments `
+            -WorkingDirectory (Get-Location).Path `
+            -Wait `
+            -PassThru `
+            -NoNewWindow `
+            -RedirectStandardOutput $stdoutPath `
+            -RedirectStandardError $stderrPath
+
+        $stdoutLines = if (Test-Path -LiteralPath $stdoutPath) { @(Get-Content -LiteralPath $stdoutPath) } else { @() }
+        $stderrLines = if (Test-Path -LiteralPath $stderrPath) { @(Get-Content -LiteralPath $stderrPath) } else { @() }
+        $output = @($stdoutLines + $stderrLines)
+
+        foreach ($line in $output) {
+            if ($line) {
+                Write-Host $line
+            }
+        }
+
+        return [PSCustomObject]@{
+            ExitCode = $process.ExitCode
+            Output = (($output | ForEach-Object { $_.ToString() }) -join [Environment]::NewLine)
+        }
+    }
+    finally {
+        foreach ($path in @($stdoutPath, $stderrPath)) {
+            if (Test-Path -LiteralPath $path) {
+                Remove-Item -LiteralPath $path -Force -ErrorAction SilentlyContinue
+            }
+        }
+    }
+}
+
+
+function Repair-FetchHead {
+    param([string]$RepositoryRoot)
+
+    $gitDirectory = Join-Path $RepositoryRoot '.git'
+    $paths = @(
+        (Join-Path $gitDirectory 'FETCH_HEAD.lock'),
+        (Join-Path $gitDirectory 'FETCH_HEAD')
+    )
+
+    foreach ($path in $paths) {
+        if (-not (Test-Path -LiteralPath $path)) {
+            continue
+        }
+
+        & attrib -R -S -H $path 2>$null | Out-Null
+        Remove-Item -LiteralPath $path -Force -ErrorAction Stop
+    }
+}
+
+
 $scriptDir = Split-Path -Parent $PSCommandPath
 $repoRoot = (Resolve-Path (Join-Path $scriptDir '..')).Path
 $fixScript = Join-Path $scriptDir 'fix_local_login.ps1'
@@ -49,14 +111,20 @@ $gitPath = if ($gitCommand.Source) { $gitCommand.Source } else { $gitCommand.Pat
 Write-Step "Pulling latest changes from $Remote/$Branch"
 Push-Location $repoRoot
 try {
-    & $gitPath fetch $Remote $Branch
-    if ($LASTEXITCODE -ne 0) {
-        throw "git fetch $Remote $Branch failed with exit code $LASTEXITCODE."
+    $fetchResult = Invoke-GitCommand -Arguments @('fetch', $Remote, $Branch)
+    if (($fetchResult.ExitCode -ne 0) -and ($fetchResult.Output -match "cannot open '.*FETCH_HEAD': Permission denied")) {
+        Write-Host "Detected a stale FETCH_HEAD write failure. Retrying once after cleanup." -ForegroundColor Yellow
+        Repair-FetchHead -RepositoryRoot $repoRoot
+        $fetchResult = Invoke-GitCommand -Arguments @('fetch', $Remote, $Branch)
     }
 
-    & $gitPath pull --ff-only $Remote $Branch
-    if ($LASTEXITCODE -ne 0) {
-        throw "git pull --ff-only $Remote $Branch failed with exit code $LASTEXITCODE."
+    if ($fetchResult.ExitCode -ne 0) {
+        throw "git fetch $Remote $Branch failed with exit code $($fetchResult.ExitCode)."
+    }
+
+    $mergeResult = Invoke-GitCommand -Arguments @('merge', '--ff-only', "$Remote/$Branch")
+    if ($mergeResult.ExitCode -ne 0) {
+        throw "git merge --ff-only $Remote/$Branch failed with exit code $($mergeResult.ExitCode)."
     }
 }
 finally {
