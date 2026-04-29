@@ -140,7 +140,8 @@ Set-Location "C:\Program Files\Odoo 18.0e.20260407\sessions\addons\18.0\l10n_sr_
 .\scripts\pull_staging_and_fix_login.ps1
 ```
 
-Dat PowerShell-script doet hetzelfde: eerst `git fetch origin staging`, daarna `git pull --ff-only origin staging`, en daarna `fix_local_login.ps1` met de bekende standaardwaarden.
+Dat PowerShell-script doet hetzelfde: eerst `git fetch origin staging`, daarna `git merge --ff-only origin/staging`, en daarna `fix_local_login.ps1` met de bekende standaardwaarden.
+Bij een tijdelijke Windows-fout op `.git\FETCH_HEAD` probeert die wrapper eerst het bestand op te schonen en daarna de Git-sync nog één keer opnieuw.
 
 Voorbeeld:
 
