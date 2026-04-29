@@ -122,6 +122,25 @@ Set-Location "C:\Program Files\Odoo 18.0e.20260407\sessions\addons\18.0\l10n_sr_
 ```
 
 Die wrapper gebruikt de bekende lokale standaardwaarden en opent direct een private browser-window.
+Als Git beschikbaar is, probeert die wrapper eerst automatisch `origin/staging` fast-forward binnen te halen voordat het login-script start.
+
+Als je expliciet eerst Git wilt pullen en daarna pas de login-fix wilt runnen, gebruik dan:
+
+```powershell
+Set-Location "C:\Program Files\Odoo 18.0e.20260407\sessions\addons\18.0\l10n_sr_hr_payroll"
+.\scripts\pull_staging_and_fix_login.cmd
+```
+
+Die launcher doet altijd eerst `git fetch origin staging` en daarna `git pull --ff-only origin staging`.
+
+Als je liever een native PowerShell-script gebruikt in plaats van een `.cmd` launcher, gebruik dan:
+
+```powershell
+Set-Location "C:\Program Files\Odoo 18.0e.20260407\sessions\addons\18.0\l10n_sr_hr_payroll"
+.\scripts\pull_staging_and_fix_login.ps1
+```
+
+Dat PowerShell-script doet hetzelfde: eerst `git fetch origin staging`, daarna `git pull --ff-only origin staging`, en daarna `fix_local_login.ps1` met de bekende standaardwaarden.
 
 Voorbeeld:
 
