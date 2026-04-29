@@ -108,6 +108,34 @@ Set-Location "C:\Program Files\Odoo 18.0e.20260407\server"
 ..\python\python.exe .\odoo-bin -c .\odoo.conf -d sr_payroll_test
 ```
 
+#### Lokale login repareren op Windows
+
+Als Odoo lokaal wel draait maar de loginpagina blijft hangen op `Wrong login/password`, gebruik dan:
+
+`scripts/fix_local_login.ps1`
+
+Voorbeeld:
+
+```powershell
+Set-Location "C:\Program Files\Odoo 18.0e.20260407\sessions\addons\18.0\l10n_sr_hr_payroll"
+.\scripts\fix_local_login.ps1 `
+	-OdooRoot "C:\Program Files\Odoo 18.0e.20260407" `
+	-Database "Salarisverwerking-Module" `
+	-Login "stagiaire2.rpbg@gmail.com" `
+	-TemporaryPassword "Welkom1234" `
+	-OpenInPrivate
+```
+
+Dit script:
+
+- leest automatisch `server\odoo.conf`
+- controleert of de gekozen database bestaat
+- reset het gekozen Odoo-loginwachtwoord naar een bekende tijdelijke waarde
+- valideert die login direct via een echte HTTP-aanroep naar `/web/login`
+- opent optioneel de juiste login-URL in een private browser-window
+
+Dit is los van de Odoo Enterprise product key. Een ontbrekende licentie kan wel banners of vervalwaarschuwingen tonen, maar veroorzaakt niet zelf `Wrong login/password` op een lokaal geverifieerde login.
+
 #### Eenmalige installatie met alleen plakken in PowerShell
 
 Als deze bestanden al naar `origin/staging` zijn gepusht, kun je op een schone test-VM dit plakken in een verhoogde PowerShell:
