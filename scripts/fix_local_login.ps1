@@ -222,6 +222,185 @@ function Get-OdooPageDiagnostic {
 }
 
 
+function Get-OdooVisibleDatabases {
+    param([string]$BaseUrl = 'http://localhost:8069')
+
+    if ($DryRun) {
+        return @()
+    }
+
+    try {
+        $selectorUrl = $BaseUrl.TrimEnd('/') + '/web/database/selector'
+        $selectorPage = Invoke-WebRequest -UseBasicParsing -Uri $selectorUrl
+    }
+    catch {
+        return @()
+    }
+
+    return @(
+        [Regex]::Matches($selectorPage.Content, 'href="/odoo\?db=([^"&]+)"') |
+        ForEach-Object { [Uri]::UnescapeDataString($_.Groups[1].Value).Trim() } |
+        Where-Object { $_ } |
+        Select-Object -Unique
+    )
+}
+
+
+function Add-UniqueCandidate {
+    param(
+        [System.Collections.Generic.List[string]]$Candidates,
+        [string]$Value
+    )
+
+    if ($Value -and (-not $Candidates.Contains($Value))) {
+        $null = $Candidates.Add($Value)
+    }
+}
+
+
+function Get-DatabaseCandidates {
+    param(
+        [string]$RequestedDatabase,
+        [string[]]$AvailableDatabases,
+        [string[]]$OdooVisibleDatabases
+    )
+
+    $candidates = [System.Collections.Generic.List[string]]::new()
+
+    if ($AvailableDatabases -contains $RequestedDatabase) {
+        Add-UniqueCandidate -Candidates $candidates -Value $RequestedDatabase
+    }
+
+    foreach ($databaseName in ($OdooVisibleDatabases | Where-Object { $_ -notin @('postgres') -and $AvailableDatabases -contains $_ })) {
+        Add-UniqueCandidate -Candidates $candidates -Value $databaseName
+    }
+
+    foreach ($databaseName in ($AvailableDatabases | Where-Object { $_ -notin @('postgres') })) {
+        Add-UniqueCandidate -Candidates $candidates -Value $databaseName
+    }
+
+    return @($candidates.ToArray())
+}
+
+
+function Get-OdooLoginPageState {
+    param(
+        [string]$DatabaseName,
+        [string]$LoginName
+    )
+
+    $encodedDatabase = [Uri]::EscapeDataString($DatabaseName)
+    $encodedLogin = [Uri]::EscapeDataString($LoginName)
+    $loginUrl = "http://localhost:8069/web/login?db=$encodedDatabase&login=$encodedLogin"
+
+    try {
+        $session = New-Object Microsoft.PowerShell.Commands.WebRequestSession
+        $loginPage = Invoke-WebRequest -UseBasicParsing -WebSession $session -Uri $loginUrl
+    }
+    catch {
+        return [PSCustomObject]@{
+            Success = $false
+            LoginUrl = $loginUrl
+            Session = $null
+            CsrfToken = $null
+            Detail = $_.Exception.Message
+        }
+    }
+
+    $loginPageUri = $loginPage.BaseResponse.ResponseUri.AbsoluteUri
+    if ($loginPageUri -match '/web/database/selector(?:$|\?)') {
+        return [PSCustomObject]@{
+            Success = $false
+            LoginUrl = $loginUrl
+            Session = $session
+            CsrfToken = $null
+            Detail = "Odoo redirected to the database selector at $loginPageUri"
+        }
+    }
+
+    if ($loginPage.Content -notmatch 'name="csrf_token" value="([^"]+)"') {
+        $pageDiagnostic = Get-OdooPageDiagnostic -Html $loginPage.Content
+        $detail = "Could not find a CSRF token on the Odoo login page at $loginUrl."
+        if ($pageDiagnostic) {
+            $detail = "$detail Page detail: $pageDiagnostic"
+        }
+
+        return [PSCustomObject]@{
+            Success = $false
+            LoginUrl = $loginUrl
+            Session = $session
+            CsrfToken = $null
+            Detail = $detail
+        }
+    }
+
+    return [PSCustomObject]@{
+        Success = $true
+        LoginUrl = $loginUrl
+        Session = $session
+        CsrfToken = $Matches[1]
+        Detail = $null
+    }
+}
+
+
+function Test-OdooCredentials {
+    param(
+        $PageState,
+        [string]$DatabaseName,
+        [string]$LoginName,
+        [string]$Password
+    )
+
+    try {
+        $response = Invoke-WebRequest `
+            -UseBasicParsing `
+            -WebSession $PageState.Session `
+            -Method Post `
+            -Uri 'http://localhost:8069/web/login' `
+            -Body @{
+                csrf_token = $PageState.CsrfToken
+                db = $DatabaseName
+                login = $LoginName
+                password = $Password
+                type = 'password'
+                redirect = ''
+            }
+    }
+    catch {
+        return [PSCustomObject]@{
+            Success = $false
+            LoginUrl = $PageState.LoginUrl
+            RedirectUri = $null
+            Detail = $_.Exception.Message
+        }
+    }
+
+    $redirectUri = $response.BaseResponse.ResponseUri.AbsoluteUri
+    if ($redirectUri -notmatch '/odoo(?:$|\?)') {
+        $pageDiagnostic = Get-OdooPageDiagnostic -Html $response.Content
+        $detail = "The local login validation did not end on /odoo. Final URL: $redirectUri"
+        if ($pageDiagnostic) {
+            $detail = "$detail. Page detail: $pageDiagnostic"
+        }
+
+        return [PSCustomObject]@{
+            Success = $false
+            LoginUrl = $PageState.LoginUrl
+            RedirectUri = $redirectUri
+            Detail = $detail
+        }
+    }
+
+    return [PSCustomObject]@{
+        Success = $true
+        LoginUrl = $PageState.LoginUrl
+        RedirectUri = $redirectUri
+        Detail = $null
+    }
+}
+
+
 $resolvedOdooRoot = Resolve-UnresolvedPath -PathValue $OdooRoot
 $configPath = Join-Path $resolvedOdooRoot "server\odoo.conf"
 
@@ -261,6 +440,8 @@ $passwordSqlLiteral = Convert-ToSqlLiteral -Value $TemporaryPassword
 
 Write-Step "Checking whether database '$Database' exists"
 $availableDatabases = @()
+ $odooVisibleDatabases = @()
+ $loginUrl = "http://localhost:8069/web/login?db=$([Uri]::EscapeDataString($Database))&login=$([Uri]::EscapeDataString($Login))"
 if (-not $DryRun) {
     $availableDatabases = Get-AvailableDatabases `
         -PsqlPath $psqlPath `
@@ -268,98 +449,86 @@ if (-not $DryRun) {
         -DbPort $dbPort `
         -DbUser $dbUser `
         -DbPassword $dbPassword
+    $odooVisibleDatabases = Get-OdooVisibleDatabases
+    $candidateDatabases = Get-DatabaseCandidates `
+        -RequestedDatabase $Database `
+        -AvailableDatabases $availableDatabases `
+        -OdooVisibleDatabases $odooVisibleDatabases
 
-    if ($availableDatabases -contains $Database) {
-        $databaseSqlLiteral = Convert-ToSqlLiteral -Value $Database
+    if ($candidateDatabases.Count -eq 0) {
+        throw "No non-system PostgreSQL databases were found. Existing databases: $($availableDatabases -join ', ')"
     }
-    else {
-        $candidateDatabases = @(
-            $availableDatabases | Where-Object { $_ -notin @('postgres') }
-        )
 
-        if ($candidateDatabases.Count -eq 1) {
-            $Database = $candidateDatabases[0]
+    Write-Step "Resetting password for '$Login'"
+    Write-Step "Validating the login against the local Odoo web server"
+
+    $requestedDatabase = $Database
+    $validationFailures = [System.Collections.Generic.List[string]]::new()
+    $validationResult = $null
+
+    foreach ($candidateDatabase in $candidateDatabases) {
+        $pageState = Get-OdooLoginPageState -DatabaseName $candidateDatabase -LoginName $Login
+        if (-not $pageState.Success) {
+            $null = $validationFailures.Add("${candidateDatabase}: $($pageState.Detail)")
+            continue
+        }
+
+        $updatedUserId = Invoke-PsqlCapture `
+            -PsqlPath $psqlPath `
+            -DbHost $dbHost `
+            -DbPort $dbPort `
+            -DbUser $dbUser `
+            -DbPassword $dbPassword `
+            -DatabaseName $candidateDatabase `
+            -Sql "update res_users set password = '$passwordSqlLiteral' where login = '$loginSqlLiteral' returning id;"
+
+        if (-not $updatedUserId) {
+            $knownLogins = Invoke-PsqlCapture `
+                -PsqlPath $psqlPath `
+                -DbHost $dbHost `
+                -DbPort $dbPort `
+                -DbUser $dbUser `
+                -DbPassword $dbPassword `
+                -DatabaseName $candidateDatabase `
+                -Sql 'select login from res_users order by id;'
+
+            $null = $validationFailures.Add("${candidateDatabase}: login '$Login' was not found. Known logins: $knownLogins")
+            continue
+        }
+
+        $candidateValidation = Test-OdooCredentials `
+            -PageState $pageState `
+            -DatabaseName $candidateDatabase `
+            -LoginName $Login `
+            -Password $TemporaryPassword
+
+        if ($candidateValidation.Success) {
+            $Database = $candidateDatabase
             $databaseSqlLiteral = Convert-ToSqlLiteral -Value $Database
-            Write-Host "Requested database was not found. Falling back to the only detected Odoo database '$Database'." -ForegroundColor Yellow
+            $loginUrl = $candidateValidation.LoginUrl
+            $validationResult = $candidateValidation
+
+            if ($Database -ne $requestedDatabase) {
+                Write-Host "Using working Odoo database '$Database' instead of '$requestedDatabase'." -ForegroundColor Yellow
+            }
+
+            break
         }
-        else {
-            throw "Database '$Database' does not exist. Existing databases: $($availableDatabases -join ', ')"
-        }
+
+        $null = $validationFailures.Add("${candidateDatabase}: $($candidateValidation.Detail)")
     }
-}
 
-Write-Step "Resetting password for '$Login'"
-$updatedUserId = Invoke-PsqlCapture `
-    -PsqlPath $psqlPath `
-    -DbHost $dbHost `
-    -DbPort $dbPort `
-    -DbUser $dbUser `
-    -DbPassword $dbPassword `
-    -DatabaseName $Database `
-    -Sql "update res_users set password = '$passwordSqlLiteral' where login = '$loginSqlLiteral' returning id;"
-
-if ((-not $DryRun) -and (-not $updatedUserId)) {
-    $knownLogins = Invoke-PsqlCapture `
-        -PsqlPath $psqlPath `
-        -DbHost $dbHost `
-        -DbPort $dbPort `
-        -DbUser $dbUser `
-        -DbPassword $dbPassword `
-        -DatabaseName $Database `
-        -Sql 'select login from res_users order by id;'
-
-    throw "No Odoo user with login '$Login' was found in database '$Database'. Known logins: $knownLogins"
-}
-
-$encodedDatabase = [Uri]::EscapeDataString($Database)
-$encodedLogin = [Uri]::EscapeDataString($Login)
-$loginUrl = "http://localhost:8069/web/login?db=$encodedDatabase&login=$encodedLogin"
-
-Write-Step "Validating the login against the local Odoo web server"
-if ($DryRun) {
-    Write-Host "[dry-run] Validate HTTP login against $loginUrl"
+    if (-not $validationResult) {
+        $visibleText = if ($odooVisibleDatabases.Count -gt 0) { $odooVisibleDatabases -join ', ' } else { '(none detected from /web/database/selector)' }
+        throw "Could not repair the local login for '$Login'. Attempted databases: $($validationFailures -join ' || '). PostgreSQL databases: $($availableDatabases -join ', '). Odoo-visible databases: $visibleText"
+    }
 }
 else {
-    $session = New-Object Microsoft.PowerShell.Commands.WebRequestSession
-    $loginPage = Invoke-WebRequest -UseBasicParsing -WebSession $session -Uri $loginUrl
-    $loginPageUri = $loginPage.BaseResponse.ResponseUri.AbsoluteUri
-    if ($loginPageUri -match '/web/database/selector(?:$|\?)') {
-        throw "Database '$Database' is not available in the Odoo web server. Odoo redirected to the database selector at $loginPageUri. Existing PostgreSQL databases: $($availableDatabases -join ', ')"
-    }
+    Write-Step "Resetting password for '$Login'"
+    Write-Host "[dry-run] Password reset will use database '$Database'"
 
-    if ($loginPage.Content -notmatch 'name="csrf_token" value="([^"]+)"') {
-        $pageDiagnostic = Get-OdooPageDiagnostic -Html $loginPage.Content
-        if ($pageDiagnostic) {
-            throw "Could not find a CSRF token on the Odoo login page at $loginUrl. Page detail: $pageDiagnostic"
-        }
-
-        throw "Could not find a CSRF token on the Odoo login page at $loginUrl."
-    }
-
-    $csrfToken = $Matches[1]
-    $response = Invoke-WebRequest `
-        -UseBasicParsing `
-        -WebSession $session `
-        -Method Post `
-        -Uri 'http://localhost:8069/web/login' `
-        -Body @{
-            csrf_token = $csrfToken
-            db = $Database
-            login = $Login
-            password = $TemporaryPassword
-            type = 'password'
-            redirect = ''
-        }
-
-    $redirectUri = $response.BaseResponse.ResponseUri.AbsoluteUri
-    if ($redirectUri -notmatch '/odoo(?:$|\?)') {
-        $pageDiagnostic = Get-OdooPageDiagnostic -Html $response.Content
-        if ($pageDiagnostic) {
-            throw "The local login validation did not end on /odoo. Final URL: $redirectUri. Page detail: $pageDiagnostic"
-        }
-
-        throw "The local login validation did not end on /odoo. Final URL: $redirectUri"
-    }
+    Write-Step "Validating the login against the local Odoo web server"
+    Write-Host "[dry-run] Validate HTTP login against $loginUrl"
 }
 
 Write-Host ""
