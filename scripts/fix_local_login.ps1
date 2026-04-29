@@ -136,6 +136,32 @@ function Invoke-PsqlCapture {
 }
 
 
+function Get-AvailableDatabases {
+    param(
+        [string]$PsqlPath,
+        [string]$DbHost,
+        [string]$DbPort,
+        [string]$DbUser,
+        [string]$DbPassword
+    )
+
+    $databaseList = Invoke-PsqlCapture `
+        -PsqlPath $PsqlPath `
+        -DbHost $DbHost `
+        -DbPort $DbPort `
+        -DbUser $DbUser `
+        -DbPassword $DbPassword `
+        -DatabaseName 'postgres' `
+        -Sql 'select datname from pg_database where datistemplate = false order by datname;'
+
+    return @(
+        $databaseList -split "`r?`n" |
+        ForEach-Object { $_.Trim() } |
+        Where-Object { $_ }
+    )
+}
+
+
 function Open-LoginBrowser {
     param(
         [string]$LoginUrl,
@@ -213,16 +239,25 @@ $databaseExists = Invoke-PsqlCapture `
     -Sql "select 1 from pg_database where datname = '$databaseSqlLiteral';"
 
 if ((-not $DryRun) -and (-not $databaseExists)) {
-    $databaseList = Invoke-PsqlCapture `
+    $availableDatabases = Get-AvailableDatabases `
         -PsqlPath $psqlPath `
         -DbHost $dbHost `
         -DbPort $dbPort `
         -DbUser $dbUser `
-        -DbPassword $dbPassword `
-        -DatabaseName 'postgres' `
-        -Sql 'select datname from pg_database where datistemplate = false order by datname;'
+        -DbPassword $dbPassword
 
-    throw "Database '$Database' does not exist. Existing databases: $databaseList"
+    $candidateDatabases = @(
+        $availableDatabases | Where-Object { $_ -notin @('postgres') }
+    )
+
+    if ($candidateDatabases.Count -eq 1) {
+        $Database = $candidateDatabases[0]
+        $databaseSqlLiteral = Convert-ToSqlLiteral -Value $Database
+        Write-Host "Requested database was not found. Falling back to the only detected Odoo database '$Database'." -ForegroundColor Yellow
+    }
+    else {
+        throw "Database '$Database' does not exist. Existing databases: $($availableDatabases -join ', ')"
+    }
 }
 
 Write-Step "Resetting password for '$Login'"

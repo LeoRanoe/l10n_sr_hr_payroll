@@ -130,6 +130,7 @@ Dit script:
 
 - leest automatisch `server\odoo.conf`
 - controleert of de gekozen database bestaat
+- valt automatisch terug op de enige gevonden niet-systeemdatabase als de opgegeven naam niet bestaat
 - reset het gekozen Odoo-loginwachtwoord naar een bekende tijdelijke waarde
 - valideert die login direct via een echte HTTP-aanroep naar `/web/login`
 - opent optioneel de juiste login-URL in een private browser-window
