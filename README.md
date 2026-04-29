@@ -114,6 +114,15 @@ Als Odoo lokaal wel draait maar de loginpagina blijft hangen op `Wrong login/pas
 
 `scripts/fix_local_login.ps1`
 
+Snelste optie zonder de lange PowerShell-oproep:
+
+```powershell
+Set-Location "C:\Program Files\Odoo 18.0e.20260407\sessions\addons\18.0\l10n_sr_hr_payroll"
+.\scripts\fix_local_login.cmd
+```
+
+Die wrapper gebruikt de bekende lokale standaardwaarden en opent direct een private browser-window.
+
 Voorbeeld:
 
 ```powershell
