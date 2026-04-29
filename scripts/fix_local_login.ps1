@@ -191,6 +191,37 @@ function Open-LoginBrowser {
 }
 
 
+function Get-OdooPageDiagnostic {
+    param([string]$Html)
+
+    if (-not $Html) {
+        return $null
+    }
+
+    $patterns = @(
+        '(?is)<div[^>]*alert[^>]*>\s*(.*?)\s*</div>',
+        '(?is)<h[1-3][^>]*>\s*(.*?)\s*</h[1-3]>',
+        '(?is)<title>\s*(.*?)\s*</title>'
+    )
+
+    foreach ($pattern in $patterns) {
+        if ($Html -match $pattern) {
+            $text = [Regex]::Replace($Matches[1], '<[^>]+>', ' ')
+            $text = [Regex]::Replace($text, '\s+', ' ').Trim()
+            if ($text) {
+                return $text
+            }
+        }
+    }
+
+    if ($Html -match 'Manage databases') {
+        return 'Manage databases'
+    }
+
+    return $null
+}
+
+
 $resolvedOdooRoot = Resolve-UnresolvedPath -PathValue $OdooRoot
 $configPath = Join-Path $resolvedOdooRoot "server\odoo.conf"
 
@@ -229,16 +260,8 @@ $loginSqlLiteral = Convert-ToSqlLiteral -Value $Login
 $passwordSqlLiteral = Convert-ToSqlLiteral -Value $TemporaryPassword
 
 Write-Step "Checking whether database '$Database' exists"
-$databaseExists = Invoke-PsqlCapture `
-    -PsqlPath $psqlPath `
-    -DbHost $dbHost `
-    -DbPort $dbPort `
-    -DbUser $dbUser `
-    -DbPassword $dbPassword `
-    -DatabaseName 'postgres' `
-    -Sql "select 1 from pg_database where datname = '$databaseSqlLiteral';"
-
-if ((-not $DryRun) -and (-not $databaseExists)) {
+$availableDatabases = @()
+if (-not $DryRun) {
     $availableDatabases = Get-AvailableDatabases `
         -PsqlPath $psqlPath `
         -DbHost $dbHost `
@@ -246,17 +269,22 @@ if ((-not $DryRun) -and (-not $databaseExists)) {
         -DbUser $dbUser `
         -DbPassword $dbPassword
 
-    $candidateDatabases = @(
-        $availableDatabases | Where-Object { $_ -notin @('postgres') }
-    )
-
-    if ($candidateDatabases.Count -eq 1) {
-        $Database = $candidateDatabases[0]
+    if ($availableDatabases -contains $Database) {
         $databaseSqlLiteral = Convert-ToSqlLiteral -Value $Database
-        Write-Host "Requested database was not found. Falling back to the only detected Odoo database '$Database'." -ForegroundColor Yellow
     }
     else {
-        throw "Database '$Database' does not exist. Existing databases: $($availableDatabases -join ', ')"
+        $candidateDatabases = @(
+            $availableDatabases | Where-Object { $_ -notin @('postgres') }
+        )
+
+        if ($candidateDatabases.Count -eq 1) {
+            $Database = $candidateDatabases[0]
+            $databaseSqlLiteral = Convert-ToSqlLiteral -Value $Database
+            Write-Host "Requested database was not found. Falling back to the only detected Odoo database '$Database'." -ForegroundColor Yellow
+        }
+        else {
+            throw "Database '$Database' does not exist. Existing databases: $($availableDatabases -join ', ')"
+        }
     }
 }
 
@@ -294,7 +322,17 @@ if ($DryRun) {
 else {
     $session = New-Object Microsoft.PowerShell.Commands.WebRequestSession
     $loginPage = Invoke-WebRequest -UseBasicParsing -WebSession $session -Uri $loginUrl
+    $loginPageUri = $loginPage.BaseResponse.ResponseUri.AbsoluteUri
+    if ($loginPageUri -match '/web/database/selector(?:$|\?)') {
+        throw "Database '$Database' is not available in the Odoo web server. Odoo redirected to the database selector at $loginPageUri. Existing PostgreSQL databases: $($availableDatabases -join ', ')"
+    }
+
     if ($loginPage.Content -notmatch 'name="csrf_token" value="([^"]+)"') {
+        $pageDiagnostic = Get-OdooPageDiagnostic -Html $loginPage.Content
+        if ($pageDiagnostic) {
+            throw "Could not find a CSRF token on the Odoo login page at $loginUrl. Page detail: $pageDiagnostic"
+        }
+
         throw "Could not find a CSRF token on the Odoo login page at $loginUrl."
     }
 
@@ -315,6 +353,11 @@ else {
 
     $redirectUri = $response.BaseResponse.ResponseUri.AbsoluteUri
     if ($redirectUri -notmatch '/odoo(?:$|\?)') {
+        $pageDiagnostic = Get-OdooPageDiagnostic -Html $response.Content
+        if ($pageDiagnostic) {
+            throw "The local login validation did not end on /odoo. Final URL: $redirectUri. Page detail: $pageDiagnostic"
+        }
+
         throw "The local login validation did not end on /odoo. Final URL: $redirectUri"
     }
 }
