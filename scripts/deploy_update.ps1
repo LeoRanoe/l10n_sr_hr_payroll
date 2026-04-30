@@ -8,9 +8,9 @@
     3. Herstart de Odoo Windows-service (en voert optioneel een module-upgrade uit).
 
     Vereisten op de VM:
-    - Git staat in het PATH (wordt geleverd door de bootstrap).
+    - Git staat in het PATH.
     - De Odoo Windows-service draait.
-    - Het script wordt uitgevoerd als Administrator (nodig voor service-beheer).
+    - Het script wordt uitgevoerd als Administrator.
 
 .PARAMETER OdooRoot
     Map met de Odoo-installatie. Standaard: C:\Program Files\Odoo 18.0e.20260407
@@ -19,7 +19,7 @@
     Map met de custom addons. Standaard: <OdooRoot>\sessions\addons\18.0
 
 .PARAMETER ModuleName
-    Naam van de module die bijgewerkt wordt. Standaard: l10n_sr_hr_payroll
+    Naam van de module. Standaard: l10n_sr_hr_payroll
 
 .PARAMETER Database
     Naam van de Odoo-database. Standaard: Salarisverwerking-Module
@@ -37,13 +37,8 @@
     Schakelaar: toon wat er gedaan zou worden zonder iets uit te voeren.
 
 .EXAMPLE
-    # Gewone update (alleen code, geen DB-migratie)
     .\deploy_update.ps1
-
-    # Update inclusief module-upgrade (bij nieuwe velden of views)
     .\deploy_update.ps1 -UpgradeModule
-
-    # Droog draaien om te zien wat het script zou doen
     .\deploy_update.ps1 -DryRun
 #>
 
@@ -62,7 +57,9 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-# ─── Helpers ──────────────────────────────────────────────────────────────────
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
 
 function Write-Step {
     param([string]$Message)
@@ -97,7 +94,9 @@ function Invoke-Step {
     & $Action
 }
 
-# ─── Administrator-check ──────────────────────────────────────────────────────
+# ---------------------------------------------------------------------------
+# Administrator-check
+# ---------------------------------------------------------------------------
 
 $currentPrincipal = [Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()
 if (-not $currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
@@ -106,76 +105,101 @@ if (-not $currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Adm
     exit 1
 }
 
-# ─── Paden oplossen ───────────────────────────────────────────────────────────
+# ---------------------------------------------------------------------------
+# Paden oplossen
+# ---------------------------------------------------------------------------
 
-$resolvedOdooRoot  = $OdooRoot.TrimEnd('\')
-$resolvedAddonsRoot = if ($AddonsRoot) {
-    $AddonsRoot.TrimEnd('\')
+$resolvedOdooRoot = $OdooRoot.TrimEnd('\')
+if ($AddonsRoot) {
+    $resolvedAddonsRoot = $AddonsRoot.TrimEnd('\')
 } else {
-    Join-Path $resolvedOdooRoot 'sessions\addons\18.0'
+    $resolvedAddonsRoot = Join-Path $resolvedOdooRoot 'sessions\addons\18.0'
 }
 
-$moduleDir  = Join-Path $resolvedAddonsRoot $ModuleName
-$pythonExe  = Join-Path $resolvedOdooRoot 'python\python.exe'
-$odooBin    = Join-Path $resolvedOdooRoot 'server\odoo-bin'
-$odooConf   = Join-Path $resolvedOdooRoot 'server\odoo.conf'
+$moduleDir = Join-Path $resolvedAddonsRoot $ModuleName
+$pythonExe = Join-Path $resolvedOdooRoot 'python\python.exe'
+$odooBin   = Join-Path $resolvedOdooRoot 'server\odoo-bin'
+$odooConf  = Join-Path $resolvedOdooRoot 'server\odoo.conf'
 
 Write-Host ''
-Write-Host '╔══════════════════════════════════════════════════════╗' -ForegroundColor DarkCyan
-Write-Host '║   SR Payroll — Deploy & Update script                ║' -ForegroundColor DarkCyan
-Write-Host '╚══════════════════════════════════════════════════════╝' -ForegroundColor DarkCyan
+Write-Host '====================================================' -ForegroundColor DarkCyan
+Write-Host '  SR Payroll -- Deploy & Update                    ' -ForegroundColor DarkCyan
+Write-Host '====================================================' -ForegroundColor DarkCyan
 Write-Host ''
 Write-Host "  Module    : $ModuleName"
 Write-Host "  Branch    : $Remote/$Branch"
 Write-Host "  Repo map  : $moduleDir"
 Write-Host "  Database  : $Database"
-if ($UpgradeModule) { Write-Warn 'Module-upgrade ingeschakeld (-u). Dit duurt langer.' }
-if ($DryRun)        { Write-Warn 'DRY-RUN modus — er wordt niets daadwerkelijk uitgevoerd.' }
+
+if ($UpgradeModule) {
+    Write-Warn 'Module-upgrade ingeschakeld (-UpgradeModule). Dit duurt langer.'
+}
+if ($DryRun) {
+    Write-Warn 'DRY-RUN modus -- er wordt niets daadwerkelijk uitgevoerd.'
+}
 Write-Host ''
 
-# ─── Stap 1: Git pull ─────────────────────────────────────────────────────────
+# ---------------------------------------------------------------------------
+# Stap 1: Git pull
+# ---------------------------------------------------------------------------
 
-Write-Step "Stap 1/4 — Nieuwste code ophalen van $Remote/$Branch"
+Write-Step "Stap 1/4 -- Nieuwste code ophalen van $Remote/$Branch"
 
 if (-not (Test-Path (Join-Path $moduleDir '.git'))) {
     Write-Fail "Geen git-repository gevonden in: $moduleDir"
-    Write-Host "  Zorg dat de module al is gekloned via bootstrap_test_vm.ps1" -ForegroundColor Yellow
+    Write-Host '  Zorg dat de module al is gekloned via de bootstrap.' -ForegroundColor Yellow
     exit 1
 }
 
-$gitExe = (Get-Command git -ErrorAction SilentlyContinue)?.Source
-if (-not $gitExe) {
+$gitCmd = (Get-Command git -ErrorAction SilentlyContinue)
+if (-not $gitCmd) {
     Write-Fail 'Git niet gevonden in het PATH. Installeer Git for Windows.'
     exit 1
 }
+$gitExe = $gitCmd.Source
 
 Push-Location $moduleDir
 try {
     Invoke-Step "git fetch $Remote" {
-        & git fetch $Remote 2>&1 | ForEach-Object { Write-Host "    $_" }
-        if ($LASTEXITCODE -ne 0) { throw "git fetch mislukt (exit $LASTEXITCODE)." }
+        $result = & $gitExe fetch $Remote 2>&1
+        $result | ForEach-Object { Write-Host "    $_" }
+        if ($LASTEXITCODE -ne 0) {
+            throw "git fetch mislukt (exit $LASTEXITCODE)."
+        }
     }
 
-    Invoke-Step "git checkout $Branch && git reset --hard $Remote/$Branch" {
-        & git checkout $Branch 2>&1 | ForEach-Object { Write-Host "    $_" }
-        if ($LASTEXITCODE -ne 0) { throw "git checkout $Branch mislukt." }
+    Invoke-Step "git checkout $Branch" {
+        $result = & $gitExe checkout $Branch 2>&1
+        $result | ForEach-Object { Write-Host "    $_" }
+        if ($LASTEXITCODE -ne 0) {
+            throw "git checkout $Branch mislukt."
+        }
+    }
 
-        & git reset --hard "$Remote/$Branch" 2>&1 | ForEach-Object { Write-Host "    $_" }
-        if ($LASTEXITCODE -ne 0) { throw "git reset --hard mislukt." }
+    Invoke-Step "git reset --hard $Remote/$Branch" {
+        $result = & $gitExe reset --hard "$Remote/$Branch" 2>&1
+        $result | ForEach-Object { Write-Host "    $_" }
+        if ($LASTEXITCODE -ne 0) {
+            throw "git reset --hard mislukt."
+        }
     }
 
     if (-not $DryRun) {
-        $commitHash = (& git rev-parse --short HEAD 2>$null).Trim()
-        Write-OK "Code bijgewerkt naar commit: $commitHash"
+        $commitHash = (& $gitExe rev-parse --short HEAD 2>$null)
+        if ($commitHash) {
+            Write-OK "Code bijgewerkt naar commit: $($commitHash.Trim())"
+        }
     }
 }
 finally {
     Pop-Location
 }
 
-# ─── Stap 2: Odoo service opzoeken ────────────────────────────────────────────
+# ---------------------------------------------------------------------------
+# Stap 2: Odoo service opzoeken
+# ---------------------------------------------------------------------------
 
-Write-Step 'Stap 2/4 — Odoo Windows-service opsporen'
+Write-Step 'Stap 2/4 -- Odoo Windows-service opsporen'
 
 $odooService = Get-Service -ErrorAction SilentlyContinue |
     Where-Object { $_.Name -like '*odoo*' -or $_.DisplayName -like '*odoo*' } |
@@ -184,31 +208,35 @@ $odooService = Get-Service -ErrorAction SilentlyContinue |
 
 if (-not $odooService) {
     Write-Fail 'Geen Odoo Windows-service gevonden.'
-    Write-Host "  Controleer of Odoo is geïnstalleerd als Windows-service (services.msc)." -ForegroundColor Yellow
+    Write-Host '  Controleer of Odoo is geinstalleerd als Windows-service (services.msc).' -ForegroundColor Yellow
     exit 1
 }
 
-Write-OK "Service gevonden: '$($odooService.Name)' (status: $($odooService.Status))"
+Write-OK ("Service gevonden: '" + $odooService.Name + "' (status: " + $odooService.Status + ")")
 
-# ─── Stap 3: Service herstarten ───────────────────────────────────────────────
+# ---------------------------------------------------------------------------
+# Stap 3: Service stoppen
+# ---------------------------------------------------------------------------
 
-Write-Step "Stap 3/4 — Odoo-service herstarten ('$($odooService.Name)')"
+Write-Step ("Stap 3/4 -- Odoo-service stoppen ('" + $odooService.Name + "')")
 
-Invoke-Step "Stop-Service '$($odooService.Name)'" {
+Invoke-Step ("Stop-Service '" + $odooService.Name + "'") {
     if ($odooService.Status -eq 'Running') {
-        Write-Host "    Service stoppen..." -ForegroundColor DarkGray
+        Write-Host '    Service stoppen...' -ForegroundColor DarkGray
         Stop-Service -Name $odooService.Name -Force
         $odooService.WaitForStatus('Stopped', [TimeSpan]::FromMinutes(2))
         Write-OK 'Service gestopt.'
     } else {
-        Write-Warn "Service was al gestopt (status: $($odooService.Status))."
+        Write-Warn ("Service was al gestopt (status: " + $odooService.Status + ").")
     }
 }
 
-# ─── Stap 4a (optioneel): Module-upgrade ──────────────────────────────────────
+# ---------------------------------------------------------------------------
+# Stap 4a (optioneel): Module-upgrade uitvoeren
+# ---------------------------------------------------------------------------
 
 if ($UpgradeModule) {
-    Write-Step "Stap 4/4 — Module '$ModuleName' upgraden in database '$Database'"
+    Write-Step ("Stap 4/4 -- Module '" + $ModuleName + "' upgraden in database '" + $Database + "'")
 
     if (-not (Test-Path $pythonExe)) {
         Write-Fail "Python niet gevonden op: $pythonExe"
@@ -228,36 +256,40 @@ if ($UpgradeModule) {
         '--no-http'
     )
 
-    Invoke-Step "python odoo-bin -u $ModuleName --stop-after-init" {
-        Write-Host "    Dit kan 30-120 seconden duren..." -ForegroundColor DarkGray
+    Invoke-Step ("python odoo-bin -u " + $ModuleName + " --stop-after-init") {
+        Write-Host '    Dit kan 30-120 seconden duren...' -ForegroundColor DarkGray
         & $pythonExe @upgradeArgs
         if ($LASTEXITCODE -ne 0) {
-            Write-Fail "Module-upgrade mislukt (exit $LASTEXITCODE). Check de Odoo-logs."
+            Write-Fail ("Module-upgrade mislukt (exit " + $LASTEXITCODE + "). Check de Odoo-logs.")
             exit 1
         }
-        Write-OK "Module '$ModuleName' succesvol geüpgraded."
+        Write-OK ("Module '" + $ModuleName + "' succesvol geupgraded.")
     }
 } else {
-    Write-Step 'Stap 4/4 — Odoo-service starten (geen module-upgrade)'
+    Write-Step 'Stap 4/4 -- Odoo-service starten (geen module-upgrade)'
     Write-Warn 'Gebruik -UpgradeModule als er nieuwe velden of views zijn toegevoegd.'
 }
 
-# ─── Service starten ──────────────────────────────────────────────────────────
+# ---------------------------------------------------------------------------
+# Service starten
+# ---------------------------------------------------------------------------
 
-Invoke-Step "Start-Service '$($odooService.Name)'" {
-    Write-Host "    Service starten..." -ForegroundColor DarkGray
+Invoke-Step ("Start-Service '" + $odooService.Name + "'") {
+    Write-Host '    Service starten...' -ForegroundColor DarkGray
     Start-Service -Name $odooService.Name
     $odooService.WaitForStatus('Running', [TimeSpan]::FromMinutes(3))
-    Write-OK "Service gestart. Odoo draait weer op poort 8069."
+    Write-OK 'Service gestart. Odoo draait weer op poort 8069.'
 }
 
-# ─── Klaar ────────────────────────────────────────────────────────────────────
+# ---------------------------------------------------------------------------
+# Klaar
+# ---------------------------------------------------------------------------
 
 Write-Host ''
-Write-Host '╔══════════════════════════════════════════════════════╗' -ForegroundColor Green
-Write-Host '║   Deploy voltooid!                                   ║' -ForegroundColor Green
-Write-Host '╚══════════════════════════════════════════════════════╝' -ForegroundColor Green
+Write-Host '====================================================' -ForegroundColor Green
+Write-Host '  Deploy voltooid!                                  ' -ForegroundColor Green
+Write-Host '====================================================' -ForegroundColor Green
 Write-Host ''
-Write-Host "  Open Odoo: http://localhost:8069" -ForegroundColor White
-Write-Host "  Help-pagina: http://localhost:8069/sr_payroll/help" -ForegroundColor White
+Write-Host '  Open Odoo      : http://localhost:8069' -ForegroundColor White
+Write-Host '  Help-pagina    : http://localhost:8069/sr_payroll/help' -ForegroundColor White
 Write-Host ''
