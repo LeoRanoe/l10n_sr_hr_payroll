@@ -163,19 +163,20 @@ class TestArtikel14Berekening(common.TransactionCase):
         Bruto maandloon: SRD 20.255,60
                 Bruto jaarloon : SRD 243.067,20
                 Forfaitaire    : 4% × 243.067,20 = 9.722,69 → max SRD 4.800
-                Belastingvrij  : SRD 0
-                Belastbaar     : 243.067,20 - 0 - 4.800 = 238.267,20
+                Belastingvrij  : SRD 108.000 (Art. 13)
+                Belastbaar     : 243.067,20 - 4.800 - 108.000 = 130.267,20
         Schijven       :
           S1: 42.000 × 8%  =  3.360,00
           S2: 42.000 × 18% =  7.560,00
           S3: 42.000 × 28% = 11.760,00
-                    S4: (238.267,20 - 126.000) × 38% = 112.267,20 × 38% = 42.661,54
-                    Totaal lb jaar  = 65.341,54
-                    LB per maand vóór HK = 65.341,54 / 12 = 5.445,13
+                    S4: (130.267,20 - 126.000) × 38% = 4.267,20 × 38% = 1.621,54
+                    Totaal lb jaar  = 24.301,54
+                    LB per maand vóór HK = 24.301,54 / 12 = 2.025,13
                     Heffingskorting = 750,00
-                    In te houden LB = 5.445,13 - 750,00 = 4.695,13
+                    In te houden LB = 2.025,13 - 750,00 = 1.275,13
         AOV grondslag   : 20.255,60 - 400 = 19.855,60
         AOV per maand   : 19.855,60 × 4% = 794,22
+        Nettoloon       : 20.255,60 - 1.275,13 - 794,22 = 18.186,25
         """
         contract = self._create_contract(wage=20255.60, salary_type='monthly')
         payslip = self._compute_payslip(
@@ -207,11 +208,11 @@ class TestArtikel14Berekening(common.TransactionCase):
         self.assertAlmostEqual(net, gross + lb + aov, places=2,
                                msg='Nettoloon berekening klopt niet')
 
-        self.assertAlmostEqual(abs(lb), 4695.13, places=2,
-                       msg='LB voor het referentiesalaris wijkt af van het 2026 rekenvoorbeeld')
+        self.assertAlmostEqual(abs(lb), 1275.13, places=2,
+                       msg='LB voor het referentiesalaris wijkt af (belastingvrij Art.13 = SRD 108.000)')
         self.assertAlmostEqual(abs(aov), 794.22, places=2,
                        msg='AOV voor het referentiesalaris wijkt af van het 2026 rekenvoorbeeld')
-        self.assertAlmostEqual(net, 14766.25, places=2,
+        self.assertAlmostEqual(net, 18186.25, places=2,
                        msg='Nettoloon voor het referentiesalaris moet tot op de cent kloppen')
 
         # Nettoloon moet lager zijn dan brutoloon
