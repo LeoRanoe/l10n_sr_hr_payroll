@@ -161,27 +161,34 @@ $gitExe = $gitCmd.Source
 Push-Location $moduleDir
 try {
     Invoke-Step "git fetch $Remote" {
+        # SilentlyContinue: voorkomt dat PS5.1 git-stderr als exception behandelt
+        $prev = $ErrorActionPreference; $ErrorActionPreference = 'SilentlyContinue'
         $result = & $gitExe fetch $Remote 2>&1
+        $exitFetch = $LASTEXITCODE
+        $ErrorActionPreference = $prev
         $result | ForEach-Object { Write-Host "    $_" }
-        if ($LASTEXITCODE -ne 0) {
-            throw "git fetch mislukt (exit $LASTEXITCODE)."
-        }
+        if ($exitFetch -ne 0) { throw "git fetch mislukt (exit $exitFetch)." }
     }
 
     Invoke-Step "git checkout $Branch" {
+        $prev = $ErrorActionPreference; $ErrorActionPreference = 'SilentlyContinue'
         $result = & $gitExe checkout $Branch 2>&1
-        $result | ForEach-Object { Write-Host "    $_" }
-        if ($LASTEXITCODE -ne 0) {
-            throw "git checkout $Branch mislukt."
-        }
+        $exitCheckout = $LASTEXITCODE
+        $ErrorActionPreference = $prev
+        # "Already on '...'" is informatief, geen fout
+        $result | Where-Object { $_ -and $_ -notmatch 'Already on' } |
+            ForEach-Object { Write-Host "    $_" }
+        if ($exitCheckout -ne 0) { throw "git checkout $Branch mislukt (exit $exitCheckout)." }
+        Write-OK "Op branch: $Branch"
     }
 
     Invoke-Step "git reset --hard $Remote/$Branch" {
+        $prev = $ErrorActionPreference; $ErrorActionPreference = 'SilentlyContinue'
         $result = & $gitExe reset --hard "$Remote/$Branch" 2>&1
+        $exitReset = $LASTEXITCODE
+        $ErrorActionPreference = $prev
         $result | ForEach-Object { Write-Host "    $_" }
-        if ($LASTEXITCODE -ne 0) {
-            throw "git reset --hard mislukt."
-        }
+        if ($exitReset -ne 0) { throw "git reset --hard mislukt (exit $exitReset)." }
     }
 
     if (-not $DryRun) {
