@@ -305,9 +305,19 @@ if ($odooLogFile -and (Test-Path $odooLogFile)) {
     )
     $stream.Seek($odooLogOffset, [System.IO.SeekOrigin]::Begin) | Out-Null
     $reader = [System.IO.StreamReader]::new($stream, [System.Text.Encoding]::UTF8)
+    # Suppress verbose metamodel_setattr/runbot blocks from odoo.tests.common;
+    # these are Odoo framework noise and bury the actual test results.
+    $suppressStack = $false
     while (-not $reader.EndOfStream) {
         $line = $reader.ReadLine()
-        $allOutput.Add($line)
+        $allOutput.Add($line)   # always write to logfile
+
+        # Toggle suppression on each new timestamped log line
+        if ($line -match '^\d{4}-\d{2}-\d{2}') {
+            $suppressStack = ($line -match ' odoo\.tests\.common: ')
+        }
+        if ($suppressStack) { continue }   # skip console display
+
         if ($line -match 'FAIL:|AssertionError') {
             Write-Host "  $line" -ForegroundColor Red
         } elseif ($line -match ' ERROR ') {
