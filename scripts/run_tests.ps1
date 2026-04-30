@@ -121,10 +121,11 @@ Write-Step 'Stap 1/5 -- Database-check: is de module geinstalleerd?'
 # Lees db_password uit odoo.conf zodat psql niet om een wachtwoord vraagt.
 # PGPASSWORD wordt na afloop weer verwijderd.
 # ---------------------------------------------------------------------------
-$dbPassword = 'openpgpwd'   # standaard uit odoo.conf
-$dbUser     = 'openpg'
-$dbHost     = 'localhost'
-$dbPort     = '5432'
+$dbPassword  = 'openpgpwd'   # standaard uit odoo.conf
+$dbUser      = 'openpg'
+$dbHost      = 'localhost'
+$dbPort      = '5432'
+$odooLogFile = ''
 
 if (Test-Path $odooConf) {
     $confContent = Get-Content $odooConf -Raw
@@ -143,6 +144,10 @@ if (Test-Path $odooConf) {
     if ($confContent -match 'db_port\s*=\s*(.+)') {
         $parsed = $Matches[1].Trim()
         if ($parsed -and $parsed -ne 'False') { $dbPort = $parsed }
+    }
+    if ($confContent -match 'logfile\s*=\s*(.+)') {
+        $parsed = $Matches[1].Trim()
+        if ($parsed -and $parsed -ne 'False') { $odooLogFile = $parsed }
     }
 }
 
@@ -246,13 +251,13 @@ if ($odooService.Status -eq 'Running') {
 # ---------------------------------------------------------------------------
 
 Write-Step 'Stap 3/5 -- Tests uitvoeren (dit duurt 2-5 minuten)'
-Write-Host '    Output verschijnt hieronder en wordt ook opgeslagen in het logbestand.' -ForegroundColor DarkGray
-Write-Host '    Wacht tot je "Initiating shutdown" of een samenvatting ziet...' -ForegroundColor DarkGray
+Write-Host '    Odoo schrijft output naar zijn eigen logfile; die lezen we na afloop uit.' -ForegroundColor DarkGray
+Write-Host '    Wacht geduldig...' -ForegroundColor DarkGray
 Write-Host ''
 
-# Geen --logfile: output gaat naar stdout zodat wij het live zien en kunnen analyseren.
-# Geen --test-tags filter: alle tests in de module draaien.
 # --log-level test: geeft test-specifieke regels (PASS/FAIL/ERROR).
+# Geen --logfile override: Odoo schrijft naar het pad uit odoo.conf.
+# We lezen die logfile na afloop uit via een byte-offset.
 $testArgs = @(
     $odooBin,
     '--config',        $odooConf,
@@ -262,37 +267,64 @@ $testArgs = @(
     '--stop-after-init',
     '--log-level',     'test',
     '--no-http',
-    # Overschrijf de logfile uit odoo.conf zodat output naar stdout gaat
-    '--logfile',       '',
-    # Voorkom dat demo-data het testgedrag beinvloedt
     '--without-demo',  'all'
 )
+
+# Sla de huidige grootte van Odoo's logfile op (offset) zodat we alleen
+# de uitvoer van deze testrun terugzien.
+$odooLogOffset = 0L
+if ($odooLogFile -and (Test-Path $odooLogFile)) {
+    $odooLogOffset = (Get-Item $odooLogFile).Length
+    Write-Host "    Odoo logfile : $odooLogFile" -ForegroundColor DarkGray
+    Write-Host "    Startpositie : $odooLogOffset bytes" -ForegroundColor DarkGray
+} elseif ($odooLogFile) {
+    Write-Warn "Odoo logfile niet gevonden op: $odooLogFile"
+} else {
+    Write-Warn 'Geen logfile gevonden in odoo.conf. Output kan ontbreken.'
+}
+Write-Host ''
 
 $allOutput = [System.Collections.Generic.List[string]]::new()
 $startTime = Get-Date
 
 $prev = $ErrorActionPreference; $ErrorActionPreference = 'SilentlyContinue'
-& $pythonExe @testArgs 2>&1 | ForEach-Object {
-    $line = $_.ToString()
-    $allOutput.Add($line)
-
-    # Kleur-codering live output
-    if ($line -match 'FAIL:|AssertionError') {
-        Write-Host "  $line" -ForegroundColor Red
-    } elseif ($line -match ' ERROR ') {
-        Write-Host "  $line" -ForegroundColor Red
-    } elseif ($line -match 'ok$|\.\.\.ok|\.\.\. ok') {
-        Write-Host "  $line" -ForegroundColor Green
-    } elseif ($line -match 'WARNING') {
-        Write-Host "  $line" -ForegroundColor Yellow
-    } else {
-        Write-Host "  $line"
-    }
-}
+& $pythonExe @testArgs 2>&1 | Out-Null   # Odoo logt intern; stdout/stderr zijn leeg
 $exitCode = $LASTEXITCODE
 $ErrorActionPreference = $prev
 
 $duration = [int]((Get-Date) - $startTime).TotalSeconds
+
+# Lees testuitvoer uit Odoo's logfile vanaf de opgeslagen offset
+if ($odooLogFile -and (Test-Path $odooLogFile)) {
+    Write-Host '    Testuitvoer laden uit Odoo logfile...' -ForegroundColor DarkGray
+    $stream = [System.IO.FileStream]::new(
+        $odooLogFile,
+        [System.IO.FileMode]::Open,
+        [System.IO.FileAccess]::Read,
+        [System.IO.FileShare]::ReadWrite
+    )
+    $stream.Seek($odooLogOffset, [System.IO.SeekOrigin]::Begin) | Out-Null
+    $reader = [System.IO.StreamReader]::new($stream, [System.Text.Encoding]::UTF8)
+    while (-not $reader.EndOfStream) {
+        $line = $reader.ReadLine()
+        $allOutput.Add($line)
+        if ($line -match 'FAIL:|AssertionError') {
+            Write-Host "  $line" -ForegroundColor Red
+        } elseif ($line -match ' ERROR ') {
+            Write-Host "  $line" -ForegroundColor Red
+        } elseif ($line -match 'ok$|\.\.\.ok|\.\.\. ok') {
+            Write-Host "  $line" -ForegroundColor Green
+        } elseif ($line -match 'WARNING') {
+            Write-Host "  $line" -ForegroundColor Yellow
+        } else {
+            Write-Host "  $line"
+        }
+    }
+    $reader.Close()
+    $stream.Close()
+} else {
+    Write-Warn 'Kon Odoo logfile niet lezen. Controleer logfile= in odoo.conf.'
+}
 
 # Logbestand opslaan
 $allOutput | Out-File -FilePath $logFile -Encoding utf8
