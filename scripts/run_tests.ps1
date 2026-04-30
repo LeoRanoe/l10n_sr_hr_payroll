@@ -56,11 +56,10 @@ function Write-Warn { param([string]$m); Write-Host "    [!]    $m" -ForegroundC
 function Write-Fail { param([string]$m); Write-Host "    [FAIL] $m" -ForegroundColor Red }
 
 function Invoke-Native {
-    # Roept een native executable aan zonder dat PS5.1 stderr als exception behandelt.
-    param([string]$Exe, [string[]]$Args)
+    param([string]$Exe, [string[]]$Arguments)
     $prev = $ErrorActionPreference
     $ErrorActionPreference = 'SilentlyContinue'
-    $output = & $Exe @Args 2>&1
+    $output = & $Exe @Arguments 2>&1
     $code   = $LASTEXITCODE
     $ErrorActionPreference = $prev
     return [PSCustomObject]@{ Output = $output; ExitCode = $code }
@@ -118,74 +117,101 @@ foreach ($check in @($pythonExe, $odooBin, $odooConf)) {
 
 Write-Step 'Stap 1/5 -- Database-check: is de module geinstalleerd?'
 
-$moduleInstalled = $false
+# ---------------------------------------------------------------------------
+# Lees db_password uit odoo.conf zodat psql niet om een wachtwoord vraagt.
+# PGPASSWORD wordt na afloop weer verwijderd.
+# ---------------------------------------------------------------------------
+$dbPassword = 'openpgpwd'   # standaard uit odoo.conf
+$dbUser     = 'openpg'
+$dbHost     = 'localhost'
+$dbPort     = '5432'
+
+if (Test-Path $odooConf) {
+    $confContent = Get-Content $odooConf -Raw
+    if ($confContent -match 'db_password\s*=\s*(.+)') {
+        $parsed = $Matches[1].Trim()
+        if ($parsed -and $parsed -ne 'False') { $dbPassword = $parsed }
+    }
+    if ($confContent -match 'db_user\s*=\s*(.+)') {
+        $parsed = $Matches[1].Trim()
+        if ($parsed -and $parsed -ne 'False') { $dbUser = $parsed }
+    }
+    if ($confContent -match 'db_host\s*=\s*(.+)') {
+        $parsed = $Matches[1].Trim()
+        if ($parsed -and $parsed -ne 'False' -and $parsed -ne 'localhost') { $dbHost = $parsed }
+    }
+    if ($confContent -match 'db_port\s*=\s*(.+)') {
+        $parsed = $Matches[1].Trim()
+        if ($parsed -and $parsed -ne 'False') { $dbPort = $parsed }
+    }
+}
+
+# Zet PGPASSWORD zodat psql nooit om een wachtwoord vraagt
+$env:PGPASSWORD = $dbPassword
+
+function Invoke-Psql {
+    param([string]$DbName, [string]$Sql)
+    $prev = $ErrorActionPreference; $ErrorActionPreference = 'SilentlyContinue'
+    $out  = & $psqlExe -U $dbUser -h $dbHost -p $dbPort -d $DbName -t -A -c $Sql 2>&1
+    $code = $LASTEXITCODE
+    $ErrorActionPreference = $prev
+    return [PSCustomObject]@{ Output = $out; ExitCode = $code }
+}
+
+$moduleInstalled  = $false
 $detectedDatabase = $Database
 
 if (Test-Path $psqlExe) {
-    # Controleer de opgegeven database
     $sql = "SELECT state FROM ir_module_module WHERE name='$ModuleName' LIMIT 1;"
-    $prev = $ErrorActionPreference; $ErrorActionPreference = 'SilentlyContinue'
-    $psqlOut  = & $psqlExe -U openpg -d $Database -t -c $sql 2>&1
-    $psqlExit = $LASTEXITCODE
-    $ErrorActionPreference = $prev
 
-    if ($psqlExit -eq 0) {
-        $stateValue = ($psqlOut -join '').Trim()
+    $res = Invoke-Psql -DbName $Database -Sql $sql
+    if ($res.ExitCode -eq 0) {
+        $stateValue = ($res.Output -join '').Trim()
         Write-Host "    Module state in '$Database': '$stateValue'"
+
         if ($stateValue -eq 'installed') {
             $moduleInstalled = $true
             Write-OK "Module is geinstalleerd in '$Database'. Tests kunnen draaien."
         } else {
             Write-Warn "Module staat NIET op 'installed' in '$Database' (staat op: '$stateValue')."
+            Write-Host '    Zoeken in welke database de module wel geinstalleerd is...' -ForegroundColor DarkGray
 
-            # Zoek automatisch in welke database de module wel geinstalleerd is
-            Write-Host '    Zoeken in andere databases...' -ForegroundColor DarkGray
-            $listSql = "SELECT datname FROM pg_database WHERE datistemplate=false ORDER BY datname;"
-            $prev = $ErrorActionPreference; $ErrorActionPreference = 'SilentlyContinue'
-            $dbList = & $psqlExe -U openpg -t -c $listSql 2>&1
-            $ErrorActionPreference = $prev
-
+            $listRes = Invoke-Psql -DbName 'postgres' -Sql "SELECT datname FROM pg_database WHERE datistemplate=false ORDER BY datname;"
             $foundIn = @()
-            foreach ($dbName in ($dbList | ForEach-Object { $_.ToString().Trim() } | Where-Object { $_ -and $_ -notmatch '^\s*$' })) {
-                $prev = $ErrorActionPreference; $ErrorActionPreference = 'SilentlyContinue'
-                $checkOut  = & $psqlExe -U openpg -d $dbName -t -c $sql 2>&1
-                $checkExit = $LASTEXITCODE
-                $ErrorActionPreference = $prev
-                if ($checkExit -eq 0 -and ($checkOut -join '').Trim() -eq 'installed') {
+            foreach ($dbName in ($listRes.Output | ForEach-Object { $_.ToString().Trim() } | Where-Object { $_ })) {
+                $chk = Invoke-Psql -DbName $dbName -Sql $sql
+                if ($chk.ExitCode -eq 0 -and ($chk.Output -join '').Trim() -eq 'installed') {
                     $foundIn += $dbName
                 }
             }
 
             if ($foundIn.Count -gt 0) {
-                Write-Warn ("Module gevonden als 'installed' in: " + ($foundIn -join ', '))
-                Write-Warn ("Herstart run_tests.cmd met: -Database `"$($foundIn[0])`"")
+                Write-OK ("Module 'installed' gevonden in: " + ($foundIn -join ', '))
                 $detectedDatabase = $foundIn[0]
-                Write-Host "    Automatisch omschakelen naar database: '$detectedDatabase'" -ForegroundColor Yellow
+                Write-Host "    Tests worden gedraaid op: '$detectedDatabase'" -ForegroundColor Yellow
                 $moduleInstalled = $true
             } else {
-                Write-Fail "Module is in geen enkele database als 'installed' gevonden."
-                Write-Fail "Installeer de module eerst via Odoo UI of voer deploy_update.cmd -UpgradeModule uit."
+                Write-Fail 'Module is in geen enkele database als installed gevonden.'
+                Write-Host '  Installeer de module via http://172.27.131.3:8069/odoo/settings/apps' -ForegroundColor Yellow
+                Write-Host '  of voer deploy_update.cmd uit met de -UpgradeModule schakelaar.' -ForegroundColor Yellow
             }
         }
     } else {
-        Write-Warn "Kon '$Database' niet bereiken via psql (exit $psqlExit)."
-        Write-Warn "Foutmelding: $($psqlOut -join ' ')"
-        Write-Warn "We gaan toch door, maar als je 0 tests ziet: controleer de databasenaam."
+        Write-Warn ("Kon '$Database' niet bereiken via psql: " + ($res.Output -join ' '))
+        Write-Warn 'Database-check overgeslagen. We gaan toch door.'
         $moduleInstalled = $true
     }
 } else {
     Write-Warn "psql niet gevonden op: $psqlExe"
-    Write-Warn "Database-check overgeslagen."
+    Write-Warn 'Database-check overgeslagen.'
     $moduleInstalled = $true
 }
 
 if (-not $moduleInstalled) {
-    Write-Host ''
-    Write-Host '  Tip: open http://172.27.131.3:8069/odoo/settings/apps en zoek naar l10n_sr_hr_payroll.' -ForegroundColor Yellow
+    $env:PGPASSWORD = ''
     exit 1
 }
 
-# Gebruik de gedetecteerde database (kan anders zijn dan de opgegeven)
 $Database = $detectedDatabase
 
 # ---------------------------------------------------------------------------
