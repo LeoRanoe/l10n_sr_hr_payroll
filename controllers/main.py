@@ -132,8 +132,11 @@ class SrPayrollHelpController(http.Controller):
                     'display_value': _format_param_value(code, val),
                 }
 
-        lb_calc_params = calc.fetch_params_from_rule_parameter(env, today)
-        lb_brackets = lb_calc_params.get('brackets', [])
+        try:
+            lb_calc_params = calc.fetch_params_from_rule_parameter(env, today)
+            lb_brackets = lb_calc_params.get('brackets', [])
+        except Exception:
+            lb_brackets = []
 
         return request.render('l10n_sr_hr_payroll.sr_help_template', {
             'params': params,
