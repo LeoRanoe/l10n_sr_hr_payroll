@@ -122,13 +122,9 @@ def normalize_config_parameter_value(code, value):
     if is_missing_parameter_value(value):
         return value
     try:
-        numeric_value = float(value)
+        return float(value)
     except (TypeError, ValueError):
         return value
-
-    if code == 'SR_BELASTINGVRIJ_JAAR' and numeric_value == 108000.0 and get_config_parameter_default(code) == 0.0:
-        return 0.0
-    return numeric_value
 
 
 def get_config_parameter_value(env, code, default=None):
