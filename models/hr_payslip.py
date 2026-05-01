@@ -572,20 +572,25 @@ class HrPayslip(models.Model):
     def _rule_parameter(self, code):
         self.ensure_one()
         ref_date = self.date_to or self.date_from or dt_date.today()
+        # ir.config_parameter overrides take priority (Settings page) over hr.rule.parameter.
+        config_key = calc.get_config_parameter_key(code)
+        if config_key:
+            raw = self.env['ir.config_parameter'].sudo().get_param(config_key)
+            if not calc.is_missing_parameter_value(raw):
+                normalized = calc.normalize_config_parameter_value(code, raw)
+                try:
+                    return float(normalized)
+                except (TypeError, ValueError):
+                    pass
         try:
             value = super()._rule_parameter(code)
         except (UserError, KeyError, TypeError, ValueError):
             value = None
         if not calc.is_missing_parameter_value(value):
             return value
-        config_key = calc.get_config_parameter_key(code)
-        if config_key:
-            config_value = calc.get_config_parameter_value(self.env, code, default=None)
-            if config_value is not None:
-                return config_value
-            default = calc.get_config_parameter_default(code)
-            if default is not None:
-                return default
+        hardcoded = calc.get_config_parameter_default(code)
+        if not calc.is_missing_parameter_value(hardcoded):
+            return hardcoded
         return calc.get_sr_parameter_value(
             self.env, code, ref_date,
             default=None,
