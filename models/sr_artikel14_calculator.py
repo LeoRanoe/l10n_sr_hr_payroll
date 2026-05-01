@@ -144,23 +144,33 @@ def get_config_parameter_value(env, code, default=None):
 
 
 def get_sr_parameter_value(env, code, ref_date, default=None, raise_if_not_found=True):
+    # ir.config_parameter overrides take priority over hr.rule.parameter versions.
+    # Only an *explicitly set* key counts; missing/False falls through to the rule parameter.
+    config_key = get_config_parameter_key(code)
+    if config_key:
+        raw = env['ir.config_parameter'].sudo().get_param(config_key)
+        if not is_missing_parameter_value(raw):
+            normalized = normalize_config_parameter_value(code, raw)
+            try:
+                return float(normalized)
+            except (TypeError, ValueError):
+                pass  # malformed override — fall through
+
     value = env['hr.rule.parameter']._get_parameter_from_code(
         code, ref_date, raise_if_not_found=False,
     )
     if not is_missing_parameter_value(value):
         return value
 
-    config_value = get_config_parameter_value(env, code, default=None)
-    if config_value is not None:
-        return config_value
+    hardcoded = get_config_parameter_default(code)
+    if not is_missing_parameter_value(hardcoded):
+        return hardcoded
 
     if default is not None:
         return default
     if raise_if_not_found:
         raise UserError(f'Missing parameter: {code}')
-    if is_missing_parameter_value(value):
-        return default
-    return value
+    return None
 
 
 def _raise_configuration_error(code, context_label, original_error=None):

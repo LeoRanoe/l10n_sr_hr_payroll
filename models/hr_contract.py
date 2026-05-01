@@ -65,8 +65,7 @@ class HrContract(models.Model):
             'Aantal kinderen waarvoor kinderbijslag wordt betaald.\n'
             'Gebruikt voor de Art. 10h splitsing: max SRD 250/kind/maand, '
             'max SRD 1.000/maand is belastingvrij. Het meerdere is belastbaar.\n'
-            'Je mag administratief meer dan 4 kinderen registreren; '
-            'de fiscale vrijstelling blijft begrensd op maximaal 4 kinderen.'
+            'Maximaal 4 kinderen zijn toegestaan voor de AKB-vrijstelling.'
         ),
     )
 
@@ -301,13 +300,14 @@ class HrContract(models.Model):
                 }
             }
         if self.sr_aantal_kinderen > self.SR_AKB_MAX_CHILDREN:
+            self.sr_aantal_kinderen = self.SR_AKB_MAX_CHILDREN
             return {
                 'warning': {
                     'title': 'AKB fiscaal gemaximeerd',
                     'message': (
-                        'Meer dan 4 kinderen mogen administratief worden geregistreerd, '
-                        'maar de fiscale AKB-vrijstelling blijft voor de 2026-regels '
-                        'gemaximeerd op 4 kinderen.'
+                        f'Het aantal kinderen is teruggebracht naar maximaal {self.SR_AKB_MAX_CHILDREN}. '
+                        'De Surinaamse wetgeving begrenst de AKB-vrijstelling op '
+                        f'maximaal {self.SR_AKB_MAX_CHILDREN} kinderen per maand.'
                     ),
                 }
             }
@@ -365,6 +365,10 @@ class HrContract(models.Model):
         for contract in self:
             if contract.sr_aantal_kinderen < 0:
                 raise ValidationError('Aantal kinderen kan niet negatief zijn.')
+            if contract.sr_aantal_kinderen > self.SR_AKB_MAX_CHILDREN:
+                raise ValidationError(
+                    f'Maximaal {self.SR_AKB_MAX_CHILDREN} kinderen zijn toegestaan voor AKB.'
+                )
 
     @api.depends()
     def _compute_sr_tax_bracket_html(self):
