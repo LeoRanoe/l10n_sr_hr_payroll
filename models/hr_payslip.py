@@ -1070,7 +1070,7 @@ class HrPayslip(models.Model):
         # Herleid de wettelijke Art. 14 grondslag uit de expliciete belastbare
         # looncomponenten. Historische SR_HK-regels kunnen het GROSS/NET totaal
         # op bestaande slips verhogen, maar horen niet in de LB/AOV-grondslag.
-        gross = basic + toelagen
+        gross = basic + toelagen + kb_belastbaar + input_belastbaar
         params = calc.fetch_params_from_payslip(self)
         heffingskorting_calc = heffingskorting
         if abs(heffingskorting_calc) < 0.005 and contract:
