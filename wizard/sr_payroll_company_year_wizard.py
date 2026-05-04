@@ -77,13 +77,6 @@ class SrPayrollCompanyYearWizard(models.TransientModel):
             ('date_to', '<=', date_to),
         ], order='department_name, employee_name, date_from')
 
-        if not records:
-            raise UserError(
-                f'Geen bevestigde SR-loonstroken gevonden voor {self.company_id.name} '
-                f'in het boekjaar {self.year}. '
-                'Controleer of de loonstroken zijn bevestigd (done/paid).'
-            )
-
         keys = _SR_YEAR_KEYS
         zero = {k: 0.0 for k in keys}
 
@@ -146,16 +139,34 @@ class SrPayrollCompanyYearWizard(models.TransientModel):
             'slip_count': len(records),
         }
 
+    def _check_records_exist(self):
+        self.ensure_one()
+        date_from = date(self.year, 1, 1)
+        date_to = date(self.year, 12, 31)
+
+        records_count = self.env['hr.payroll.tax.report'].search_count([
+            ('company_id', '=', self.company_id.id),
+            ('date_from', '>=', date_from),
+            ('date_to', '<=', date_to),
+        ])
+
+        if not records_count:
+            raise UserError(
+                f'Geen bevestigde SR-loonstroken gevonden voor {self.company_id.name} '
+                f'in het boekjaar {self.year}. '
+                'Controleer of de loonstroken zijn bevestigd (done/paid).'
+            )
+
     def action_export_pdf(self):
         """Genereer het Bedrijfs Jaaroverzicht als PDF en stuur naar browser."""
-        self.ensure_one()
+        self._check_records_exist()
         return self.env.ref(
             'l10n_sr_hr_payroll.action_report_sr_company_year_overview'
         ).report_action(self, config=False)
 
     def action_preview_html(self):
         """Toon het Bedrijfs Jaaroverzicht als HTML-voorbeeld in de browser."""
-        self.ensure_one()
+        self._check_records_exist()
         action = self.env.ref(
             'l10n_sr_hr_payroll.action_report_sr_company_year_overview'
         ).report_action(self, config=False)
