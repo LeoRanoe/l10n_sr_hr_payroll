@@ -4,7 +4,7 @@ import re
 from datetime import date
 from decimal import Decimal
 
-from odoo import http
+from odoo import SUPERUSER_ID, http
 from odoo.exceptions import AccessError
 from odoo.http import request
 
@@ -80,7 +80,7 @@ class SrPayrollHelpController(http.Controller):
             raise AccessError('Je hebt geen toegang tot deze SR payroll help-pagina.')
 
         # Haal actuele parameterwaarden op voor weergave
-        env = request.env.sudo()
+        env = request.env(user=SUPERUSER_ID)
         today = date.today()
 
         params = {}
