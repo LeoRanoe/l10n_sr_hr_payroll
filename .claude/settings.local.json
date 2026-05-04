@@ -8,7 +8,9 @@
       "Bash(PGPASSWORD=openpgpwd \"C:\\\\Program Files\\\\Odoo 18.0e.20260407\\\\PostgreSQL\\\\bin\\\\psql.exe\" -U openpg -h localhost -p 5432 -d postgres -t -A -c \"SELECT datname FROM pg_database WHERE datistemplate=false ORDER BY datname;\")",
       "Bash(PGPASSWORD=openpgpwd \"C:\\\\Program Files\\\\Odoo 18.0e.20260407\\\\PostgreSQL\\\\bin\\\\psql.exe\" -U openpg -h localhost -p 5432 -d \"Salarisverwerking-Module\" -t -A -c \"SELECT state FROM ir_module_module WHERE name='l10n_sr_hr_payroll' LIMIT 1;\")",
       "Bash(net stop *)",
-      "Bash(echo \"Exit: $?\")"
+      "Bash(echo \"Exit: $?\")",
+      "Bash(Get-ChildItem -Path \"c:\\\\Program Files\\\\Odoo 18.0e.20260407\\\\sessions\\\\addons\\\\18.0\\\\l10n_sr_hr_payroll\" -Recurse -File)",
+      "Bash(Select-Object -ExpandProperty FullName)"
     ]
   }
 }
