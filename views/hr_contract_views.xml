@@ -81,6 +81,12 @@
                             </group>
 
                             <group string="Toelagen per Periode" name="sr_named_allowances">
+                                <div colspan="2"
+                                     class="alert alert-info border mb-2"
+                                     role="status"
+                                     invisible="not sr_contract_currency or sr_contract_currency.name == 'SRD'">
+                                    <i class="fa fa-info-circle"/> Toelagen en inhoudingen worden <strong>altijd in SRD</strong> ingevoerd en opgeslagen, ongeacht de contractvaluta van het basisloon.
+                                </div>
                                 <group>
                                     <field name="sr_vervoer_toelage" widget="monetary" options="{'currency_field': 'currency_id'}"/>
                                     <field name="sr_representatie_toelage" widget="monetary" options="{'currency_field': 'currency_id'}"/>
@@ -117,6 +123,11 @@
                                 Kies per regel de categorie: <strong>Belastbaar</strong>, <strong>Belastingvrij</strong>,
                                 <strong>Aftrek Belastingvrij</strong> of <strong>Inhouding</strong>.
                                 Bij een gekozen <strong>Type</strong> bepaalt het type altijd de fiscale categorie.
+                            </div>
+                            <div class="alert alert-info border mb-2"
+                                 role="status"
+                                 invisible="not sr_contract_currency or sr_contract_currency.name == 'SRD'">
+                                <i class="fa fa-info-circle"/> Vaste bedragen in de tabel hieronder zijn in <strong>SRD</strong>, ook als het basisloon in een vreemde valuta is.
                             </div>
 
                             <field name="sr_vaste_regels" nolabel="1">

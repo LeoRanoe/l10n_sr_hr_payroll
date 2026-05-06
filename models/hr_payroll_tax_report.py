@@ -247,6 +247,9 @@ class HrPayrollTaxReport(models.Model):
                 hp.date_from AS date_from,
                 hp.date_to AS date_to,
                 hp.sr_frozen_contract_currency_id AS contract_currency_id,
+                -- sr_exchange_rate is a stored related of sr_frozen_exchange_rate; both columns are
+                -- checked here so that payslips created before the related field was introduced
+                -- (where sr_exchange_rate may be NULL) still report the correct frozen rate.
                 COALESCE(hp.sr_exchange_rate, hp.sr_frozen_exchange_rate, 1.0) AS exchange_rate,
                 COALESCE(lt.amount_bruto_srd, 0.0) AS amount_bruto_srd,
                 COALESCE(it.amount_overwerk_150_srd, 0.0) AS amount_overwerk_150_srd,

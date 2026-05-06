@@ -462,24 +462,17 @@ class HrPayslip(models.Model):
         for slip in self:
             slip._sr_store_work_entry_snapshot(work_entries=work_entries_by_slip.get(slip.id))
 
-    def _sr_get_config_exchange_rate(self, currency=None, params=None):
+    def _sr_get_config_exchange_rate(self, currency=None):
         self.ensure_one()
         contract = self.contract_id
         currency = currency or (contract.sr_contract_currency if contract else False)
         if not currency or currency.name == 'SRD':
             return 1.0
-        if params is None:
-            params = self.env['ir.config_parameter'].sudo()
+        company = self.company_id or self.env.company
         if currency.name == 'USD':
-            try:
-                return float(params.get_param('sr_payroll.exchange_rate_usd', default='36.5000'))
-            except (TypeError, ValueError):
-                return 36.5
+            return company.sr_exchange_rate_usd or 36.5
         if currency.name == 'EUR':
-            try:
-                return float(params.get_param('sr_payroll.exchange_rate_eur', default='39.0000'))
-            except (TypeError, ValueError):
-                return 39.0
+            return company.sr_exchange_rate_eur or 39.0
         return 1.0
 
     def _sr_freeze_currency_snapshot(self, force=False):
@@ -502,9 +495,9 @@ class HrPayslip(models.Model):
         if not currency:
             currency = self.env['res.currency'].search([('name', '=', 'SRD')], limit=1)
 
-        # Wisselkoers ophalen uit ir.config_parameter
+        # Wisselkoers ophalen uit res.company (per-bedrijf)
         params = self.env['ir.config_parameter'].sudo()
-        rate = self._sr_get_config_exchange_rate(currency=currency, params=params)
+        rate = self._sr_get_config_exchange_rate(currency=currency)
 
         # Display modus ophalen
         display_mode = params.get_param(_SR_DISPLAY_MODE_CONFIG_KEY, default=_SR_DISPLAY_MODE_DEFAULT)

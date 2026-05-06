@@ -35,8 +35,6 @@ _SR_CONFIG_FIELD_CODES = {
 _SR_CONFIG_FIELD_DEFAULTS = {
     'overwerk_factor_150': 1.5,
     'overwerk_factor_200': 2.0,
-    'sr_exchange_rate_usd': 36.5,
-    'sr_exchange_rate_eur': 39.0,
 }
 _SR_DISPLAY_MODE_CONFIG_KEY = 'sr_payroll.netto_display_mode'
 _SR_DISPLAY_MODE_DEFAULT = 'srd'
@@ -318,26 +316,27 @@ class ResConfigSettings(models.TransientModel):
     )
 
     # ── Valuta & Wisselkoers ──────────────────────────────────────────────
+    # Per-company fields — opgeslagen in res.company, niet in ir.config_parameter.
     sr_exchange_rate_usd = fields.Float(
         string='Dagkoers USD → SRD',
         digits=(16, 6),
-        config_parameter='sr_payroll.exchange_rate_usd',
-        default=36.5,
+        related='company_id.sr_exchange_rate_usd',
+        readonly=False,
         help=(
-            'Actuele dagkoers: 1 USD = x SRD. '
+            'Actuele dagkoers: 1 USD = x SRD. Per bedrijf instelbaar. '
             'Wordt bij elke loonrun gekopieerd naar de loonstrook en daar bevroren opgeslagen. '
-            'Pas de koers aan voor elke loonrun als de wisselkoers gewijzigd is.'
+            'Pas de koers aan vóór elke loonrun als de wisselkoers gewijzigd is.'
         ),
     )
     sr_exchange_rate_eur = fields.Float(
         string='Dagkoers EUR → SRD',
         digits=(16, 6),
-        config_parameter='sr_payroll.exchange_rate_eur',
-        default=39.0,
+        related='company_id.sr_exchange_rate_eur',
+        readonly=False,
         help=(
-            'Actuele dagkoers: 1 EUR = x SRD. '
+            'Actuele dagkoers: 1 EUR = x SRD. Per bedrijf instelbaar. '
             'Wordt bij elke loonrun gekopieerd naar de loonstrook en daar bevroren opgeslagen. '
-            'Pas de koers aan voor elke loonrun als de wisselkoers gewijzigd is.'
+            'Pas de koers aan vóór elke loonrun als de wisselkoers gewijzigd is.'
         ),
     )
     sr_netto_display_mode = fields.Selection(
@@ -377,8 +376,6 @@ class ResConfigSettings(models.TransientModel):
         'overwerk_schijf_2_grens',
         'overwerk_factor_150',
         'overwerk_factor_200',
-        'sr_exchange_rate_usd',
-        'sr_exchange_rate_eur',
     )
     def _check_non_negative_amounts(self):
         field_labels = {
@@ -396,27 +393,9 @@ class ResConfigSettings(models.TransientModel):
             'overwerk_schijf_2_grens': 'Overwerk schijf 2 grens',
             'overwerk_factor_150': 'Overwerk factor 150%',
             'overwerk_factor_200': 'Overwerk factor 200%',
-            'sr_exchange_rate_usd': 'Dagkoers USD → SRD',
-            'sr_exchange_rate_eur': 'Dagkoers EUR → SRD',
         }
         for field_name, label in field_labels.items():
             self._sr_ensure_non_negative(field_name, label)
-
-    @api.constrains('sr_exchange_rate_usd', 'sr_exchange_rate_eur')
-    def _check_positive_exchange_rates(self):
-        labels = {
-            'sr_exchange_rate_usd': 'Dagkoers USD → SRD',
-            'sr_exchange_rate_eur': 'Dagkoers EUR → SRD',
-        }
-        for settings in self:
-            for field_name, label in labels.items():
-                value = settings[field_name]
-                if value in (None, False):
-                    continue
-                if value <= 0:
-                    raise ValidationError(
-                        f'{label} moet groter zijn dan 0. Een nul- of negatieve koers blokkeert de loonverwerking.'
-                    )
 
     @api.constrains(
         'forfaitaire_pct',

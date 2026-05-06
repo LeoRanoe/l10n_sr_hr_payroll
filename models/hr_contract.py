@@ -233,13 +233,12 @@ class HrContract(models.Model):
         """
         today = Date.today()
         params = calc.fetch_params_from_rule_parameter(self.env, today)
-        config_params = self.env['ir.config_parameter'].sudo()
 
         for contract in self:
             periodes = 26 if contract.sr_salary_type == 'fn' else 12
             heffingskorting = contract._sr_get_heffingskorting_per_periode()
 
-            rate = contract._sr_get_current_exchange_rate(config_params)
+            rate = contract._sr_get_current_exchange_rate()
             belastbaar_toelagen = contract._sr_resolve_regels('belastbaar', exchange_rate=rate)
             vrijgesteld_toelagen = contract._sr_resolve_other_vrijgestelde_regels(exchange_rate=rate)
             inhoudingen = contract._sr_resolve_regels('inhouding', exchange_rate=rate)
@@ -399,13 +398,12 @@ class HrContract(models.Model):
     @api.depends('wage', 'sr_salary_type', 'sr_contract_currency')
     def _compute_sr_hourly_wage(self):
         """Berekent het bruto uurloon in SRD: basisloon (omgerekend) ÷ 173,33 (maandloon) of ÷ 80 (fortnight)."""
-        params = self.env['ir.config_parameter'].sudo()
         for contract in self:
             if not contract.wage:
                 contract.sr_hourly_wage = 0.0
                 continue
             # Wisselkoers ophalen voor vreemde valuta
-            rate = contract._sr_get_current_exchange_rate(params)
+            rate = contract._sr_get_current_exchange_rate()
             wage_srd = Decimal(str(contract._sr_get_wage_in_srd(exchange_rate=rate)))
             divisor = Decimal('80.0') if contract.sr_salary_type == 'fn' else Decimal('173.333333')
             hourly = wage_srd / divisor
@@ -423,24 +421,17 @@ class HrContract(models.Model):
         wage_srd = wage * rate
         return float(wage_srd.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP))
 
-    def _sr_get_current_exchange_rate(self, params=None):
+    def _sr_get_current_exchange_rate(self):
         """Leest de actuele wisselkoers voor de contractvaluta (voor preview/display)."""
         self.ensure_one()
         currency = self.sr_contract_currency
         if not currency or currency.name == 'SRD':
             return 1.0
-        if params is None:
-            params = self.env['ir.config_parameter'].sudo()
+        company = self.company_id or self.env.company
         if currency.name == 'USD':
-            try:
-                return float(params.get_param('sr_payroll.exchange_rate_usd', default='36.5000'))
-            except (TypeError, ValueError):
-                return 36.5
+            return company.sr_exchange_rate_usd or 36.5
         if currency.name == 'EUR':
-            try:
-                return float(params.get_param('sr_payroll.exchange_rate_eur', default='39.0000'))
-            except (TypeError, ValueError):
-                return 39.0
+            return company.sr_exchange_rate_eur or 39.0
         return 1.0
 
     def _sr_is_payroll_contract(self):
@@ -459,6 +450,18 @@ class HrContract(models.Model):
                 raise ValidationError(
                     'SR payroll-contracten met een actieve status vereisen een positief basisloon. '
                     'Zonder loon kunnen uurloon, overwerk en fiscale inhoudingen niet veilig worden berekend.'
+                )
+
+    _SR_SUPPORTED_CURRENCIES = frozenset({'SRD', 'USD', 'EUR'})
+
+    @api.constrains('sr_contract_currency')
+    def _check_sr_contract_currency(self):
+        for contract in self:
+            currency = contract.sr_contract_currency
+            if currency and currency.name not in self._SR_SUPPORTED_CURRENCIES:
+                raise ValidationError(
+                    f'Contractvaluta "{currency.name}" wordt niet ondersteund door de SR payroll-engine. '
+                    'Kies SRD, USD of EUR.'
                 )
 
     @api.depends(

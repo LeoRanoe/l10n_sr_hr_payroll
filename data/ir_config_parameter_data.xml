@@ -99,11 +99,11 @@
         </record>
         <record id="sr_payroll_config_exchange_rate_usd" model="ir.config_parameter">
             <field name="key">sr_payroll.exchange_rate_usd</field>
-            <field name="value">36.5000</field>
+            <field name="value">36.500000</field>
         </record>
         <record id="sr_payroll_config_exchange_rate_eur" model="ir.config_parameter">
             <field name="key">sr_payroll.exchange_rate_eur</field>
-            <field name="value">39.0000</field>
+            <field name="value">39.000000</field>
         </record>
         <record id="sr_payroll_config_netto_display_mode" model="ir.config_parameter">
             <field name="key">sr_payroll.netto_display_mode</field>

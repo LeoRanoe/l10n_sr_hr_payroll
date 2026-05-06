@@ -26,7 +26,7 @@
                 <field name="employee_name"/>
                 <field name="employee_identification_id" optional="hide"/>
                 <field name="contract_currency_id" optional="show" options="{'no_open': True}"/>
-                <field name="exchange_rate" optional="hide" digits="[16, 4]"/>
+                <field name="exchange_rate" optional="hide" digits="[16, 6]"/>
                 <field name="amount_bruto_srd" sum="Totaal Bruto" optional="show"/>
                 <field name="amount_overwerk_150_srd" sum="Totaal OWK 150%" optional="hide"/>
                 <field name="amount_overwerk_200_srd" sum="Totaal OWK 200%" optional="hide"/>
