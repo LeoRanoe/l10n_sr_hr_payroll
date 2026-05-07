@@ -5,6 +5,8 @@ from odoo.exceptions import ValidationError
 
 from .sr_categorie import SR_CATEGORIE_BASE
 
+_SR_LINE_SUPPORTED_CURRENCIES = frozenset({'SRD', 'USD', 'EUR'})
+
 
 class HrContractSrLine(models.Model):
     """
@@ -16,12 +18,25 @@ class HrContractSrLine(models.Model):
       - Belastingvrij → Art. 10 WLB, geen loonbelasting/AOV
             - Aftrek Belastingvrij → Art. 10f, verlaagt LB- en AOV-grondslag
             - Inhouding   → netto aftrek zonder effect op LB/AOV
+
+    Elk vaste bedrag heeft een eigen line_currency_id (SRD, USD of EUR).
+    Bij loonverwerking converteert de payroll-engine naar SRD via de bevroren
+    wisselkoers op de loonstrook.  Bestaande records (aangemaakt vóór
+    valuta-integratie) krijgen bij module-update automatisch SRD toegewezen.
     """
     _name = 'hr.contract.sr.line'
     _description = 'Suriname Vaste Loon Regel'
     _order = 'sr_categorie, sequence, id'
 
-
+    def init(self):
+        """Migratie: wijs SRD toe aan contractregels zonder lijn-valuta."""
+        self.env.cr.execute("""
+            UPDATE hr_contract_sr_line l
+            SET    line_currency_id = c.id
+            FROM   res_currency c
+            WHERE  c.name = 'SRD'
+              AND  l.line_currency_id IS NULL
+        """)
 
     contract_id = fields.Many2one(
         'hr.contract',
@@ -44,8 +59,21 @@ class HrContractSrLine(models.Model):
         required=True,
         help='Naam van de toelage of inhouding. Wordt automatisch ingevuld bij keuze van een type.',
     )
+    line_currency_id = fields.Many2one(
+        'res.currency',
+        string='Valuta',
+        domain=[('name', 'in', ['SRD', 'USD', 'EUR'])],
+        store=True,
+        required=True,
+        default=lambda self: self.env['res.currency'].search([('name', '=', 'SRD')], limit=1),
+        help=(
+            'Valuta van dit vaste bedrag. Standaard gelijk aan de contractvaluta. '
+            'Bij loonverwerking wordt een bedrag in USD of EUR omgerekend naar SRD '
+            'via de bevroren wisselkoers op de loonstrook.'
+        ),
+    )
     currency_id = fields.Many2one(
-        related='contract_id.currency_id',
+        related='line_currency_id',
         store=False,
     )
     amount = fields.Monetary(
@@ -158,8 +186,37 @@ class HrContractSrLine(models.Model):
         vals['sr_categorie'] = kindbijslag_type.sr_categorie
         return vals
 
+    @api.onchange('contract_id')
+    def _onchange_contract_id_set_currency(self):
+        """Synchroniseer line_currency_id met de contractvaluta bij aanmaken van nieuwe regels."""
+        for line in self:
+            if line.contract_id and line.contract_id.sr_contract_currency:
+                line.line_currency_id = line.contract_id.sr_contract_currency
+            elif not line.line_currency_id:
+                line.line_currency_id = self.env['res.currency'].search(
+                    [('name', '=', 'SRD')], limit=1
+                )
+
+    @api.model
+    def _sr_default_line_currency_from_vals(self, vals):
+        """Bepaal de standaard valuta voor een nieuw record op basis van het contract."""
+        if vals.get('line_currency_id'):
+            return vals
+        contract_id = vals.get('contract_id')
+        if not contract_id:
+            return vals
+        contract = self.env['hr.contract'].browse(contract_id).exists()
+        if not contract:
+            return vals
+        sr_currency = contract.sr_contract_currency
+        if sr_currency:
+            vals = dict(vals)
+            vals['line_currency_id'] = sr_currency.id
+        return vals
+
     @api.model_create_multi
     def create(self, vals_list):
+        vals_list = [self._sr_default_line_currency_from_vals(vals) for vals in vals_list]
         vals_list = [self._sr_prepare_type_linked_vals(vals) for vals in vals_list]
         return super().create(vals_list)
 
@@ -206,4 +263,26 @@ class HrContractSrLine(models.Model):
                 raise ValidationError(
                     'Het gekozen contracttype bepaalt de fiscale categorie. '
                     'Pas het type aan of verwijder het type om de categorie handmatig te beheren.'
+                )
+
+    @api.constrains('line_currency_id', 'contract_id')
+    def _check_line_currency_compatible(self):
+        """
+        Een lijn-valuta moet SRD zijn of gelijk aan de contractvaluta.
+        EUR-lijnen op een USD-contract zijn niet toegestaan.
+        """
+        srd = self.env['res.currency'].search([('name', '=', 'SRD')], limit=1)
+        for line in self:
+            lc = line.line_currency_id
+            if not lc:
+                continue
+            if lc.name not in _SR_LINE_SUPPORTED_CURRENCIES:
+                raise ValidationError(
+                    f'Lijn-valuta "{lc.name}" wordt niet ondersteund. Kies SRD, USD of EUR.'
+                )
+            contract_currency = line.contract_id.sr_contract_currency if line.contract_id else False
+            if contract_currency and lc != srd and lc != contract_currency:
+                raise ValidationError(
+                    f'Lijn-valuta "{lc.name}" is niet compatibel met contractvaluta '
+                    f'"{contract_currency.name}". Gebruik SRD of {contract_currency.name}.'
                 )

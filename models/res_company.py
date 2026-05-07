@@ -9,6 +9,16 @@ _SR_SUPPORTED_CURRENCIES = frozenset({'SRD', 'USD', 'EUR'})
 class ResCompany(models.Model):
     _inherit = 'res.company'
 
+    def init(self):
+        """Migratie: initialiseer standaard contractvaluta op SRD voor bestaande bedrijven."""
+        self.env.cr.execute("""
+            UPDATE res_company c
+            SET    sr_default_contract_currency_id = cur.id
+            FROM   res_currency cur
+            WHERE  cur.name = 'SRD'
+              AND  c.sr_default_contract_currency_id IS NULL
+        """)
+
     sr_default_contract_currency_id = fields.Many2one(
         'res.currency',
         string='Standaard Contractvaluta',

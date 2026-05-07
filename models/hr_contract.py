@@ -94,8 +94,9 @@ class HrContract(models.Model):
         help=(
             'Valuta waarin het basisloon is uitgedrukt. '
             'Kies SRD (standaard), USD of EUR. '
-            'Toelagen en inhoudingen blijven altijd in SRD. '
-            'Bij loonverwerking wordt het loon omgerekend naar SRD '
+            'Elke vaste loon regel (toelage / inhouding) heeft een eigen valuta die standaard '
+            'gelijk is aan de contractvaluta maar individueel instelbaar is. '
+            'Bij loonverwerking worden alle bedragen omgerekend naar SRD '
             'via de actuele wisselkoers uit SR Payroll Instellingen. '
             'De gehanteerde koers wordt per loonstrook bevroren opgeslagen.'
         ),
@@ -238,6 +239,9 @@ class HrContract(models.Model):
         'sr_vaste_regels.amount_type',
         'sr_vaste_regels.percentage',
         'sr_vaste_regels.percentage_base',
+        'sr_vaste_regels.line_currency_id',
+        'company_id.sr_exchange_rate_usd',
+        'company_id.sr_exchange_rate_eur',
     )
     def _compute_sr_preview(self):
         """
@@ -509,12 +513,17 @@ class HrContract(models.Model):
         'sr_vaste_regels.amount_type',
         'sr_vaste_regels.percentage',
         'sr_vaste_regels.percentage_base',
+        'sr_vaste_regels.line_currency_id',
+        'sr_contract_currency',
+        'company_id.sr_exchange_rate_usd',
+        'company_id.sr_exchange_rate_eur',
     )
     def _compute_sr_named_contract_lines(self):
         for contract in self:
+            rate = contract._sr_get_current_exchange_rate()
             for field_name, definition in self.SR_CONTRACT_LINE_FIELD_MAP.items():
                 total = sum(
-                    contract._sr_resolve_line_amount(line)
+                    contract._sr_resolve_line_amount(line, exchange_rate=rate)
                     for line in contract._sr_get_named_rule_lines(definition)
                 )
                 contract[field_name] = calc.round_money(total)
@@ -627,10 +636,11 @@ class HrContract(models.Model):
 
     def _sr_resolve_line_amount(self, line, exchange_rate=None):
         """
-        Berekent het effectieve bedrag van een vaste loon regel.
+        Berekent het effectieve bedrag van een vaste loon regel in SRD.
 
         Handelt zowel vaste bedragen als percentages af.
-        Bij percentage: berekend over basisloon of bruto belastbaar.
+        Bij percentage: berekend over basisloon of bruto belastbaar (altijd in SRD).
+        Bij vast bedrag in vreemde valuta (USD/EUR): converteert naar SRD via exchange_rate.
         """
         if line.amount_type == 'percentage' and line.percentage:
             wage_srd = self._sr_get_wage_in_srd(exchange_rate=exchange_rate)
@@ -644,7 +654,16 @@ class HrContract(models.Model):
             else:
                 base = wage_srd
             return calc.round_money(base * (line.percentage / 100.0))
-        return calc.round_money(line.amount or 0.0)
+
+        # Vast bedrag — converteer naar SRD als de lijn-valuta vreemd is
+        amount = calc.round_money(line.amount or 0.0)
+        line_currency = line.line_currency_id
+        if line_currency and line_currency.name not in ('SRD', False, ''):
+            rate = Decimal(str(exchange_rate if exchange_rate is not None else self._sr_get_current_exchange_rate()))
+            amount = float(
+                (Decimal(str(amount)) * rate).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+            )
+        return calc.round_money(amount)
 
     def _sr_resolve_regels(self, categorie, exchange_rate=None):
         """

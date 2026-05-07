@@ -118,7 +118,7 @@
                                      class="alert alert-info border mb-2"
                                      role="status"
                                      invisible="not sr_contract_currency or sr_contract_currency.name == 'SRD'">
-                                    <i class="fa fa-info-circle"/> Toelagen en inhoudingen worden <strong>altijd in SRD</strong> ingevoerd en opgeslagen, ongeacht de contractvaluta van het basisloon.
+                                    <i class="fa fa-info-circle"/> De snelle toelagevelden hieronder tonen bedragen in SRD. In de <strong>Vaste Loon Regels</strong> tabel hieronder kunt u per regel de valuta instellen (SRD of contractvaluta). Bedragen in vreemde valuta worden automatisch omgerekend naar SRD bij loonverwerking.
                                 </div>
                                 <group>
                                     <field name="sr_vervoer_toelage" widget="monetary" options="{'currency_field': 'currency_id'}"/>
@@ -157,12 +157,6 @@
                                 <strong>Aftrek Belastingvrij</strong> of <strong>Inhouding</strong>.
                                 Bij een gekozen <strong>Type</strong> bepaalt het type altijd de fiscale categorie.
                             </div>
-                            <div class="alert alert-info border mb-2"
-                                 role="status"
-                                 invisible="not sr_contract_currency or sr_contract_currency.name == 'SRD'">
-                                <i class="fa fa-info-circle"/> Vaste bedragen in de tabel hieronder zijn in <strong>SRD</strong>, ook als het basisloon in een vreemde valuta is.
-                            </div>
-
                             <field name="sr_vaste_regels" nolabel="1">
                                 <list editable="bottom">
                                     <field name="sequence" widget="handle"/>
@@ -175,6 +169,12 @@
                                     <field name="amount_type" string="Berekening"/>
                                     <field name="amount" widget="monetary" options="{'currency_field': 'currency_id'}"
                                            column_invisible="False"
+                                           readonly="amount_type == 'percentage'"/>
+                                    <field name="line_currency_id"
+                                           string="Valuta"
+                                           options="{'no_create': True, 'no_open': True}"
+                                           domain="[('name', 'in', ['SRD', 'USD', 'EUR'])]"
+                                           optional="show"
                                            readonly="amount_type == 'percentage'"/>
                                     <field name="percentage"
                                            string="%"
