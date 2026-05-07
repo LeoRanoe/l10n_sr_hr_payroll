@@ -39,6 +39,7 @@
                                 <group>
                                     <field name="sr_contract_currency"
                                            options="{'no_create': True, 'no_open': True}"
+                                           domain="[('name', 'in', ['SRD', 'USD', 'EUR'])]"
                                            string="Contractvaluta"
                                            help="Kies de valuta van het basisloon. Wordt omgerekend naar SRD via de dagkoers in de Payroll Instellingen."/>
                                      <field name="wage" widget="monetary" options="{'currency_field': 'sr_contract_currency'}" required="1"/>
@@ -48,11 +49,43 @@
                                            required="1"/>
                                     <field name="sr_hourly_wage" readonly="1"
                                            help="Bruto uurloon berekend uit het basisloon (automatisch)."/>
+                                    <!-- Valutapaar: wisselkoers + SRD equivalent — alleen zichtbaar voor vreemde valuta -->
+                                    <field name="sr_current_exchange_rate_display"
+                                           readonly="1"
+                                           digits="[16, 6]"
+                                           invisible="not sr_contract_currency or sr_contract_currency.name == 'SRD'"
+                                           string="Wisselkoers (bedrijfsinstelling)"/>
+                                    <field name="sr_wage_srd"
+                                           readonly="1"
+                                           widget="monetary"
+                                           options="{'currency_field': 'currency_id'}"
+                                           invisible="not sr_contract_currency or sr_contract_currency.name == 'SRD'"
+                                           string="Basisloon in SRD"/>
                                 </group>
                                 <group>
+                                    <!-- Valutapaar badge: duidelijke samenvatting van het paar -->
+                                    <div class="alert alert-primary border mb-2 d-flex align-items-center gap-2"
+                                         role="status"
+                                         invisible="not sr_contract_currency or sr_contract_currency.name == 'SRD'">
+                                        <i class="fa fa-exchange fa-lg me-2"/>
+                                        <div>
+                                            <strong>Valutapaar actief:</strong>
+                                            <span class="ms-1">
+                                                <field name="sr_contract_currency" readonly="1"
+                                                       options="{'no_open': True}" class="d-inline"/>
+                                                <span class="mx-1">↔ SRD</span>
+                                            </span>
+                                            <div class="text-muted small mt-1">
+                                                Koers: 1 <field name="sr_contract_currency" readonly="1"
+                                                               options="{'no_open': True}" class="d-inline"/>
+                                                = <field name="sr_current_exchange_rate_display" readonly="1"
+                                                        digits="[16, 2]" class="d-inline"/> SRD
+                                            </div>
+                                        </div>
+                                    </div>
                                     <div class="alert alert-warning border mb-0" role="alert"
                                          invisible="sr_contract_currency == False or sr_contract_currency.name == 'SRD'">
-                                        Basisloon is in vreemde valuta. De contractpreview gebruikt de actuele koers uit SR Payroll Instellingen; de definitieve loonstrook bewaart daarna een bevroren `sr_exchange_rate` snapshot. Controleer of de koers actueel is.
+                                        Controleer of de koers actueel is vóór het berekenen van de loonstrook. De definitieve loonstrook bewaart een bevroren wisselkoers snapshot.
                                     </div>
                                     <div class="alert alert-danger border mb-0" role="alert" invisible="wage &gt; 0">
                                         Een actief SR payroll-contract vereist een positief basisloon. Zonder loon worden uurloon, overwerk en LB/AOV geblokkeerd.

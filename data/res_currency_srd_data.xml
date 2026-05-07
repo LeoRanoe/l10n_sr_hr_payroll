@@ -10,6 +10,17 @@
         <record id="base.SRD" model="res.currency">
             <field name="symbol">SRD</field>
             <field name="position">before</field>
+            <field name="active" eval="True"/>
+        </record>
+
+        <!-- Zorg dat USD actief is voor SR payroll contracten -->
+        <record id="base.USD" model="res.currency">
+            <field name="active" eval="True"/>
+        </record>
+
+        <!-- Activeer EUR zodat het beschikbaar is als contractvaluta -->
+        <record id="base.EUR" model="res.currency">
+            <field name="active" eval="True"/>
         </record>
     </data>
 </odoo>

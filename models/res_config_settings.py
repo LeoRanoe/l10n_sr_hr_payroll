@@ -317,6 +317,14 @@ class ResConfigSettings(models.TransientModel):
 
     # ── Valuta & Wisselkoers ──────────────────────────────────────────────
     # Per-company fields — opgeslagen in res.company, niet in ir.config_parameter.
+    sr_default_contract_currency_id = fields.Many2one(
+        'res.currency',
+        string='Standaard Contractvaluta',
+        related='company_id.sr_default_contract_currency_id',
+        readonly=False,
+        domain=[('name', 'in', ['SRD', 'USD', 'EUR'])],
+        help='Standaard contractvaluta voor nieuwe SR payroll-contracten in dit bedrijf.',
+    )
     sr_exchange_rate_usd = fields.Float(
         string='Dagkoers USD → SRD',
         digits=(16, 6),

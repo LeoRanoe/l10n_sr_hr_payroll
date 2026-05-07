@@ -205,6 +205,14 @@ class HrPayslip(models.Model):
         copy=False,
         help='Nettoloon omgerekend naar de contractvaluta. Gelijk aan Netto SRD als contractvaluta = SRD.',
     )
+    sr_bruto_bronvaluta = fields.Float(
+        string='Bruto Loon (Bronvaluta)',
+        digits=(16, 2),
+        store=True,
+        readonly=True,
+        copy=False,
+        help='Bruto loon omgerekend naar de contractvaluta (bruto SRD ÷ wisselkoers). Gelijk aan Bruto SRD als contractvaluta = SRD.',
+    )
     sr_belastingvrij_periode_srd = fields.Float(
         string='Belastingvrije Voet / Periode (SRD)',
         digits=(16, 2),
@@ -523,12 +531,19 @@ class HrPayslip(models.Model):
             )
 
         netto_srd = _line_total('NET')
+        bruto_srd = _line_total(
+            'BASIC', 'SR_ALW', 'SR_KB_BELAST', 'SR_KB_VRIJ', 'SR_KINDBIJ',
+            'SR_INPUT_BELASTB', 'SR_INPUT_VRIJ', 'SR_OVERWERK',
+            'SR_VAKANTIE', 'SR_GRAT', 'SR_BIJZ', 'SR_UITK_INEENS',
+        )
         rate = self.sr_exchange_rate or 1.0
         currency = self.sr_frozen_contract_currency_id
         if currency and currency.name not in ('SRD', False, '') and rate > 0:
             netto_bronvaluta = Decimal(str(netto_srd)) / Decimal(str(rate))
+            bruto_bronvaluta = Decimal(str(bruto_srd)) / Decimal(str(rate))
         else:
             netto_bronvaluta = Decimal(str(netto_srd))
+            bruto_bronvaluta = Decimal(str(bruto_srd))
 
         belastingvrij_jaar = Decimal(str(self._rule_parameter('SR_BELASTINGVRIJ_JAAR') or 0.0))
         periodes = Decimal(str(self._sr_get_periodes() or 0))
@@ -538,6 +553,7 @@ class HrPayslip(models.Model):
 
         self.update({
             'sr_netto_bronvaluta': float(netto_bronvaluta.quantize(_SR_MONEY_QUANT, rounding=ROUND_HALF_UP)),
+            'sr_bruto_bronvaluta': float(bruto_bronvaluta.quantize(_SR_MONEY_QUANT, rounding=ROUND_HALF_UP)),
             'sr_belastingvrij_periode_srd': float(
                 belastingvrij_periode.quantize(_SR_MONEY_QUANT, rounding=ROUND_HALF_UP)
             ),

@@ -109,6 +109,22 @@
                             </page>
                             <page string="Valuta &amp; Wisselkoers">
                                 <group>
+                                    <group string="Standaard Contractvaluta">
+                                        <field name="sr_default_contract_currency_id"
+                                               options="{'no_create': True, 'no_open': True}"
+                                               string="Standaard valuta voor nieuwe contracten"
+                                               help="Nieuwe SR payroll-contracten krijgen standaard deze valuta. Beschikbare opties: SRD, USD, EUR. Per werknemer aanpasbaar op het contract."/>
+                                    </group>
+                                    <group string="Toelichting">
+                                        <div class="text-muted">
+                                            Stel hier in welke valuta standaard geselecteerd wordt
+                                            bij het aanmaken van nieuwe contracten.
+                                            Kies <strong>SRD</strong> voor lokale contracten,
+                                            <strong>USD</strong> of <strong>EUR</strong> voor buitenlandse valutacontracten.
+                                        </div>
+                                    </group>
+                                </group>
+                                <group>
                                     <group string="Dagkoersen naar SRD">
                                         <field name="sr_exchange_rate_usd"
                                                string="1 USD → SRD"

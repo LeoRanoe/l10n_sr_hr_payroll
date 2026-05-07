@@ -83,8 +83,10 @@ class HrContract(models.Model):
     sr_contract_currency = fields.Many2one(
         'res.currency',
         string='Contractvaluta',
+        domain=[('name', 'in', ['SRD', 'USD', 'EUR'])],
         default=lambda self: (
-            self.env['res.currency'].search([('name', '=', 'SRD')], limit=1)
+            self.env.company.sr_default_contract_currency_id
+            or self.env['res.currency'].search([('name', '=', 'SRD')], limit=1)
             or self.env.company.currency_id
         ),
         store=True,
@@ -104,6 +106,20 @@ class HrContract(models.Model):
         digits=(16, 4),
         compute='_compute_sr_hourly_wage',
         help='Bruto uurloon in SRD: basisloon (omgerekend) ÷ 173,33 (maandloon) of ÷ 80 (fortnight).',
+    )
+    sr_current_exchange_rate_display = fields.Float(
+        string='Actuele Wisselkoers',
+        digits=(16, 6),
+        compute='_compute_sr_currency_pair_display',
+        store=False,
+        help='Huidige wisselkoers voor de contractvaluta vanuit de bedrijfsinstellingen (niet bevroren).',
+    )
+    sr_wage_srd = fields.Monetary(
+        string='Basisloon in SRD',
+        currency_field='currency_id',
+        compute='_compute_sr_currency_pair_display',
+        store=False,
+        help='Basisloon omgerekend naar SRD op basis van de actuele wisselkoers uit de bedrijfsinstellingen.',
     )
     sr_kinderbijslag_bedrag = fields.Monetary(
         string='Kinderbijslag per Periode',
@@ -410,6 +426,17 @@ class HrContract(models.Model):
             contract.sr_hourly_wage = float(
                 hourly.quantize(Decimal('0.0001'), rounding=ROUND_HALF_UP)
             )
+
+    @api.depends(
+        'wage', 'sr_contract_currency',
+        'company_id.sr_exchange_rate_usd', 'company_id.sr_exchange_rate_eur',
+    )
+    def _compute_sr_currency_pair_display(self):
+        for contract in self:
+            rate = contract._sr_get_current_exchange_rate()
+            contract.sr_current_exchange_rate_display = rate
+            wage_srd = contract._sr_get_wage_in_srd(exchange_rate=rate)
+            contract.sr_wage_srd = wage_srd
 
     def _sr_get_wage_in_srd(self, exchange_rate=None):
         """Zet het contractloon om naar SRD met dezelfde afronding als de payslip snapshot."""

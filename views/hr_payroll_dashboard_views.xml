@@ -237,19 +237,24 @@
                         </group>
                     </group>
 
-                          <group string="Valutasnapshot"
+                    <group string="Valutapaar Overzicht"
                            invisible="not sr_frozen_contract_currency_id or sr_frozen_contract_currency_id.name == 'SRD'">
-                        <group>
+                        <group string="Valuta &amp; Koers">
                             <field name="sr_frozen_contract_currency_id" readonly="1"
-                                   options="{'no_open': True}"/>
+                                   options="{'no_open': True}"
+                                   string="Contractvaluta"/>
                             <field name="sr_exchange_rate" readonly="1" digits="[16, 6]"
                                    string="Wisselkoers (→ SRD)"/>
-                            <field name="sr_netto_bronvaluta" readonly="1"
-                                   string="Netto Loon (Bronvaluta)"
-                                   help="Netto uitbetaling in de oorspronkelijke contractvaluta (vóór omrekening naar SRD)."/>
+                            <field name="sr_frozen_netto_display_mode" readonly="1"
+                                   string="Weergavemodus"/>
                         </group>
-                        <group>
-                            <field name="sr_frozen_netto_display_mode" readonly="1"/>
+                        <group string="Bedragen in Bronvaluta">
+                            <field name="sr_bruto_bronvaluta" readonly="1"
+                                   string="Bruto Loon (bronvaluta)"
+                                   help="Bruto loon in de oorspronkelijke contractvaluta (bruto SRD ÷ wisselkoers)."/>
+                            <field name="sr_netto_bronvaluta" readonly="1"
+                                   string="Netto Loon (bronvaluta)"
+                                   help="Netto uitbetaling in de oorspronkelijke contractvaluta."/>
                         </group>
                     </group>
 

@@ -9,6 +9,18 @@ _SR_SUPPORTED_CURRENCIES = frozenset({'SRD', 'USD', 'EUR'})
 class ResCompany(models.Model):
     _inherit = 'res.company'
 
+    sr_default_contract_currency_id = fields.Many2one(
+        'res.currency',
+        string='Standaard Contractvaluta',
+        domain=[('name', 'in', ['SRD', 'USD', 'EUR'])],
+        default=lambda self: self.env['res.currency'].search([('name', '=', 'SRD')], limit=1),
+        help=(
+            'Standaard contractvaluta voor nieuwe SR-looncontracten in dit bedrijf. '
+            'Kies SRD voor Surinaamse contracten, USD of EUR voor buitenlandse valutacontracten. '
+            'Elke werknemer kan dit per contract aanpassen.'
+        ),
+    )
+
     sr_exchange_rate_usd = fields.Float(
         string='Dagkoers USD → SRD',
         digits=(16, 6),
