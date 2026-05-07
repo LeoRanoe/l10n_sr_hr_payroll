@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0">
+        <!--
+            Override: SRD-valutasymbool van "$" naar "SRD"
+            Zonder deze override toont Odoo SRD-bedragen als "$ 1.234,56"
+            — niet te onderscheiden van USD. Met "SRD" als symbool is het
+            altijd duidelijk: "SRD 1.234,56" vs "$ 1.234,56" (USD) vs "€ 1.234,56" (EUR).
+        -->
+        <record id="base.SRD" model="res.currency">
+            <field name="symbol">SRD</field>
+            <field name="position">before</field>
+        </record>
+    </data>
+</odoo>

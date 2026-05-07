@@ -11,8 +11,9 @@
                     <block title="Suriname Payroll Configuratie" id="sr_payroll_settings_block">
                         <div class="text-muted mb-3">
                             Dit is het <strong>dagelijkse beheerscherm</strong> voor actuele SR payrollwaarden.
-                            Deze instellingen worden persistent in <code>ir.config_parameter</code> opgeslagen en direct door de payrollberekening gebruikt.
-                            De 2026 startwaarden gelden alleen zolang een sleutel nog niet in de database bestaat; na opslaan is <code>ir.config_parameter</code> de enige bron van waarheid.
+                            De belastingparameters worden opgeslagen in <code>ir.config_parameter</code>;
+                            de wisselkoersen worden per bedrijf opgeslagen in <code>res.company</code>
+                            zodat elk bedrijf zijn eigen dagkoersen kan beheren.
                         </div>
                         <div class="alert alert-info" role="alert">
                             Gebruik dit scherm voor actuele bedragen en tarieven. Technische referentiecodes en historische parameterregels zijn alleen nodig voor implementatie, controle en toekomstige uitbreidingen.
@@ -108,13 +109,13 @@
                             </page>
                             <page string="Valuta &amp; Wisselkoers">
                                 <group>
-                                    <group string="Dagkoersen (SRD)">
+                                    <group string="Dagkoersen naar SRD">
                                         <field name="sr_exchange_rate_usd"
-                                               string="1 USD ="
-                                               help="Dagkoers USD → SRD. Wordt bevroren op de loonstrook bij berekening."/>
+                                               string="1 USD → SRD"
+                                               help="Dagkoers: 1 USD = x SRD. Wordt bevroren op de loonstrook bij berekening."/>
                                         <field name="sr_exchange_rate_eur"
-                                               string="1 EUR ="
-                                               help="Dagkoers EUR → SRD. Wordt bevroren op de loonstrook bij berekening."/>
+                                               string="1 EUR → SRD"
+                                               help="Dagkoers: 1 EUR = x SRD. Wordt bevroren op de loonstrook bij berekening."/>
                                     </group>
                                     <group string="Netto Weergave">
                                         <field name="sr_netto_display_mode"

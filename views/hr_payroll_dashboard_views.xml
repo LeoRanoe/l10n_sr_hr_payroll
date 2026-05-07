@@ -99,7 +99,7 @@
                         </div>
                         <div class="d-flex justify-content-between mt-2">
                             <span class="text-muted">Netto:</span>
-                            <field name="net_wage" widget="monetary"/>
+                            <field name="net_wage" widget="monetary" options="{'currency_field': 'currency_id'}"/>
                         </div>
                     </t>
                 </templates>
@@ -220,12 +220,12 @@
                     </div>
                     <group col="4">
                         <group string="Bruto / Netto Samenvatting" class="o_form_fw_labels">
-                            <field name="sr_bruto_totaal_display" widget="monetary" readonly="1"/>
-                            <field name="sr_heffingskorting_display" widget="monetary" readonly="1"/>
-                            <field name="sr_lb_totaal_display" widget="monetary" readonly="1"/>
-                            <field name="sr_aov_totaal_display" widget="monetary" readonly="1"/>
-                            <field name="sr_inhoudingen_totaal_display" widget="monetary" readonly="1"/>
-                            <field name="sr_netto_totaal_display" widget="monetary" readonly="1"/>
+                            <field name="sr_bruto_totaal_display" widget="monetary" options="{'currency_field': 'currency_id'}" readonly="1"/>
+                            <field name="sr_heffingskorting_display" widget="monetary" options="{'currency_field': 'currency_id'}" readonly="1"/>
+                            <field name="sr_lb_totaal_display" widget="monetary" options="{'currency_field': 'currency_id'}" readonly="1"/>
+                            <field name="sr_aov_totaal_display" widget="monetary" options="{'currency_field': 'currency_id'}" readonly="1"/>
+                            <field name="sr_inhoudingen_totaal_display" widget="monetary" options="{'currency_field': 'currency_id'}" readonly="1"/>
+                            <field name="sr_netto_totaal_display" widget="monetary" options="{'currency_field': 'currency_id'}" readonly="1"/>
                         </group>
                         <group string="Uren Specificatie" class="o_form_fw_labels">
                             <field name="sr_total_worked_days" readonly="1"/>
@@ -242,8 +242,11 @@
                         <group>
                             <field name="sr_frozen_contract_currency_id" readonly="1"
                                    options="{'no_open': True}"/>
-                            <field name="sr_exchange_rate" readonly="1" digits="[16, 6]"/>
-                            <field name="sr_netto_bronvaluta" readonly="1"/>
+                            <field name="sr_exchange_rate" readonly="1" digits="[16, 6]"
+                                   string="Wisselkoers (→ SRD)"/>
+                            <field name="sr_netto_bronvaluta" readonly="1"
+                                   string="Netto Loon (Bronvaluta)"
+                                   help="Netto uitbetaling in de oorspronkelijke contractvaluta (vóór omrekening naar SRD)."/>
                         </group>
                         <group>
                             <field name="sr_frozen_netto_display_mode" readonly="1"/>

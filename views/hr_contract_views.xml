@@ -195,14 +195,14 @@
                                     <i class="fa fa-exclamation-triangle"/>&#160;<em>Schatting op basis van vaste contractwaarden. Eenmalige loonstrookinvoer zoals overwerk, vakantie of bonus is niet inbegrepen. Definitieve bedragen staan op de loonstrook.</em>
                                 </div>
                                 <group string="Bruto &amp; Belastbaar">
-                                    <field name="sr_preview_bruto" readonly="1" widget="monetary" string="Bruto Loon (incl. vaste toelagen)"/>
-                                    <field name="sr_preview_belastinggrondslag" readonly="1" widget="monetary" string="Grondslag voor Belasting"/>
-                                    <field name="sr_preview_belastbaar_jaar" readonly="1" widget="monetary" string="Belastbaar Jaarloon (Art. 14)"/>
+                                    <field name="sr_preview_bruto" readonly="1" widget="monetary" options="{'currency_field': 'currency_id'}" string="Bruto Loon (incl. vaste toelagen)"/>
+                                    <field name="sr_preview_belastinggrondslag" readonly="1" widget="monetary" options="{'currency_field': 'currency_id'}" string="Grondslag voor Belasting"/>
+                                    <field name="sr_preview_belastbaar_jaar" readonly="1" widget="monetary" options="{'currency_field': 'currency_id'}" string="Belastbaar Jaarloon (Art. 14)"/>
                                 </group>
                                 <group string="Geschatte Inhoudingen &amp; Netto">
-                                    <field name="sr_preview_lb_periode" readonly="1" widget="monetary" string="In te houden Loonbelasting (Art. 14)"/>
-                                    <field name="sr_preview_aov_periode" readonly="1" widget="monetary" string="AOV Inhouding per Periode (4%)"/>
-                                    <field name="sr_preview_netto" readonly="1" widget="monetary" string="Geschat Nettoloon" class="fw-bold text-success"/>
+                                    <field name="sr_preview_lb_periode" readonly="1" widget="monetary" options="{'currency_field': 'currency_id'}" string="In te houden Loonbelasting (Art. 14)"/>
+                                    <field name="sr_preview_aov_periode" readonly="1" widget="monetary" options="{'currency_field': 'currency_id'}" string="AOV Inhouding per Periode (4%)"/>
+                                    <field name="sr_preview_netto" readonly="1" widget="monetary" options="{'currency_field': 'currency_id'}" string="Geschat Nettoloon" class="fw-bold text-success"/>
                                 </group>
                             </group>
 
