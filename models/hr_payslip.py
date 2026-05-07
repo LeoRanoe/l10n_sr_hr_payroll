@@ -51,7 +51,7 @@ SR_FN_2026_PERIODS = (
     {'indicator': '202623', 'label': '2026FN23', 'date_from': dt_date(2026, 11, 5), 'date_to': dt_date(2026, 11, 18)},
     {'indicator': '202624', 'label': '2026FN24', 'date_from': dt_date(2026, 11, 19), 'date_to': dt_date(2026, 12, 2)},
     {'indicator': '202625', 'label': '2026FN25', 'date_from': dt_date(2026, 12, 3), 'date_to': dt_date(2026, 12, 16)},
-    {'indicator': '202626', 'label': '2026FN26', 'date_from': dt_date(2026, 12, 17), 'date_to': dt_date(2026, 12, 30)},
+    {'indicator': '202626', 'label': '2026FN26', 'date_from': dt_date(2026, 12, 17), 'date_to': dt_date(2026, 12, 31)},
 )
 
 

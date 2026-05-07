@@ -635,8 +635,8 @@ result = sum(
                3. Eén gecombineerd belastbaar_bijz_totaal
                4. gemiddelde = belastbaar_bijz_totaal / periodes
                5. gecorrigeerd loon = regulier_gross + gemiddelde
-               6. lb_bijz = lb_per_tijdvak(gecorrigeerd) - lb_per_tijdvak(regulier)
-               7. Niet vermenigvuldigen met periodes (context: informatief)
+               6. lb_increment = lb_per_tijdvak(gecorrigeerd) - lb_per_tijdvak(regulier)
+               7. lb_bijz = lb_increment × periodes  (totale LB op de bijzondere beloning)
              ═══════════════════════════════════════════════════════════════ -->
 
         <!-- ─────────────────────────────────────────────────────────

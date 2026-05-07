@@ -466,6 +466,17 @@ class HrContract(models.Model):
         sr_struct = self.env.ref('l10n_sr_hr_payroll.sr_payroll_structure', raise_if_not_found=False)
         return bool(sr_struct and self.structure_type_id == sr_struct.type_id)
 
+    def write(self, vals):
+        result = super().write(vals)
+        if 'sr_has_overtime_right' in vals:
+            work_entries = self.env['hr.work.entry'].search([
+                ('contract_id', 'in', self.ids),
+                ('sr_manual_override', '=', False),
+            ])
+            if work_entries:
+                work_entries._sr_classify_overtime()
+        return result
+
     @api.constrains('wage', 'state', 'structure_type_id')
     def _check_sr_positive_wage(self):
         for contract in self:

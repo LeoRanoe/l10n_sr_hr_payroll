@@ -18,6 +18,17 @@ class HrWorkEntryType(models.Model):
         help='Vermenigvuldigingsfactor voor het bruto uurloon, bijvoorbeeld 1.5, 2.0 of 3.25.',
     )
 
+    def write(self, vals):
+        result = super().write(vals)
+        if 'sr_is_overtime' in vals or 'sr_overtime_multiplier' in vals:
+            work_entries = self.env['hr.work.entry'].search([
+                ('work_entry_type_id', 'in', self.ids),
+                ('sr_manual_override', '=', False),
+            ])
+            if work_entries:
+                work_entries._sr_classify_overtime()
+        return result
+
     @api.constrains('sr_is_overtime', 'sr_overtime_multiplier')
     def _check_sr_overtime_multiplier(self):
         for work_entry_type in self:
