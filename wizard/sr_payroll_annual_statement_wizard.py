@@ -124,7 +124,8 @@ class SrPayrollAnnualStatementWizard(models.TransientModel):
 
         surname, given_names = self._get_name_parts()
         employee = self.employee_id
-        company_partner = employee.company_id.partner_id
+        company = employee.company_id or self.env.company
+        company_partner = company.partner_id
         district = employee.private_state_id.name or employee.private_city or '-'
 
         income_rows = sorted(income_map.values(), key=lambda row: row['description'])
@@ -133,6 +134,7 @@ class SrPayrollAnnualStatementWizard(models.TransientModel):
             'surname': surname,
             'given_names': given_names,
             'employee_name': employee.name or '-',
+            'employee_identification_id': employee.identification_id or '-',
             'address': self._get_employee_address() or '-',
             'birth_date': employee.birthday,
             'district': district,
@@ -147,9 +149,10 @@ class SrPayrollAnnualStatementWizard(models.TransientModel):
             'tax_credit_rows': tax_credit_rows,
             'tax_credit_total': sum(row['amount'] for row in tax_credit_rows),
             'net_total': net_total,
-            'company_name': employee.company_id.name or '-',
+            'company_name': company.name or '-',
+            'company_vat': company.vat or '-',
             'company_address': ', '.join(part for part in [company_partner.street, company_partner.street2, company_partner.city] if part),
-            'company_phone': company_partner.phone or employee.company_id.phone or '-',
+            'company_phone': company_partner.phone or company.phone or '-',
         }
 
     def action_export_pdf(self):

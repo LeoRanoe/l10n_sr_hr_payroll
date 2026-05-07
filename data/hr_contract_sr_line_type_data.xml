@@ -137,5 +137,51 @@
             <field name="description">Inhouding die niet in één van de andere types past. Wordt ingehouden op nettoloon. Geen invloed op LB of AOV grondslag.</field>
         </record>
 
+        <record id="sr_line_type_bzv_werknemer" model="hr.contract.sr.line.type">
+            <field name="name">BZV Werknemer Bijdrage</field>
+            <field name="code">BZV_WN</field>
+            <field name="sr_categorie">inhouding</field>
+            <field name="sequence">35</field>
+            <field name="description">Werknemer bijdrage aan de Basiszorgverzekering (BZV). Wordt ingehouden op nettoloon. Geen invloed op LB of AOV grondslag.</field>
+        </record>
+
+        <record id="sr_line_type_fvo_werknemer" model="hr.contract.sr.line.type">
+            <field name="name">FVO Werknemer Bijdrage</field>
+            <field name="code">FVO_WN</field>
+            <field name="sr_categorie">inhouding</field>
+            <field name="sequence">40</field>
+            <field name="description">Werknemer bijdrage aan het Fonds Voorzieningen Ouderschapsverlof (FVO). Max 0,5% van brutoloon. Wordt ingehouden op nettoloon.</field>
+        </record>
+
+        <!-- ═══════════════════════════════════════════════════════════
+             BELASTINGVRIJE TOELAGEN — WERKGEVER (Art. 10 WLB)
+             Werkgeversbijdragen die als vrijgestelde toelage voor
+             de werknemer tellen en het nettoloon verhogen.
+             ═══════════════════════════════════════════════════════════ -->
+
+        <record id="sr_line_type_bzv_werkgever" model="hr.contract.sr.line.type">
+            <field name="name">BZV Werkgever Bijdrage (Medische Voorzieningen)</field>
+            <field name="code">BZV_WG</field>
+            <field name="sr_categorie">vrijgesteld</field>
+            <field name="sequence">25</field>
+            <field name="description">Werkgever bijdrage aan de Basiszorgverzekering (BZV) ten gunste van de werknemer. Art. 10 WLB — belastingvrij, telt niet mee voor LB of AOV. Verschijnt als "Medische Voorzieningen" op de loonstrook.</field>
+        </record>
+
+        <record id="sr_line_type_fvo_werkgever" model="hr.contract.sr.line.type">
+            <field name="name">FVO Werkgever Bijdrage</field>
+            <field name="code">FVO_WG</field>
+            <field name="sr_categorie">vrijgesteld</field>
+            <field name="sequence">28</field>
+            <field name="description">Werkgever bijdrage aan het Fonds Voorzieningen Ouderschapsverlof (FVO). Min 0,5% van brutoloon. Art. 10 WLB — vrijgesteld voor de werknemer.</field>
+        </record>
+
+        <record id="sr_line_type_wisselkoers" model="hr.contract.sr.line.type">
+            <field name="name">Wisselkoers Compensatie (TWK)</field>
+            <field name="code">TWK</field>
+            <field name="sr_categorie">vrijgesteld</field>
+            <field name="sequence">15</field>
+            <field name="description">Wisselkoers compensatie toelage. Art. 10 WLB — vrijgesteld tot max SRD 800 per maand (SRD 9.600 per jaar). Vergoedt de werknemer voor SRD-depreciatie. Mag bestaand belastbaar loon NIET vervangen.</field>
+        </record>
+
     </data>
 </odoo>

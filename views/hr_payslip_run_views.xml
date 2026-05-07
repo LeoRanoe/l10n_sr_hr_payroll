@@ -24,6 +24,22 @@
                     icon="fa-building"
                     invisible="state not in ('close', 'paid') or not sr_has_sr_payslips"
                     help="Exporteer het totale bedrijfsbelastingoverzicht van deze loonperiode als PDF, gegroepeerd per afdeling."/>
+                <button
+                    name="action_print_sr_maandaangifte"
+                    string="Maandaangifte LB+AOV"
+                    type="object"
+                    class="btn-primary"
+                    icon="fa-landmark"
+                    invisible="state not in ('close', 'paid') or not sr_has_sr_payslips"
+                    help="Genereer de aangifte Loonbelasting en Premie AOV voor indiening bij de Belastingdienst Suriname (PDF)."/>
+                <button
+                    name="action_open_sr_verzamelloonstaat_wizard"
+                    string="Verzamelloonstaat"
+                    type="object"
+                    class="btn-secondary"
+                    icon="fa-file-export"
+                    invisible="not sr_has_sr_payslips"
+                    help="Exporteer de jaarlijkse Verzamelloonstaat CSV voor de Belastingdienst Suriname."/>
             </xpath>
         </field>
     </record>

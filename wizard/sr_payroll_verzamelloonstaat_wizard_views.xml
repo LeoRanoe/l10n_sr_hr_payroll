@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_sr_verzamelloonstaat_wizard_form" model="ir.ui.view">
+        <field name="name">sr.payroll.verzamelloonstaat.wizard.form</field>
+        <field name="model">sr.payroll.verzamelloonstaat.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Verzamelloonstaat Exporteren — Belastingdienst Suriname">
+                <div class="alert alert-info" role="alert" style="margin-bottom:12px;">
+                    <strong>Verzamelloonstaat</strong> — Jaarlijkse aangifte bij de Belastingdienst Suriname.<br/>
+                    Upload de gegenereerde CSV via <em>portaal.belastingdienst.sr → Aangifte → Verzamelloonstaat</em>.<br/>
+                    Indientermijn: <strong>uiterlijk 31 januari</strong> van het volgend jaar.
+                </div>
+                <group>
+                    <group string="Selectie">
+                        <field name="company_id"/>
+                        <field name="year"/>
+                    </group>
+                    <group string="Resultaat" invisible="not export_file">
+                        <field name="row_count" string="Werknemers geëxporteerd"/>
+                        <field name="export_filename" string="Bestandsnaam"/>
+                    </group>
+                </group>
+                <div class="alert alert-warning" role="alert"
+                     invisible="not warning_message" style="margin-top:8px;">
+                    <i class="fa fa-exclamation-triangle"/> <field name="warning_message" readonly="1" nolabel="1"/>
+                </div>
+                <footer>
+                    <button string="Genereer en Download CSV"
+                            name="action_export_csv"
+                            type="object"
+                            class="btn-primary"
+                            icon="fa-download"/>
+                    <button string="Sluiten" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Actie om de wizard te openen vanuit het menu -->
+    <record id="action_sr_verzamelloonstaat_wizard" model="ir.actions.act_window">
+        <field name="name">Verzamelloonstaat (Belastingdienst)</field>
+        <field name="res_model">sr.payroll.verzamelloonstaat.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+</odoo>

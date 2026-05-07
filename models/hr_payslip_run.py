@@ -58,6 +58,23 @@ class HrPayslipRun(models.Model):
             },
         }
 
+    def action_open_sr_verzamelloonstaat_wizard(self):
+        """Open de Verzamelloonstaat exportwizard voor de Belastingdienst Suriname."""
+        self.ensure_one()
+        year = self.date_start.year if self.date_start else fields.Date.context_today(self).year
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Verzamelloonstaat — Belastingdienst Suriname',
+            'res_model': 'sr.payroll.verzamelloonstaat.wizard',
+            'view_mode': 'form',
+            'views': [(False, 'form')],
+            'target': 'new',
+            'context': {
+                'default_company_id': self.company_id.id,
+                'default_year': year,
+            },
+        }
+
     def action_open_sr_tax_report(self):
         """Open het SR Fiscaal Belastingoverzicht gefilterd op deze loonrun."""
         self.ensure_one()
@@ -174,4 +191,87 @@ class HrPayslipRun(models.Model):
             )
         return self.env.ref(
             'l10n_sr_hr_payroll.action_report_sr_company_period_overview'
+        ).report_action(self, config=False)
+
+    # ── Maandelijkse Aangifte Loonbelasting & AOV ──────────────────────────
+
+    def _sr_get_maandaangifte_data(self):
+        """
+        Bereidt gegevens voor de Aangifte Loonbelasting en Premie AOV PDF.
+
+        Toont per werknemer de in te houden LB en AOV voor deze loonrun,
+        met totaalregel en betalingssamenvatting.
+        """
+        self.ensure_one()
+        self.env.flush_all()
+        records = self.env['hr.payroll.tax.report'].search(
+            [('payslip_run_id', '=', self.id)],
+            order='department_name, employee_name',
+        )
+        if not records:
+            raise UserError(
+                'Geen afgeronde SR-loonstroken gevonden voor de maandaangifte. '
+                'Controleer of de loonstroken zijn bevestigd (done/paid).'
+            )
+
+        employees = []
+        totals = {
+            'bruto': 0.0,
+            'lb_art14': 0.0,
+            'lb_bijz': 0.0,
+            'lb_17a': 0.0,
+            'lb_overwerk': 0.0,
+            'lb_totaal': 0.0,
+            'aov_totaal': 0.0,
+        }
+
+        for rec in records:
+            emp_data = {
+                'employee_name': rec.employee_name or '-',
+                'cribnr': rec.employee_identification_id or '',
+                'bruto': rec.amount_bruto_srd or 0.0,
+                'lb_art14': rec.amount_lb_art14_srd or 0.0,
+                'lb_bijz': rec.amount_lb_bijz_srd or 0.0,
+                'lb_17a': rec.amount_lb_17a_srd or 0.0,
+                'lb_overwerk': rec.amount_lb_overwerk_srd or 0.0,
+                'lb_totaal': rec.amount_lb_srd or 0.0,
+                'aov_totaal': rec.amount_aov_srd or 0.0,
+            }
+            employees.append(emp_data)
+            for k in totals:
+                totals[k] += emp_data[k]
+
+        company = self.company_id or self.env.company
+        date_from = self.date_start
+        date_to = self.date_end
+
+        # Betalingstermijn: 10e van de volgende maand
+        if date_to:
+            next_month = date_to.month % 12 + 1
+            next_year = date_to.year + (1 if date_to.month == 12 else 0)
+            betaaldatum = fields.Date.to_string(date_to.replace(year=next_year, month=next_month, day=10))
+        else:
+            betaaldatum = 'uiterlijk 10e van de volgende maand'
+
+        period_label = date_from.strftime('%B %Y').upper() if date_from else self.name or '-'
+
+        return {
+            'run_name': self.name or '-',
+            'period_label': period_label,
+            'date_from': date_from,
+            'date_to': date_to,
+            'company_name': company.name or '-',
+            'company_vat': company.vat or '',
+            'employees': employees,
+            'totals': totals,
+            'generated_on': fields.Date.context_today(self),
+            'betaaldatum': betaaldatum,
+        }
+
+    def action_print_sr_maandaangifte(self):
+        """Print de Aangifte Loonbelasting en Premie AOV als PDF."""
+        self.ensure_one()
+        self._sr_get_maandaangifte_data()
+        return self.env.ref(
+            'l10n_sr_hr_payroll.action_report_sr_maandaangifte'
         ).report_action(self, config=False)

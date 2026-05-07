@@ -34,7 +34,7 @@
                                         <td style="padding:2px 0;"><strong>Adres</strong></td>
                                         <td style="padding:2px 0;">:</td>
                                         <td style="padding:2px 0;"><t t-esc="statement.get('address')"/></td>
-                                        <td style="padding:2px 0;"><strong>Geb. datum</strong></td>
+                                        <td style="padding:2px 0;"><strong>Geb. Datum</strong></td>
                                         <td style="padding:2px 0;">:</td>
                                         <td style="padding:2px 0;"><t t-esc="statement.get('birth_date').strftime('%d-%b-%Y') if statement.get('birth_date') else '-'"/></td>
                                     </tr>
@@ -45,6 +45,14 @@
                                         <td style="padding:2px 0;"><strong>Functie</strong></td>
                                         <td style="padding:2px 0;">:</td>
                                         <td style="padding:2px 0;"><t t-esc="statement.get('job_title')"/></td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding:2px 0;"><strong>CRIB-nummer</strong></td>
+                                        <td style="padding:2px 0;">:</td>
+                                        <td style="padding:2px 0;"><t t-esc="statement.get('employee_identification_id') or '-'"/></td>
+                                        <td style="padding:2px 0;"></td>
+                                        <td style="padding:2px 0;"></td>
+                                        <td style="padding:2px 0;"></td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -72,12 +80,15 @@
                             </tbody>
                         </table>
 
-                        <div style="background:#d9d9d9; padding:4px 6px; font-weight:700; margin-bottom:4px;">Andere Inhoudingen</div>
+                        <div style="background:#d9d9d9; padding:4px 6px; font-weight:700; margin-bottom:4px;">Pensioen</div>
                         <table style="width:100%; border-collapse:collapse; font-size:10.5pt; margin-bottom:16px;">
                             <tbody>
-                                <tr>
-                                    <td style="padding:4px 6px;">ANDERE INHOUDINGEN</td>
-                                    <td style="padding:4px 6px; text-align:right;"><t t-esc="'-{:,.2f}'.format(statement.get('pension_total', 0)) if statement.get('pension_total', 0) else '-'"/></td>
+                                <tr t-if="statement.get('pension_total', 0)">
+                                    <td style="padding:4px 6px;">PENSIOENFONDS</td>
+                                    <td style="padding:4px 6px; text-align:right;"><t t-esc="'-{:,.2f}'.format(statement.get('pension_total', 0))"/></td>
+                                </tr>
+                                <tr t-if="not statement.get('pension_total', 0)">
+                                    <td colspan="2" style="padding:4px 6px; color:#666; font-style:italic;">Geen pensioenpremie ingehouden in dit jaar.</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -130,25 +141,38 @@
                             </tbody>
                         </table>
 
-                        <table style="width:100%; border-collapse:collapse; font-size:10.5pt;">
+                        <table style="width:100%; border-collapse:collapse; font-size:10.5pt; margin-bottom:24px;">
                             <tbody>
                                 <tr>
-                                    <td style="width:60%; padding:2px 0;"><strong>Bedrijfsgegevens</strong></td>
-                                    <td style="width:40%; padding:2px 0; text-align:right;"><strong>Netto totaal</strong> <t t-esc="'SRD {:,.2f}'.format(statement.get('net_total', 0))"/></td>
-                                </tr>
-                                <tr>
-                                    <td style="padding:2px 0;"><t t-esc="statement.get('company_name')"/></td>
-                                    <td></td>
-                                </tr>
-                                <tr>
-                                    <td style="padding:2px 0;"><t t-esc="statement.get('company_address') or '-'"/></td>
-                                    <td></td>
-                                </tr>
-                                <tr>
-                                    <td style="padding:2px 0;">Telefoon: <t t-esc="statement.get('company_phone')"/></td>
-                                    <td></td>
+                                    <td style="width:60%; padding:2px 0; vertical-align:top;">
+                                        <strong>Bedrijfsgegevens</strong><br/>
+                                        <span>Stamnr.&#160;&#160;&#160;&#160;&#160;&#160;: <t t-esc="statement.get('employee_identification_id') or '-'"/></span><br/>
+                                        <span>Bedrijfsnaam : <t t-esc="statement.get('company_name')"/></span><br/>
+                                        <span>Naam Inh.pl. : <t t-esc="statement.get('company_name')"/></span><br/>
+                                        <span t-if="statement.get('company_vat') and statement.get('company_vat') != '-'">FIN&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;: <t t-esc="statement.get('company_vat')"/><br/></span>
+                                        <span>Adres&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; : <t t-esc="statement.get('company_address') or '-'"/></span><br/>
+                                        <span>Telefoon&#160;&#160;&#160;&#160; : <t t-esc="statement.get('company_phone')"/></span>
+                                    </td>
+                                    <td style="width:40%; padding:2px 0; text-align:right; vertical-align:top;">
+                                        <strong>Aldus opgemaakt te,</strong>
+                                    </td>
                                 </tr>
                             </tbody>
+                        </table>
+
+                        <!-- Handtekeningblok -->
+                        <table style="width:100%; border-collapse:collapse; font-size:10pt; margin-top:30px;">
+                            <tr>
+                                <td style="width:45%; border-top:1px solid #000; padding-top:6px; text-align:center;">
+                                    ________________________<br/>
+                                    Hoofd Salarisadministratie
+                                </td>
+                                <td style="width:10%;"></td>
+                                <td style="width:45%; border-top:1px solid #000; padding-top:6px; text-align:center;">
+                                    ________________________<br/>
+                                    Directeur / Manager
+                                </td>
+                            </tr>
                         </table>
                     </div>
                 </t>

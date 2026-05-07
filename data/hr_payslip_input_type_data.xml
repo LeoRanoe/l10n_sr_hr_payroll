@@ -150,5 +150,50 @@
             <field name="country_id" ref="base.sr"/>
         </record>
 
+        <!-- ═══════════════════════════════════════════════════════════════
+             CREDIT — Specifieke Inhoudingen (netto aftrek)
+             Eenmalige of variabele inhoudingen via de loonstrook invoer.
+             ═══════════════════════════════════════════════════════════════ -->
+
+        <record id="sr_input_bzv_werknemer" model="hr.payslip.input.type">
+            <field name="name">BZV Werknemer Bijdrage (Basiszorgverzekering)</field>
+            <field name="code">SR_IN_BZV</field>
+            <field name="sr_categorie">inhouding</field>
+            <field name="country_id" ref="base.sr"/>
+        </record>
+
+        <record id="sr_input_fvo_werknemer" model="hr.payslip.input.type">
+            <field name="name">FVO Werknemer Bijdrage (Ouderschapsverlof)</field>
+            <field name="code">SR_IN_FVO</field>
+            <field name="sr_categorie">inhouding</field>
+            <field name="country_id" ref="base.sr"/>
+        </record>
+
+        <record id="sr_input_vakbond" model="hr.payslip.input.type">
+            <field name="name">Vakbondscontributie</field>
+            <field name="code">SR_IN_VAKBOND</field>
+            <field name="sr_categorie">inhouding</field>
+            <field name="country_id" ref="base.sr"/>
+        </record>
+
+        <!-- ═══════════════════════════════════════════════════════════════
+             DEBET — Belastingvrije Toelage Werkgever (Art. 10 WLB)
+             Eenmalige of variabele werkgeversbijdragen via loonstrookinvoer.
+             ═══════════════════════════════════════════════════════════════ -->
+
+        <record id="sr_input_bzv_werkgever" model="hr.payslip.input.type">
+            <field name="name">BZV Werkgever Bijdrage (Medische Voorzieningen)</field>
+            <field name="code">SR_IN_BZV_WG</field>
+            <field name="sr_categorie">vrijgesteld</field>
+            <field name="country_id" ref="base.sr"/>
+        </record>
+
+        <record id="sr_input_wisselkoers" model="hr.payslip.input.type">
+            <field name="name">Wisselkoers Compensatie (TWK — max SRD 800/maand)</field>
+            <field name="code">SR_IN_TWK</field>
+            <field name="sr_categorie">vrijgesteld</field>
+            <field name="country_id" ref="base.sr"/>
+        </record>
+
     </data>
 </odoo>

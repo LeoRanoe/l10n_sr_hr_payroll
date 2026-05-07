@@ -210,6 +210,11 @@
                             <td style="padding:3px 0;"><t t-esc="'%s - %s' % (bd.get('employee_reference') or '-', doc.employee_id.name or '-')"/></td>
                         </tr>
                         <tr>
+                            <td style="padding:3px 0;">CRIB-nummer</td>
+                            <td style="padding:3px 0;">:</td>
+                            <td style="padding:3px 0;"><t t-esc="doc.employee_id.identification_id or '-'"/></td>
+                        </tr>
+                        <tr>
                             <td style="padding:3px 0;">Functie</td>
                             <td style="padding:3px 0;">:</td>
                             <td style="padding:3px 0;"><t t-esc="doc.employee_id.job_id.name or '-'"/></td>
@@ -231,6 +236,11 @@
                                 <t t-esc="bd.get('bank_account_number') or '-'"/>
                                 <t t-if="bd.get('bank_name')"> <t t-esc="bd.get('bank_name')"/></t>
                             </td>
+                        </tr>
+                        <tr t-if="doc.company_id.vat">
+                            <td style="padding:3px 0;">FIN Werkgever</td>
+                            <td style="padding:3px 0;">:</td>
+                            <td style="padding:3px 0;"><t t-esc="doc.company_id.vat"/></td>
                         </tr>
                         </tbody>
                     </table>
@@ -352,12 +362,20 @@
                             <td style="padding:2px 0;"><t t-esc="doc.employee_id.job_id.name or '-'"/></td>
                         </tr>
                         <tr>
-                            <td style="padding:2px 0; color:#555;">Bankrekening</td>
+                            <td style="padding:2px 0; color:#555;">CRIB-nummer</td>
                             <td style="padding:2px 0;">:</td>
-                            <td style="padding:2px 0;"><t t-esc="bd.get('bank_account_number') or '-'"/></td>
+                            <td style="padding:2px 0;"><t t-esc="doc.employee_id.identification_id or '-'"/></td>
                             <td style="padding:2px 0; color:#555;">Datum in dienst</td>
                             <td style="padding:2px 0;">:</td>
                             <td style="padding:2px 0;"><t t-esc="bd.get('employment_start_date').strftime('%d-%b-%Y') if bd.get('employment_start_date') else '-'"/></td>
+                        </tr>
+                        <tr>
+                            <td style="padding:2px 0; color:#555;">Bankrekening</td>
+                            <td style="padding:2px 0;">:</td>
+                            <td style="padding:2px 0;"><t t-esc="bd.get('bank_account_number') or '-'"/></td>
+                            <td style="padding:2px 0; color:#555;">FIN Werkgever</td>
+                            <td style="padding:2px 0;">:</td>
+                            <td style="padding:2px 0;"><t t-esc="doc.company_id.vat or '-'"/></td>
                         </tr>
                         </tbody>
                     </table>
