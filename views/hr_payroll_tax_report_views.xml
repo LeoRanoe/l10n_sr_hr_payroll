@@ -188,21 +188,21 @@
         </field>
     </record>
 
-    <!-- MENUITEM: Payroll ▸ Suriname ▸ Fiscaal Overzicht -->
+    <!-- MENUITEM: Payroll ▸ Overzichten ▸ Fiscaal Overzicht -->
     <menuitem
         id="menu_sr_tax_report"
         name="Fiscaal Overzicht"
-        parent="menu_sr_payroll_root"
+        parent="menu_sr_overzichten_root"
         action="action_sr_payroll_tax_report"
-        sequence="30"
+        sequence="10"
         groups="hr_payroll.group_hr_payroll_user,hr_payroll.group_hr_payroll_manager,l10n_sr_hr_payroll.group_sr_payroll_accountant_export,base.group_system"/>
 
     <menuitem
         id="menu_sr_company_year_overview"
         name="Bedrijfs Jaaroverzicht PDF"
-        parent="menu_sr_payroll_root"
+        parent="menu_sr_overzichten_root"
         action="action_sr_company_year_wizard"
-        sequence="40"
+        sequence="30"
         groups="hr_payroll.group_hr_payroll_user,hr_payroll.group_hr_payroll_manager,l10n_sr_hr_payroll.group_sr_payroll_accountant_export,base.group_system"/>
 
 </odoo>

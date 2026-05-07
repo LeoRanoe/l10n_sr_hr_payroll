@@ -23,7 +23,7 @@
                 </group>
                 <div class="alert alert-warning" role="alert"
                      invisible="not warning_message" style="margin-top:8px;">
-                    <i class="fa fa-exclamation-triangle"/> <field name="warning_message" readonly="1" nolabel="1"/>
+                    <i class="fa fa-exclamation-triangle" title="Waarschuwing"/> <field name="warning_message" readonly="1" nolabel="1"/>
                 </div>
                 <footer>
                     <button string="Genereer en Download CSV"

@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Act_window to open the annual statement wizard from menu -->
+    <record id="action_sr_annual_statement_from_menu" model="ir.actions.act_window">
+        <field name="name">Jaarlijkse Loonopgave (Werknemer)</field>
+        <field name="res_model">sr.payroll.annual.statement.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         Overzichten — top-level menu naast Dashboard, Loonstroken, etc.
+         parent: hr_work_entry_contract_enterprise.menu_hr_payroll_root
+         sequence 80 plaatst het tussen Rapportages (70) en Configuratie (100)
+    ═══════════════════════════════════════════════════════════════ -->
+    <menuitem
+        id="menu_sr_overzichten_root"
+        name="Overzichten"
+        parent="hr_work_entry_contract_enterprise.menu_hr_payroll_root"
+        sequence="80"
+        groups="hr_payroll.group_hr_payroll_user,hr_payroll.group_hr_payroll_manager,l10n_sr_hr_payroll.group_sr_payroll_accountant_export,base.group_system"/>
+
+    <!-- Fiscaal Overzicht — seq 10, menu defined in hr_payroll_tax_report_views.xml -->
+
+    <!-- Maandaangifte & Bedrijfs Periode Overzicht via periode-wizard -->
+    <menuitem
+        id="menu_sr_overzichten_periode"
+        name="Maandaangifte &amp; Periode Overzicht"
+        parent="menu_sr_overzichten_root"
+        action="action_sr_periode_wizard"
+        sequence="20"
+        groups="hr_payroll.group_hr_payroll_user,hr_payroll.group_hr_payroll_manager,base.group_system"/>
+
+    <!-- Bedrijfs Jaaroverzicht — seq 30, menu defined in hr_payroll_tax_report_views.xml -->
+
+    <!-- Verzamelloonstaat CSV export -->
+    <menuitem
+        id="menu_sr_overzichten_verzamelloonstaat"
+        name="Verzamelloonstaat CSV"
+        parent="menu_sr_overzichten_root"
+        action="action_sr_verzamelloonstaat_wizard"
+        sequence="40"
+        groups="hr_payroll.group_hr_payroll_user,hr_payroll.group_hr_payroll_manager,l10n_sr_hr_payroll.group_sr_payroll_accountant_export,base.group_system"/>
+
+    <!-- Jaarlijkse Loonopgave per werknemer -->
+    <menuitem
+        id="menu_sr_overzichten_jaaropgave"
+        name="Jaarlijkse Loonopgave"
+        parent="menu_sr_overzichten_root"
+        action="action_sr_annual_statement_from_menu"
+        sequence="50"
+        groups="hr_payroll.group_hr_payroll_user,hr_payroll.group_hr_payroll_manager,base.group_system"/>
+
+</odoo>

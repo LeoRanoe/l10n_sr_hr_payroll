@@ -58,6 +58,8 @@ Berekeningen:
         'wizard/sr_payroll_tax_report_export_wizard_views.xml',
         'wizard/sr_payroll_company_year_wizard_views.xml',
         'wizard/sr_payroll_verzamelloonstaat_wizard_views.xml',
+        'wizard/sr_payroll_period_wizard_views.xml',
+        'views/hr_payroll_overzichten_views.xml',
         'views/hr_payroll_tax_report_views.xml',
         'views/hr_payroll_help_views.xml',
         'views/sr_help_template.xml',
