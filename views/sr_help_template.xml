@@ -781,46 +781,48 @@
                         </div>
                         <h1>Suriname Salarisverwerking</h1>
                         <p class="sr-hero__lead">
-                            Centrale handleiding voor payroll-medewerkers, HR en beheerders. Deze pagina bundelt de dagelijkse payrollflow,
-                            contractinvoer, fiscale categorieen, parameterbeheer, jaarupdate en probleemoplossing in een leesbare en
-                            beheersbare layout.
+                            Alles wat u nodig heeft om lonen correct te verwerken in Suriname. Deze pagina legt stap voor stap uit hoe
+                            u een loonstrook aanmaakt, een contract instelt, rapporten ophaalt en problemen oplost — ook als u hier
+                            voor het eerst mee werkt.
                         </p>
                         <div class="sr-hero__actions">
                             <a class="sr-button sr-button--light" href="#sect-snelstart">
-                                <i class="fa fa-compass"/> Start met de snelstart
+                                <i class="fa fa-compass"/> Begin hier: Snelstart
                             </a>
-                            <a class="sr-button sr-button--ghost" href="#sect-parameters">
-                                <i class="fa fa-cogs"/> Bekijk actuele parameters
+                            <a class="sr-button sr-button--ghost" href="#sect-overzichten">
+                                <i class="fa fa-file-text"/> Rapporten &amp; Overzichten
                             </a>
                         </div>
                     </div>
                     <div class="sr-hero__panel">
-                        <p class="sr-panel__kicker">Belangrijk in de praktijk</p>
-                        <h2>Wat deze module wel en niet automatiseert</h2>
+                        <p class="sr-panel__kicker">Wat doet de module automatisch?</p>
+                        <h2>Dit hoeft u niet zelf te berekenen</h2>
                         <ul class="sr-hero__list">
-                            <li>Art. 14 loonbelasting, AOV, vrijstellingen en FN-validatie worden automatisch berekend.</li>
-                            <li>De contracttab <strong>Suriname Payroll</strong> en <strong>SR Payroll Instellingen</strong> zijn de primaire gegevensbron.</li>
-                            <li>Eenmalige bedragen zoals bonus, gratificatie en bijzondere beloning lopen via <strong>Other Inputs</strong> op de loonstrook.</li>
-                            <li>Overwerk kan automatisch uit <strong>Werkboekingen</strong> komen wanneer het contract overwerkrecht heeft en het werkboekingstype als SR overwerk staat gemarkeerd.</li>
+                            <li><strong>Loonbelasting (Art. 14)</strong> — progressieve schijven automatisch berekend.</li>
+                            <li><strong>AOV bijdrage</strong> — tarief en franchise automatisch toegepast.</li>
+                            <li><strong>Kinderbijslag (AKB)</strong> — vrijstelling op basis van aantal kinderen in het contract.</li>
+                            <li><strong>Vakantietoelage, gratificatie en bijzondere beloningen</strong> — elk via eigen fiscaal regime.</li>
+                            <li><strong>Overwerk</strong> — automatisch uit Werkboekingen of handmatig via Other Inputs.</li>
+                            <li><strong>Multi-valuta</strong> — SRD, USD en EUR met bevroren wisselkoers per loonstrook.</li>
                         </ul>
                     </div>
                 </div>
                 <div class="sr-stat-grid">
                     <div class="sr-stat">
                         <strong>26</strong>
-                        <span>Ondersteunde FN-tijdvakken voor 2026</span>
+                        <span>FN-tijdvakken ondersteund voor 2026</span>
                     </div>
                     <div class="sr-stat">
                         <strong>Live</strong>
-                        <span>Actuele SR-parameters rechtstreeks uit de payrollconfiguratie</span>
+                        <span>Parameters rechtstreeks uit de payrollconfiguratie</span>
                     </div>
                     <div class="sr-stat">
-                        <strong>Art. 14</strong>
-                        <span>Actieve progressieve schijven en tarieven voor de live berekening</span>
+                        <strong>3</strong>
+                        <span>Valuta's: SRD, USD en EUR</span>
                     </div>
                     <div class="sr-stat">
-                        <strong>10</strong>
-                        <span>Onderwerpen voor operatie, beheer en troubleshooting</span>
+                        <strong>13</strong>
+                        <span>Onderwerpen van aanmaken tot rapportage</span>
                     </div>
                 </div>
             </header>
@@ -835,21 +837,21 @@
                                 <span class="sr-nav-link__index">01</span>
                                 <span>
                                     <strong>Snelstart</strong>
-                                    <small>Rollen, menu's en startpunten</small>
+                                    <small>Waar begin ik en welke rol heb ik?</small>
                                 </span>
                             </a>
                             <a class="sr-nav-link" href="#sect-loonstrook">
                                 <span class="sr-nav-link__index">02</span>
                                 <span>
                                     <strong>Loonstrook aanmaken</strong>
-                                    <small>Dagelijkse payrollflow en controles</small>
+                                    <small>Stap voor stap een loon verwerken</small>
                                 </span>
                             </a>
                             <a class="sr-nav-link" href="#sect-contract">
                                 <span class="sr-nav-link__index">03</span>
                                 <span>
                                     <strong>Contract instellen</strong>
-                                    <small>Fiscale brongegevens in het contract</small>
+                                    <small>Fiscale gegevens correct invullen</small>
                                 </span>
                             </a>
                             <a class="sr-nav-link" href="#sect-vaste-regels">
@@ -863,41 +865,62 @@
                                 <span class="sr-nav-link__index">05</span>
                                 <span>
                                     <strong>Looncategorieen</strong>
-                                    <small>Fiscale behandeling per categorie</small>
+                                    <small>Welke categorie kies ik?</small>
+                                </span>
+                            </a>
+                            <a class="sr-nav-link" href="#sect-multicurrency">
+                                <span class="sr-nav-link__index">06</span>
+                                <span>
+                                    <strong>Multi-valuta lonen</strong>
+                                    <small>SRD, USD en EUR in hetzelfde contract</small>
+                                </span>
+                            </a>
+                            <a class="sr-nav-link" href="#sect-overzichten">
+                                <span class="sr-nav-link__index">07</span>
+                                <span>
+                                    <strong>Rapporten &amp; Overzichten</strong>
+                                    <small>Fiscaal overzicht, aangifte, jaaropgave</small>
                                 </span>
                             </a>
                             <a class="sr-nav-link" href="#sect-parameters">
-                                <span class="sr-nav-link__index">06</span>
+                                <span class="sr-nav-link__index">08</span>
                                 <span>
-                                    <strong>Parameters &amp; beheer</strong>
-                                    <small>Dagelijks beheer versus technische referenties</small>
+                                    <strong>Parameters &amp; instellingen</strong>
+                                    <small>Tarieven en grenzen aanpassen</small>
                                 </span>
                             </a>
                             <a class="sr-nav-link" href="#sect-migratie">
-                                <span class="sr-nav-link__index">07</span>
+                                <span class="sr-nav-link__index">09</span>
                                 <span>
-                                    <strong>Controle &amp; migratie</strong>
-                                    <small>Payroll-run, maandafsluiting en 2026 update</small>
+                                    <strong>Controle &amp; jaarafsluiting</strong>
+                                    <small>Checklists voor run, maand en jaar</small>
                                 </span>
                             </a>
                             <a class="sr-nav-link" href="#sect-berekening">
-                                <span class="sr-nav-link__index">08</span>
+                                <span class="sr-nav-link__index">10</span>
                                 <span>
                                     <strong>Hoe de berekening werkt</strong>
-                                    <small>Art. 14, AOV en netto-opbouw</small>
+                                    <small>Van bruto naar netto uitgelegd</small>
                                 </span>
                             </a>
                             <a class="sr-nav-link" href="#sect-bijzonder">
-                                <span class="sr-nav-link__index">09</span>
+                                <span class="sr-nav-link__index">11</span>
                                 <span>
                                     <strong>Bijzondere beloningen</strong>
-                                    <small>Overwerk, bonus en vrijstellingen</small>
+                                    <small>Overwerk, bonus, vakantiegeld</small>
+                                </span>
+                            </a>
+                            <a class="sr-nav-link" href="#sect-werkboekingen">
+                                <span class="sr-nav-link__index">12</span>
+                                <span>
+                                    <strong>Werkboekingen</strong>
+                                    <small>Overwerk registreren via verlofkalender</small>
                                 </span>
                             </a>
                             <a class="sr-nav-link" href="#sect-faq">
-                                <span class="sr-nav-link__index">10</span>
+                                <span class="sr-nav-link__index">13</span>
                                 <span>
-                                    <strong>Probleemoplossing &amp; FAQ</strong>
+                                    <strong>Problemen oplossen &amp; FAQ</strong>
                                     <small>Snelle diagnose bij afwijkingen</small>
                                 </span>
                             </a>
@@ -908,18 +931,22 @@
                         <p class="sr-kicker">Snelste controles</p>
                         <ul class="sr-checklist">
                             <li>Contract staat op <strong>Running</strong> en gebruikt <strong>Suriname Salaris Structuur</strong>.</li>
-                            <li><strong>Belastingtype</strong> staat correct op <strong>1 lb sal ovw</strong> of <strong>FN</strong>.</li>
-                            <li><strong>Aantal Kinderen</strong> blijft tussen <strong>0</strong> en <strong>4</strong>.</li>
-                            <li>Eenmalige bedragen staan in <strong>Other Inputs</strong>, terugkerende bedragen in <strong>Vaste Loon Regels</strong>.</li>
+                            <li><strong>Belastingtype</strong> staat op <strong>1 lb sal ovw</strong> (maand) of <strong>FN</strong> (14-daags).</li>
+                            <li><strong>Aantal Kinderen</strong> klopt en is maximaal <strong>4</strong>.</li>
+                            <li>Eenmalige posten staan in <strong>Andere invoer</strong> met het juiste SR inputtype.</li>
+                            <li>Bij valutacontract: wisselkoers is actueel in <strong>SR Payroll Instellingen</strong>.</li>
+                            <li>Loonstrook is nog in <strong>Concept</strong> vóór bevestigen.</li>
                         </ul>
                     </div>
 
                     <div class="sr-side-card sr-side-card--accent">
                         <p class="sr-kicker">Belangrijke menu's</p>
-                        <p><strong>Dagelijkse payroll</strong><br/>Payroll → Suriname → Loonstroken SR</p>
-                        <p><strong>Contractcontrole</strong><br/>Contract → Suriname Payroll → Fiscale Data</p>
-                        <p><strong>Berekeningsdetail</strong><br/>Contract → Suriname Payroll → Controle &amp; Preview</p>
-                        <p class="mb-0"><strong>Configuratie</strong><br/>Payroll → Configuratie → Suriname → SR Payroll Instellingen</p>
+                        <p><strong>Loonstroken verwerken</strong><br/>Payroll → Suriname → Loonstroken SR</p>
+                        <p><strong>Contract controleren</strong><br/>Contract → Suriname Payroll → Fiscale Data</p>
+                        <p><strong>Berekening previwen</strong><br/>Contract → Suriname Payroll → Controle &amp; Preview</p>
+                        <p><strong>Fiscaal overzicht</strong><br/>Payroll → Overzichten → Fiscaal Belastingoverzicht</p>
+                        <p><strong>Jaaropgave</strong><br/>Payroll → Overzichten → Jaarlijkse Loonopgave</p>
+                        <p class="mb-0"><strong>Tarieven &amp; instellingen</strong><br/>Payroll → Configuratie → Suriname → SR Payroll Instellingen</p>
                     </div>
                 </aside>
 
@@ -927,67 +954,38 @@
                     <section class="sr-section" id="sect-snelstart">
                         <div class="sr-section__header">
                             <div class="sr-section__eyebrow">01. Snelstart</div>
-                            <h2>Werk vanuit de juiste rol en het juiste scherm</h2>
+                            <h2>Waar begin ik? Kies uw rol</h2>
                             <p class="sr-section__intro">
-                                De documentatie is bedoeld voor drie soorten gebruikers. Begin altijd vanuit het scherm dat hoort bij uw taak,
-                                zodat u geen payrollgegevens op de verkeerde plaats invoert.
+                                Afhankelijk van wat u doet, zijn er verschillende startpunten. Gebruik altijd het scherm dat bij uw taak hoort.
                             </p>
                         </div>
                         <div class="sr-section__body">
                             <div class="sr-grid sr-grid--3">
                                 <article class="sr-info-card">
                                     <div class="sr-icon"><i class="fa fa-calculator"/></div>
-                                    <h3>Payroll-medewerker</h3>
-                                    <p>Maakt loonstroken aan, vult <strong>Other Inputs</strong> aan, draait de berekening en controleert LB, AOV en netto voor bevestiging.</p>
+                                    <h3>Ik verwerk lonen</h3>
+                                    <p>
+                                        Ga naar <strong>Payroll → Suriname → Loonstroken SR</strong>.<br/>
+                                        Maak een nieuwe loonstrook, vul eventuele eenmalige posten in via <strong>Andere invoer</strong>,
+                                        klik op <strong>Bereken Loonstrook</strong> en controleer het resultaat voordat u bevestigt.
+                                    </p>
                                 </article>
                                 <article class="sr-info-card">
                                     <div class="sr-icon"><i class="fa fa-briefcase"/></div>
-                                    <h3>HR / contractbeheer</h3>
-                                    <p>Beheert <strong>Belastingtype</strong>, <strong>Aantal Kinderen</strong>, wage en terugkerende vaste regels in <strong>Fiscale Data</strong>.</p>
+                                    <h3>Ik beheer contracten</h3>
+                                    <p>
+                                        Open het contract van de werknemer. Klik op de tab <strong>Suriname Payroll</strong> en vul
+                                        <strong>Fiscale Data</strong> in: belastingtype, aantal kinderen, bruto loon en eventuele vaste regelmatige toelagen of inhoudingen.
+                                    </p>
                                 </article>
                                 <article class="sr-info-card">
                                     <div class="sr-icon"><i class="fa fa-cogs"/></div>
-                                    <h3>Functioneel beheer</h3>
-                                    <p>Wijzigt <strong>SR Payroll Instellingen</strong>, bereidt toekomstige schijven voor en voert de jaarupdate of releasereview uit.</p>
-                                </article>
-                            </div>
-                            <div class="sr-callout">
-                                <strong>Beslisregel:</strong> gebruik <strong>Vaste Loon Regels</strong> voor bedragen die elke periode terugkomen.
-                                Gebruik <strong>Other Inputs</strong> voor bedragen die alleen op deze loonstrook horen, zoals overwerk, bonus, gratificatie of een correctie.
-                            </div>
-                        </div>
-                    </section>
-
-                    <section class="sr-section" id="sect-loonstrook">
-                        <div class="sr-section__header">
-                            <div class="sr-section__eyebrow">02. Loonstrook aanmaken</div>
-                            <h2>Dagelijkse payrollflow stap voor stap</h2>
-                            <p class="sr-section__intro">
-                                Gebruik deze volgorde om een loonstrook veilig op te bouwen. Zo voorkomt u dat contractfouten,
-                                verkeerde categorieen of ontbrekende inputtypes pas bij de uitbetaling zichtbaar worden.
-                            </p>
-                        </div>
-                        <div class="sr-section__body">
-                            <div class="sr-grid sr-grid--2">
-                                <article class="sr-info-card">
-                                    <div class="sr-icon"><i class="fa fa-check-square"/></div>
-                                    <h3>Controleer eerst dit</h3>
-                                    <ul class="sr-checklist">
-                                        <li>De werknemer heeft een actief contract in status <strong>Running</strong>.</li>
-                                        <li>De contracttab <strong>Suriname Payroll</strong> is volledig ingevuld.</li>
-                                        <li>Eenmalige bedragen die deze periode gelden staan klaar voor <strong>Other Inputs</strong>.</li>
-                                        <li>Bij FN gebruikt u een ondersteund 2026-tijdvak en geen vrij datumbereik.</li>
-                                    </ul>
-                                </article>
-                                <article class="sr-info-card">
-                                    <div class="sr-icon"><i class="fa fa-list-alt"/></div>
-                                    <h3>Controleer na de berekening</h3>
-                                    <ul class="sr-checklist">
-                                        <li><strong>Salarisberekening</strong> toont LB, AOV en netto zonder onverwachte dubbele regels.</li>
-                                        <li><strong>Andere invoer</strong> bevat alleen de invoer van deze specifieke loonstrook.</li>
-                                        <li><strong>HTML-weergave</strong> of PDF sluit aan op de contractweergave en de verwachte uitkomst.</li>
-                                        <li>Zolang de loonstrook in <strong>Concept</strong> staat kunt u opnieuw berekenen.</li>
-                                    </ul>
+                                    <h3>Ik stel de module in</h3>
+                                    <p>
+                                        Ga naar <strong>Payroll → Configuratie → Suriname → SR Payroll Instellingen</strong>.
+                                        Hier staan alle fiscale tarieven, grenzen en de wisselkoersen voor USD en EUR.
+                                        Wijzig alleen als de wet of het bedrijfsbeleid dat vereist.
+                                    </p>
                                 </article>
                             </div>
 
@@ -995,56 +993,153 @@
                                 <table class="sr-table">
                                     <thead>
                                         <tr>
-                                            <th style="width: 88px;">Stap</th>
-                                            <th>Wat te doen</th>
-                                            <th>Waar te vinden</th>
+                                            <th>Taak</th>
+                                            <th>Menu</th>
+                                            <th>Toelichting</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         <tr>
-                                            <td><span class="sr-step">1</span></td>
-                                            <td>Open het overzicht <strong>Loonstroken SR</strong> en maak een nieuwe loonstrook voor de werknemer.</td>
+                                            <td>Loonstrook verwerken</td>
                                             <td>Payroll → Suriname → Loonstroken SR</td>
+                                            <td>Loonstroken aanmaken, berekenen en bevestigen.</td>
                                         </tr>
                                         <tr>
-                                            <td><span class="sr-step">2</span></td>
-                                            <td>Controleer werknemer, contract en periode. Het contract hoort automatisch te koppelen.</td>
-                                            <td>Loonstrookformulier</td>
+                                            <td>Contractdata controleren</td>
+                                            <td>Contract → Suriname Payroll → Fiscale Data</td>
+                                            <td>Belastingtype, kinderen, wage en vaste regels beheren.</td>
                                         </tr>
                                         <tr>
-                                            <td><span class="sr-step">3</span></td>
-                                            <td>Voeg alleen indien nodig <strong>Andere invoer</strong> toe voor eenmalige posten zoals overwerk, bonus of bijzondere beloning.</td>
-                                            <td>Tab <strong>Andere invoer</strong></td>
+                                            <td>Loonberekening previwen</td>
+                                            <td>Contract → Suriname Payroll → Controle &amp; Preview</td>
+                                            <td>Stap-voor-stap berekening vanuit het contract controleren.</td>
                                         </tr>
                                         <tr>
-                                            <td><span class="sr-step">4</span></td>
-                                            <td>Klik op <strong>Bereken Loonstrook</strong> en wacht tot de salarisregels zijn opgebouwd.</td>
-                                            <td>Bovenaan het formulier</td>
+                                            <td>Fiscale parameters aanpassen</td>
+                                            <td>Payroll → Configuratie → Suriname → SR Payroll Instellingen</td>
+                                            <td>Tarieven, schijfgrenzen, AKB, wisselkoersen, overwerktarieven.</td>
                                         </tr>
                                         <tr>
-                                            <td><span class="sr-step">5</span></td>
-                                            <td>Controleer de regels voor <strong>SR_LB</strong>, <strong>SR_AOV</strong>, eventuele vrijstellingen en het nettoresultaat.</td>
-                                            <td>Tab <strong>Salarisberekening</strong></td>
+                                            <td>Fiscaal overzicht exporteren</td>
+                                            <td>Payroll → Overzichten → Fiscaal Belastingoverzicht</td>
+                                            <td>Belasting, AOV en netto per werknemer per periode filteren en exporteren.</td>
                                         </tr>
                                         <tr>
-                                            <td><span class="sr-step">6</span></td>
-                                            <td>Gebruik <strong>HTML-weergave</strong> of de contractweergave als u de berekening stap voor stap wilt uitleggen of vergelijken.</td>
-                                            <td>Loonstrook of contract</td>
+                                            <td>Maandaangifte ophalen</td>
+                                            <td>Payroll → Overzichten → Maandaangifte &amp; Periode Overzicht</td>
+                                            <td>Totalen per periode exporteren voor belastingaangifte.</td>
                                         </tr>
                                         <tr>
-                                            <td><span class="sr-step">7</span></td>
-                                            <td>Bevestig de loonstrook pas nadat alle bedragen juist zijn. Daarna kunt u de PDF of HTML versie delen.</td>
-                                            <td>Status wisselt van <strong>Concept</strong> naar afgerond</td>
+                                            <td>Jaaropgave werknemer</td>
+                                            <td>Payroll → Overzichten → Jaarlijkse Loonopgave</td>
+                                            <td>Jaaropgave per medewerker voor een gekozen jaar.</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Verzamelloonstaat exporteren</td>
+                                            <td>Payroll → Overzichten → Verzamelloonstaat CSV</td>
+                                            <td>Totalen per bedrijf exporteren als CSV voor accountant.</td>
                                         </tr>
                                     </tbody>
                                 </table>
                             </div>
 
+                            <div class="sr-callout">
+                                <strong>Gouden regel:</strong> gebruik <strong>Vaste Loon Regels</strong> (in het contract) voor bedragen die elke periode hetzelfde terugkomen,
+                                zoals een vaste transporttoelage. Gebruik <strong>Andere invoer</strong> (op de loonstrook) voor bedragen die alleen deze periode gelden,
+                                zoals overwerk, een bonus of een correctie.
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="sr-section" id="sect-loonstrook">
+                        <div class="sr-section__header">
+                            <div class="sr-section__eyebrow">02. Loonstrook aanmaken</div>
+                            <h2>Stap voor stap een loonstrook verwerken</h2>
+                            <p class="sr-section__intro">
+                                Volg deze stappen in volgorde. Zo mist u niets en ziet u fouten voordat de loonstrook bevestigd wordt.
+                            </p>
+                        </div>
+                        <div class="sr-section__body">
+                            <div class="sr-flow">
+                                <article class="sr-flow-card">
+                                    <span class="sr-step">1</span>
+                                    <h3>Open Loonstroken SR</h3>
+                                    <p>Ga naar <strong>Payroll → Suriname → Loonstroken SR</strong> en klik op <strong>Nieuw</strong>.</p>
+                                </article>
+                                <article class="sr-flow-card">
+                                    <span class="sr-step">2</span>
+                                    <h3>Selecteer werknemer en periode</h3>
+                                    <p>Kies de werknemer. Het juiste contract koppelt automatisch. Controleer de periode (van/t/m datums).</p>
+                                </article>
+                                <article class="sr-flow-card">
+                                    <span class="sr-step">3</span>
+                                    <h3>Voeg eenmalige posten toe (indien nodig)</h3>
+                                    <p>
+                                        Klik op de tab <strong>Andere invoer</strong>. Voeg hier toe wat alleen deze periode geldt:
+                                        overwerk (uren), bonus, vakantietoelage, gratificatie of een correctie.
+                                        Kies altijd het juiste SR inputtype — anders klopt de belasting niet.
+                                    </p>
+                                </article>
+                                <article class="sr-flow-card">
+                                    <span class="sr-step">4</span>
+                                    <h3>Klik op Bereken Loonstrook</h3>
+                                    <p>De module berekent nu automatisch bruto, loonbelasting (LB), AOV, vrijstellingen en netto.</p>
+                                </article>
+                                <article class="sr-flow-card">
+                                    <span class="sr-step">5</span>
+                                    <h3>Controleer het resultaat</h3>
+                                    <p>
+                                        Ga naar de tab <strong>Salarisberekening</strong>. Controleer de regels voor
+                                        <strong>SR_LB</strong> (loonbelasting), <strong>SR_AOV</strong> (AOV bijdrage) en het nettobedrag.
+                                        Kloppen de getallen? Dan kunt u door naar stap 6.
+                                    </p>
+                                </article>
+                                <article class="sr-flow-card">
+                                    <span class="sr-step">6</span>
+                                    <h3>Gebruik Preview om te vergelijken</h3>
+                                    <p>
+                                        Klik op <strong>HTML-weergave</strong> of gebruik <strong>Controle &amp; Preview</strong> vanuit het contract
+                                        om de berekening stap voor stap te controleren. Zolang de loonstrook in <strong>Concept</strong> staat,
+                                        kunt u opnieuw berekenen.
+                                    </p>
+                                </article>
+                                <article class="sr-flow-card">
+                                    <span class="sr-step">7</span>
+                                    <h3>Bevestig de loonstrook</h3>
+                                    <p>
+                                        Klik op <strong>Bevestigen</strong> (of <strong>Valideren</strong>) pas nadat alles klopt.
+                                        Daarna kunt u de loonstrook afdrukken (PDF) of delen als HTML.
+                                    </p>
+                                </article>
+                            </div>
+
+                            <div class="sr-grid sr-grid--2" style="margin-top: 18px;">
+                                <article class="sr-info-card">
+                                    <div class="sr-icon"><i class="fa fa-check-square"/></div>
+                                    <h3>Checklist vóór berekening</h3>
+                                    <ul class="sr-checklist">
+                                        <li>Contract staat op <strong>Running</strong> met de <strong>Suriname Salaris Structuur</strong>.</li>
+                                        <li>Tab <strong>Suriname Payroll → Fiscale Data</strong> is ingevuld (belastingtype, kinderen, wage).</li>
+                                        <li>Eenmalige posten staan al klaar in <strong>Andere invoer</strong> met het juiste inputtype.</li>
+                                        <li>Bij FN: tijdvak is een van de 26 ondersteunde 2026-perioden.</li>
+                                    </ul>
+                                </article>
+                                <article class="sr-info-card">
+                                    <div class="sr-icon"><i class="fa fa-list-alt"/></div>
+                                    <h3>Checklist ná berekening</h3>
+                                    <ul class="sr-checklist">
+                                        <li>SR_LB-bedrag is positief en redelijk in verhouding tot het bruto loon.</li>
+                                        <li>SR_AOV staat los als aparte regel — niet verrekend in LB.</li>
+                                        <li>Geen dubbele regels voor hetzelfde component (bijv. twee overwerk-regels).</li>
+                                        <li>Netto is gelijk aan bruto minus LB minus AOV minus eventuele inhoudingen.</li>
+                                    </ul>
+                                </article>
+                            </div>
+
                             <div class="sr-callout sr-callout--warning">
-                                <strong>Let op:</strong> overwerk komt normaal automatisch uit <strong>Werkboekingen</strong>
-                                als het contract <strong>Heeft Overwerkrecht</strong> aan heeft en het gekozen
-                                werkboekingstype als SR overwerk is ingericht. Gebruik <strong>Other Inputs</strong>
-                                alleen voor handmatige correcties, nabetalingen of uitzonderingen buiten de normale dagregistratie.
+                                <strong>Tip: overwerk hoeft u niet handmatig in te voeren</strong> als het contract <strong>Heeft Overwerkrecht</strong> aangevinkt heeft
+                                én de werkboekingen al als SR overwerktype zijn ingevoerd. De module pikt die uren dan automatisch op.
+                                Gebruik <strong>Andere invoer</strong> alleen voor uren die niet via werkboekingen lopen, zoals handmatige correcties of nabetalingen.
                             </div>
                         </div>
                     </section>
@@ -1270,9 +1365,182 @@
                         </div>
                     </section>
 
+                    <section class="sr-section" id="sect-multicurrency">
+                        <div class="sr-section__header">
+                            <div class="sr-section__eyebrow">06. Multi-valuta lonen</div>
+                            <h2>Lonen in SRD, USD of EUR — automatisch omgerekend</h2>
+                            <p class="sr-section__intro">
+                                De module ondersteunt contracten in Surinaamse dollar (SRD), Amerikaanse dollar (USD) en euro (EUR).
+                                Bij elke bevestigde loonstrook wordt de wisselkoers bevroren, zodat historische berekeningen reproduceerbaar blijven.
+                            </p>
+                        </div>
+                        <div class="sr-section__body">
+                            <div class="sr-grid sr-grid--2">
+                                <article class="sr-info-card">
+                                    <div class="sr-icon"><i class="fa fa-money"/></div>
+                                    <h3>Contract in vreemde valuta</h3>
+                                    <ul class="sr-checklist">
+                                        <li>Stel in het contract de <strong>Contractvaluta</strong> in op USD of EUR.</li>
+                                        <li>De module rekent het contractloon om naar SRD via de wisselkoers die staat in <strong>SR Payroll Instellingen</strong>.</li>
+                                        <li>De loonbelasting en AOV worden altijd in SRD berekend.</li>
+                                        <li>De loonstrook toont zowel het netto in SRD als het netto in de bronvaluta (USD/EUR).</li>
+                                    </ul>
+                                </article>
+                                <article class="sr-info-card">
+                                    <div class="sr-icon"><i class="fa fa-lock"/></div>
+                                    <h3>FX-lock: koers bevroren bij bevestiging</h3>
+                                    <ul class="sr-checklist">
+                                        <li>Op het moment dat u een loonstrook <strong>bevestigt</strong>, wordt de wisselkoers vastgelegd in de loonstrook.</li>
+                                        <li>Latere koerswijzigingen hebben <strong>geen invloed</strong> op bevestigde loonstroken.</li>
+                                        <li>Zo kunt u altijd terugzien welk bedrag in SRD is uitbetaald en tegen welke koers.</li>
+                                        <li>De bevroren koers is zichtbaar in het fiscaal overzicht en de loonstrookdetails.</li>
+                                    </ul>
+                                </article>
+                            </div>
+
+                            <div class="sr-table-wrap">
+                                <table class="sr-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Valuta</th>
+                                            <th>Hoe instellen</th>
+                                            <th>Waar wisselkoers beheren</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td><strong>SRD</strong></td>
+                                            <td>Standaard — geen extra instelling nodig.</td>
+                                            <td>Niet van toepassing.</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>USD</strong></td>
+                                            <td>Stel <strong>Contractvaluta = USD</strong> in het contract in.</td>
+                                            <td>Payroll → Configuratie → Suriname → SR Payroll Instellingen → tabblad <strong>Wisselkoersen</strong>.</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>EUR</strong></td>
+                                            <td>Stel <strong>Contractvaluta = EUR</strong> in het contract in.</td>
+                                            <td>Payroll → Configuratie → Suriname → SR Payroll Instellingen → tabblad <strong>Wisselkoersen</strong>.</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="sr-callout sr-callout--warning">
+                                <strong>Vergeet de wisselkoers niet bij te werken</strong> als de koers sterk veranderd is ten opzichte van de vorige maand.
+                                Ga hiervoor naar <strong>SR Payroll Instellingen → tabblad Wisselkoersen</strong> en voer de actuele dagkoers in voordat u de loonstroken berekent.
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="sr-section" id="sect-overzichten">
+                        <div class="sr-section__header">
+                            <div class="sr-section__eyebrow">07. Rapporten &amp; Overzichten</div>
+                            <h2>Belastingoverzichten, aangiftes en jaaropgaven exporteren</h2>
+                            <p class="sr-section__intro">
+                                Alle rapportages zijn bereikbaar via <strong>Payroll → Overzichten</strong>. Hieronder staat wat elk rapport doet en hoe u het opent.
+                            </p>
+                        </div>
+                        <div class="sr-section__body">
+                            <div class="sr-grid sr-grid--2">
+                                <article class="sr-info-card">
+                                    <div class="sr-icon"><i class="fa fa-table"/></div>
+                                    <h3>Fiscaal Belastingoverzicht</h3>
+                                    <p>
+                                        <strong>Menu:</strong> Payroll → Overzichten → Fiscaal Belastingoverzicht<br/>
+                                        Toont per werknemer per periode: bruto, LB, AOV, overwerk, kinderbijslag en netto.
+                                        U kunt filteren op periode, afdeling, valuta en bedrijf.
+                                        Gebruik de knop <strong>Exporteer PDF Overzicht</strong> om de selectie als PDF te downloaden.
+                                    </p>
+                                </article>
+                                <article class="sr-info-card">
+                                    <div class="sr-icon"><i class="fa fa-calendar"/></div>
+                                    <h3>Maandaangifte &amp; Periode Overzicht</h3>
+                                    <p>
+                                        <strong>Menu:</strong> Payroll → Overzichten → Maandaangifte &amp; Periode Overzicht<br/>
+                                        Geeft totalen per periode voor de belastingaangifte. Kies het gewenste tijdvak in de wizard
+                                        en exporteer het overzicht als PDF of CSV.
+                                    </p>
+                                </article>
+                                <article class="sr-info-card">
+                                    <div class="sr-icon"><i class="fa fa-building"/></div>
+                                    <h3>Bedrijfs Jaaroverzicht</h3>
+                                    <p>
+                                        <strong>Menu:</strong> Payroll → Overzichten → Bedrijfs Jaaroverzicht<br/>
+                                        Totalen op bedrijfsniveau voor een volledig boekjaar. Handig voor de jaarlijkse accountantscontrole
+                                        of afstemming met de belastingdienst.
+                                    </p>
+                                </article>
+                                <article class="sr-info-card">
+                                    <div class="sr-icon"><i class="fa fa-user"/></div>
+                                    <h3>Jaarlijkse Loonopgave</h3>
+                                    <p>
+                                        <strong>Menu:</strong> Payroll → Overzichten → Jaarlijkse Loonopgave<br/>
+                                        Genereert de loonopgave per individuele werknemer voor een gekozen jaar.
+                                        Selecteer de werknemer en het jaar in de wizard en exporteer de opgave als PDF.
+                                    </p>
+                                </article>
+                                <article class="sr-info-card">
+                                    <div class="sr-icon"><i class="fa fa-download"/></div>
+                                    <h3>Verzamelloonstaat CSV</h3>
+                                    <p>
+                                        <strong>Menu:</strong> Payroll → Overzichten → Verzamelloonstaat CSV<br/>
+                                        Exporteert alle salarisgegevens van het geselecteerde bedrijf en boekjaar naar een CSV-bestand.
+                                        Geschikt als aanlevering voor de externe accountant of loonadministrateur.
+                                    </p>
+                                </article>
+                            </div>
+
+                            <div class="sr-table-wrap">
+                                <table class="sr-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Rapport</th>
+                                            <th>Wat exporteert het?</th>
+                                            <th>Formaat</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>Fiscaal Belastingoverzicht</td>
+                                            <td>LB, AOV, bruto, netto per werknemer per periode. Filterbaar op afdeling en valuta.</td>
+                                            <td>PDF, scherm</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Maandaangifte &amp; Periode Overzicht</td>
+                                            <td>Totaalcijfers per tijdvak voor belastingaangifte.</td>
+                                            <td>PDF, CSV</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Bedrijfs Jaaroverzicht</td>
+                                            <td>Jaarlijkse totalen op bedrijfsniveau.</td>
+                                            <td>PDF</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Jaarlijkse Loonopgave</td>
+                                            <td>Persoonlijk jaarsalaris, belasting en netto per werknemer.</td>
+                                            <td>PDF</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Verzamelloonstaat CSV</td>
+                                            <td>Alle salarisregels van het boekjaar in machineleesbaar formaat.</td>
+                                            <td>CSV</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="sr-callout">
+                                <strong>Tip:</strong> gebruik het <strong>Fiscaal Belastingoverzicht</strong> dagelijks om te controleren of alle loonstroken van een periode bevestigd zijn
+                                voordat u de aangifte indient. U kunt filteren op status (<strong>Bevestigd</strong> of <strong>Betaald</strong>) om onvolledige periodes te spotten.
+                            </div>
+                        </div>
+                    </section>
+
                     <section class="sr-section" id="sect-parameters">
                         <div class="sr-section__header">
-                            <div class="sr-section__eyebrow">06. Parameters &amp; beheer</div>
+                            <div class="sr-section__eyebrow">08. Parameters &amp; instellingen</div>
                             <h2>Houd het verschil scherp tussen dagelijks beheer en technische referenties</h2>
                             <p class="sr-section__intro">
                                 De payroll-engine leest eerst de actuele waarden uit <strong>SR Payroll Instellingen</strong> en valt pas daarna terug op
@@ -1338,7 +1606,7 @@
 
                     <section class="sr-section" id="sect-migratie">
                         <div class="sr-section__header">
-                            <div class="sr-section__eyebrow">07. Controle &amp; migratie</div>
+                            <div class="sr-section__eyebrow">09. Controle &amp; jaarafsluiting</div>
                             <h2>Gebruik vaste checklists voor maandafsluiting en jaarupdate</h2>
                             <p class="sr-section__intro">
                                 De grootste fouten ontstaan meestal niet in de formule, maar in een gemiste controle: verkeerde contractstatus,
@@ -1396,7 +1664,7 @@
 
                     <section class="sr-section" id="sect-berekening">
                         <div class="sr-section__header">
-                            <div class="sr-section__eyebrow">08. Hoe de berekening werkt</div>
+                            <div class="sr-section__eyebrow">10. Hoe de berekening werkt</div>
                             <h2>Van bruto loon naar netto loon</h2>
                             <p class="sr-section__intro">
                                 De loonberekening volgt de Wet Loonbelasting van Suriname. Onderstaand ziet u dezelfde logica die de module gebruikt,
@@ -1479,7 +1747,7 @@
 
                     <section class="sr-section" id="sect-bijzonder">
                         <div class="sr-section__header">
-                            <div class="sr-section__eyebrow">09. Bijzondere beloningen</div>
+                            <div class="sr-section__eyebrow">11. Bijzondere beloningen</div>
                             <h2>Overwerk, bonus en vrijstellingen vragen een eigen aanpak</h2>
                             <p class="sr-section__intro">
                                 Niet elk extra bedrag hoort in het gewone loon. Deze componenten hebben een eigen fiscaal regime en moeten daarom
@@ -1553,9 +1821,79 @@
                         </div>
                     </section>
 
+                    <section class="sr-section" id="sect-werkboekingen">
+                        <div class="sr-section__header">
+                            <div class="sr-section__eyebrow">12. Werkboekingen</div>
+                            <h2>Overwerk en bijzondere uren registreren via de verlofkalender</h2>
+                            <p class="sr-section__intro">
+                                Werkboekingen zijn de officiële manier om overwerk en bijzondere uren bij te houden.
+                                Als u dit goed instelt, worden overwerkuren automatisch opgepikt door de loonstrook — u hoeft niets handmatig in te voeren.
+                            </p>
+                        </div>
+                        <div class="sr-section__body">
+                            <div class="sr-grid sr-grid--2">
+                                <article class="sr-info-card">
+                                    <div class="sr-icon"><i class="fa fa-clock-o"/></div>
+                                    <h3>Hoe werkt het automatisch?</h3>
+                                    <ul class="sr-checklist">
+                                        <li>De werknemer heeft een contract met <strong>Heeft Overwerkrecht</strong> aangevinkt.</li>
+                                        <li>Er worden werkboekingen aangemaakt (of geïmporteerd) met het werkboekingstype ingesteld als <strong>SR Overwerk</strong>.</li>
+                                        <li>Bij het aanmaken van de loonstrook pikt de module die uren automatisch op.</li>
+                                        <li>U ziet de overwerkregelop de tab <strong>Salarisberekening</strong> nadat u berekend heeft.</li>
+                                    </ul>
+                                </article>
+                                <article class="sr-info-card">
+                                    <div class="sr-icon"><i class="fa fa-plus"/></div>
+                                    <h3>Werkboeking handmatig aanmaken</h3>
+                                    <ul class="sr-checklist">
+                                        <li>Ga naar <strong>Payroll → Werkboekingen</strong> of open de verlofkalender van de werknemer.</li>
+                                        <li>Maak een nieuwe boeking aan voor de werknemer met het juiste <strong>Werkboekingstype</strong>.</li>
+                                        <li>Kies voor overwerk het type <strong>SR Overwerk (Werkdag 150%)</strong> of <strong>SR Overwerk (Zondag/Feestdag 200%)</strong>.</li>
+                                        <li>Vul de start- en eindtijd in. De module berekent de uren automatisch.</li>
+                                    </ul>
+                                </article>
+                            </div>
+
+                            <div class="sr-table-wrap">
+                                <table class="sr-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Werkboekingstype</th>
+                                            <th>Wanneer gebruiken</th>
+                                            <th>Effect op loonstrook</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>SR Overwerk (Werkdag 150%)</td>
+                                            <td>Extra uren op een gewone werkdag buiten de normale werktijd.</td>
+                                            <td>Overwerkvergoeding berekend op 150% van het uurloon, belast via Art. 17c.</td>
+                                        </tr>
+                                        <tr>
+                                            <td>SR Overwerk (Zondag/Feestdag 200%)</td>
+                                            <td>Gewerkte uren op zondag of een officiële feestdag.</td>
+                                            <td>Overwerkvergoeding berekend op 200% van het uurloon, belast via Art. 17c.</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Regulier verlof / ziekte</td>
+                                            <td>Normale verlof- en ziektedagen.</td>
+                                            <td>Geen overwerk — maakt geen SR-overwerkregel aan op de loonstrook.</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="sr-callout sr-callout--neutral">
+                                <strong>Feestdagen:</strong> officiële Surinaamse feestdagen staan vooraf ingevoerd in de module onder
+                                <strong>Payroll → Configuratie → Suriname → Openbare Feestdagen SR</strong>.
+                                Controleer voor elk nieuw jaar of de lijst compleet en correct is, zodat feestdaguren automatisch als 200% worden verwerkt.
+                            </div>
+                        </div>
+                    </section>
+
                     <section class="sr-section" id="sect-faq">
                         <div class="sr-section__header">
-                            <div class="sr-section__eyebrow">10. Probleemoplossing &amp; FAQ</div>
+                            <div class="sr-section__eyebrow">13. Problemen oplossen &amp; FAQ</div>
                             <h2>Diagnoseer eerst de bron, niet alleen het resultaat</h2>
                             <p class="sr-section__intro">
                                 De meeste afwijkingen zijn terug te voeren op een van vier bronnen: contractdata, categoriekeuze,
@@ -1569,34 +1907,59 @@
                                         <tr>
                                             <th>Situatie</th>
                                             <th>Wat controleren</th>
-                                            <th>Aanbevolen actie</th>
+                                            <th>Actie</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         <tr>
-                                            <td>De loonstrook toont geen Suriname regels</td>
-                                            <td>Contract heeft mogelijk niet het juiste <strong>Salary Structure Type</strong> of staat niet op <strong>Running</strong>.</td>
-                                            <td>Open het contract en corrigeer de structuur of status in <strong>Suriname Payroll</strong>.</td>
+                                            <td>De loonstrook toont geen Suriname-regels</td>
+                                            <td>Contract heeft waarschijnlijk niet het juiste <strong>Salary Structure Type</strong> of staat niet op <strong>Running</strong>.</td>
+                                            <td>Open het contract. Controleer <strong>Suriname Payroll → Fiscale Data</strong>. Zet structuurtype op <strong>Suriname Salaris Structuur</strong> en status op <strong>Running</strong>.</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Het contract koppelt niet automatisch bij nieuwe loonstrook</td>
+                                            <td>Het contract is verlopen, heeft een verkeerde periode of de werknemer heeft meerdere actieve contracten.</td>
+                                            <td>Controleer de start- en einddatum van het contract. Zorg dat er maar één actief contract is voor de loonperiode.</td>
                                         </tr>
                                         <tr>
                                             <td>De loonbelasting lijkt te hoog</td>
-                                            <td>Controleer belastingvrije voet, forfaitaire aftrek en of toelagen per ongeluk als <strong>Belastbaar</strong> staan.</td>
-                                            <td>Vergelijk de loonstrook met <strong>Controle &amp; Preview</strong> en review de categorie per regel.</td>
+                                            <td>Mogelijk staan toelagen per ongeluk als <strong>Belastbaar</strong> terwijl ze vrijgesteld horen te zijn, of de belastingvrije voet is onjuist.</td>
+                                            <td>Open <strong>Controle &amp; Preview</strong> vanuit het contract. Controleer de categorie per regel. Vergelijk de belastingvrije voet in <strong>SR Payroll Instellingen</strong>.</td>
                                         </tr>
                                         <tr>
-                                            <td>Een FN-loonstrook valideert niet</td>
-                                            <td>Controleer of het contract echt op <strong>FN</strong> staat en of het tijdvak een ondersteunde 2026-periode is.</td>
-                                            <td>Gebruik een correcte FN-periode en maak geen vrij 14-daags datumbereik.</td>
+                                            <td>De loonbelasting is SRD 0 of ontbreekt</td>
+                                            <td>Belastingtype staat mogelijk op een onbekend type, of het bruto loon valt volledig binnen de belastingvrije voet.</td>
+                                            <td>Controleer het belastingtype in het contract (<strong>1 lb sal ovw</strong> of <strong>FN</strong>) en de hoogte van het bruto loon.</td>
                                         </tr>
                                         <tr>
-                                            <td>Overwerk of bonus wordt niet correct belast</td>
-                                            <td>Vaak is het verkeerde inputtype of een generieke categorie gebruikt.</td>
-                                            <td>Voeg het bedrag opnieuw toe in <strong>Other Inputs</strong> met het juiste SR inputtype.</td>
+                                            <td>AOV ontbreekt op de loonstrook</td>
+                                            <td>Soms veroorzaakt een fout in het belastingtype of een nul-loon dit probleem.</td>
+                                            <td>Controleer of het bruto loon groter is dan nul en herbereken de loonstrook nadat u het contract gecheckt heeft.</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Een FN-loonstrook geeft een validatiefout</td>
+                                            <td>Het tijdvak is waarschijnlijk geen ondersteunde FN-periode voor 2026.</td>
+                                            <td>Gebruik een van de 26 voorgedefinieerde FN-perioden voor 2026. Maak geen vrije 14-daagse periode aan.</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Overwerk of bonus is niet correct belast</td>
+                                            <td>Verkeerd inputtype of een generieke belastbare categorie gebruikt in plaats van het SR-specifieke type.</td>
+                                            <td>Verwijder de regel uit <strong>Andere invoer</strong> en voeg opnieuw toe met het juiste <strong>SR inputtype</strong> (bijv. SR Overwerk, SR Bonus).</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Wisselkoers lijkt verouderd op de loonstrook</td>
+                                            <td>De koers in <strong>SR Payroll Instellingen</strong> is nog niet bijgewerkt voor deze periode.</td>
+                                            <td>Ga naar <strong>SR Payroll Instellingen → Wisselkoersen</strong>, voer de actuele koers in en herbereken de loonstrook (als die nog in Concept staat).</td>
                                         </tr>
                                         <tr>
                                             <td>Een parameterwijziging lijkt geen effect te hebben</td>
-                                            <td>Mogelijk is de wijziging in een technisch scherm gedaan of ontbreekt een juiste ingangsdatum.</td>
+                                            <td>Mogelijk is de wijziging in het technische scherm gedaan in plaats van <strong>SR Payroll Instellingen</strong>.</td>
                                             <td>Controleer of de live waarde in <strong>SR Payroll Instellingen</strong> staat en maak daarna een proefloonstrook.</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Rapport of overzicht toont geen gegevens</td>
+                                            <td>Filters staan te streng of de loonstroken zijn nog in Concept (niet bevestigd).</td>
+                                            <td>Controleer of de loonstroken zijn <strong>Bevestigd</strong> of <strong>Betaald</strong>. Verruim de periodefilter in het overzichtscherm.</td>
                                         </tr>
                                     </tbody>
                                 </table>
@@ -1605,35 +1968,55 @@
                             <div class="sr-faq-grid">
                                 <article class="sr-faq-card">
                                     <h3><i class="fa fa-question-circle text-info"/> Kan ik een loonstrook opnieuw berekenen?</h3>
-                                    <p>Ja. Zolang de loonstrook in status <strong>Concept</strong> staat kunt u opnieuw op <strong>Bereken Loonstrook</strong> klikken.</p>
+                                    <p>Ja. Zolang de loonstrook in status <strong>Concept</strong> staat kunt u opnieuw op <strong>Bereken Loonstrook</strong> klikken. Na bevestigen is herberekenen niet meer mogelijk.</p>
                                 </article>
                                 <article class="sr-faq-card">
                                     <h3><i class="fa fa-question-circle text-info"/> Waar zie ik de berekening in detail?</h3>
-                                    <p>Gebruik <strong>Controle &amp; Preview</strong> op het contract of <strong>HTML Preview</strong> op de loonstrook voor de stapsgewijze uitsplitsing.</p>
+                                    <p>Gebruik <strong>Controle &amp; Preview</strong> op het contract of <strong>HTML Preview</strong> op de loonstrook. Beide tonen een stapsgewijze uitsplitsing van bruto naar netto.</p>
+                                </article>
+                                <article class="sr-faq-card">
+                                    <h3><i class="fa fa-question-circle text-info"/> Hoe voeg ik een bonus of vakantietoelage toe?</h3>
+                                    <p>Ga naar de tab <strong>Andere invoer</strong> op de loonstrook. Voeg een nieuwe regel toe en kies het juiste SR inputtype (SR Vakantietoelage, SR Bonus, SR Gratificatie). Klik daarna op <strong>Bereken Loonstrook</strong>.</p>
+                                </article>
+                                <article class="sr-faq-card">
+                                    <h3><i class="fa fa-question-circle text-info"/> Hoe verander ik het aantal kinderen van een werknemer?</h3>
+                                    <p>Open het contract van de werknemer. Ga naar <strong>Suriname Payroll → Fiscale Data</strong> en pas het veld <strong>Aantal Kinderen</strong> aan. De wijziging geldt direct voor de volgende loonstrook.</p>
                                 </article>
                                 <article class="sr-faq-card">
                                     <h3><i class="fa fa-question-circle text-info"/> Hoe pas ik belastingtarieven aan?</h3>
-                                    <p>Voor live payroll gebruikt u <strong>SR Payroll Instellingen</strong>. Extra toekomstige schijven bereidt u alleen technisch voor via referentieparameters.</p>
+                                    <p>Ga naar <strong>Payroll → Configuratie → Suriname → SR Payroll Instellingen</strong>. Wijzig de gewenste tarieven of schijfgrenzen. Maak daarna een proefloonstrook om de wijziging te controleren.</p>
                                 </article>
                                 <article class="sr-faq-card">
-                                    <h3><i class="fa fa-question-circle text-info"/> Wanneer moet ik support of beheer inschakelen?</h3>
-                                    <p>Als contractdata correct zijn maar de uitkomst nog afwijkt, of wanneer een wettelijke wijziging nieuwe schijven, vrijstellingen of inputtypes vereist.</p>
+                                    <h3><i class="fa fa-question-circle text-info"/> Hoe exporteer ik de gegevens voor de accountant?</h3>
+                                    <p>Gebruik <strong>Payroll → Overzichten → Verzamelloonstaat CSV</strong> voor een CSV-export. Voor een gegroepeerd PDF gebruikt u <strong>Fiscaal Belastingoverzicht</strong> en klikt u op <strong>Exporteer PDF Overzicht</strong>.</p>
+                                </article>
+                                <article class="sr-faq-card">
+                                    <h3><i class="fa fa-question-circle text-info"/> Wanneer schakel ik support in?</h3>
+                                    <p>Als de contractdata correct zijn maar de uitkomst nog afwijkt, of wanneer een wettelijke wijziging nieuwe schijven, vrijstellingen of inputtypes vereist die u niet zelf kunt aanpassen.</p>
+                                </article>
+                                <article class="sr-faq-card">
+                                    <h3><i class="fa fa-question-circle text-info"/> Wat is het verschil tussen SRD, USD en EUR contracten?</h3>
+                                    <p>De loonbelasting en AOV worden altijd in SRD berekend. Bij een USD of EUR contract rekent de module het loon om via de wisselkoers in <strong>SR Payroll Instellingen</strong>. De loonstrook toont het netto in beide valuta's.</p>
                                 </article>
                             </div>
 
                             <div class="sr-callout sr-callout--danger">
-                                <strong>Escalatiepunt:</strong> wijzig geen categorieen of parameters op goed geluk om een loonstrook passend te maken.
-                                Corrigeer altijd eerst de brondata of laat een beheerder de fiscale instelling beoordelen.
+                                <strong>Belangrijke waarschuwing:</strong> wijzig nooit categorieën of parameters op goed geluk om een loonstrook kloppend te maken.
+                                Corrigeer altijd eerst de brondata (contract, inputtype, periode) of laat een beheerder de fiscale instelling beoordelen.
+                                Een onjuiste aanpassing kan meerdere loonstroken tegelijk beïnvloeden.
                             </div>
                         </div>
                     </section>
 
                     <div class="sr-footer">
                         <p>
-                            <strong>Module:</strong> l10n_sr_hr_payroll<br/>
-                            <strong>Scope:</strong> Suriname salarisverwerking conform de Wet Loonbelasting<br/>
-                            <strong>Beste startpunten:</strong> Payroll → Suriname → Loonstroken SR, Contract → Suriname Payroll, Payroll → Configuratie → Suriname → SR Payroll Instellingen<br/>
-                            <strong>Snapshot:</strong> deze help-pagina toont de actuele parameterweergave uit de huidige payrollconfiguratie.
+                            <strong>Module:</strong> l10n_sr_hr_payroll — Suriname Salarisverwerking voor Odoo 18<br/>
+                            <strong>Wetgeving:</strong> Wet Loonbelasting Suriname, Art. 10h, 10i, 10j, 13, 14, 17, 17a, 17c<br/>
+                            <strong>Loonstroken verwerken:</strong> Payroll → Suriname → Loonstroken SR<br/>
+                            <strong>Contract beheren:</strong> Contract → Suriname Payroll → Fiscale Data<br/>
+                            <strong>Overzichten &amp; rapporten:</strong> Payroll → Overzichten<br/>
+                            <strong>Tarieven &amp; instellingen:</strong> Payroll → Configuratie → Suriname → SR Payroll Instellingen<br/>
+                            <strong>Parameters zichtbaar op deze pagina:</strong> actuele waarden rechtstreeks uit de payrollconfiguratie van vandaag.
                         </p>
                     </div>
                 </main>
