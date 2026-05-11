@@ -14,6 +14,7 @@ SR_CATEGORIE_BASE = [
     ('vrijgesteld', 'Belastingvrij  (Art. 10 — geen LB of AOV)'),
     ('inhouding', 'Inhouding / Aftrek  (netto aftrek)'),
     ('aftrek_belastingvrij', 'Aftrek Belastingvrij  (Art. 10f — vermindert LB + AOV grondslag)'),
+    ('fiscaal_grondslag', 'Fiscale Grondslag  (voordeel in natura — verhoogt GROSS, geen uitbetaling)'),
 ]
 
 SR_CATEGORIE_EXTENDED = SR_CATEGORIE_BASE + [

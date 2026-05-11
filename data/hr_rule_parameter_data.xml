@@ -248,6 +248,22 @@
             <field name="parameter_value">19500.0</field>
         </record>
 
+        <!-- ═══════════════════════════════════════════════════════════
+             VRIJE GENEESKUNDIGE BEHANDELING — Fiscaal belastbaar maximum
+             Art. 9 WLB: VGB als voordeel in natura; belastbaar deel
+             gemaximeerd op SRD 200 per jaar (16,67 per maand).
+             ═══════════════════════════════════════════════════════════ -->
+        <record id="sr_param_vgb_max_jaar" model="hr.rule.parameter">
+            <field name="name">SR — VGB fiscaal belastbaar maximum per jaar (SRD)</field>
+            <field name="code">SR_VGB_MAX_JAAR</field>
+            <field name="country_id" ref="base.sr"/>
+        </record>
+        <record id="sr_param_vgb_max_jaar_2026" model="hr.rule.parameter.value">
+            <field name="rule_parameter_id" ref="sr_param_vgb_max_jaar"/>
+            <field name="date_from" eval="datetime(2026, 1, 1).date()"/>
+            <field name="parameter_value">200.0</field>
+        </record>
+
         <record id="sr_param_heffingskorting" model="hr.rule.parameter">
             <field name="name">SR — Heffingskorting (actief; SRD per maand)</field>
             <field name="code">SR_HEFFINGSKORTING</field>

@@ -63,6 +63,7 @@ CONFIG_PARAMETER_MAP = {
     'SR_KINDBIJ_MAX_KIND_MAAND': ('sr_payroll.akb_per_kind', 250.0),
     'SR_KINDBIJ_MAX_MAAND': ('sr_payroll.akb_max_bedrag', 1000.0),
     'SR_BIJZ_VRIJSTELLING_MAX': ('sr_payroll.bijz_beloning_max', 19500.0),
+    'SR_VGB_MAX_JAAR': ('sr_payroll.vgb_max_jaar', 200.0),
     'SR_OWK_SCHIJF_1_GRENS': ('sr_payroll.overwerk_schijf_1_grens', 2500.0),
     'SR_OWK_SCHIJF_2_GRENS': ('sr_payroll.overwerk_schijf_2_grens', 7500.0),
     'SR_OWK_TARIEF_1': ('sr_payroll.overwerk_tarief_1', 0.05),

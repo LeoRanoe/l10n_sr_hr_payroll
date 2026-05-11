@@ -10,7 +10,7 @@ class HrSalaryRule(models.Model):
         result = super()._register_hook()
 
         env = api.Environment(self.env.cr, SUPERUSER_ID, {})
-        gross_formula = "result = categories['BASIC'] + result_rules['SR_ALW']['total']"
+        gross_formula = "result = categories['BASIC'] + categories['ALW'] + categories['SR_GRD']"
         net_formula = (
             "result = categories['BASIC'] + categories['ALW'] + categories['DED'] + "
             "categories['SR_VRIJ'] - (result_rules['SR_HK']['total'] if 'SR_HK' in result_rules else 0.0)"

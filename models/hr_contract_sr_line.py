@@ -29,13 +29,22 @@ class HrContractSrLine(models.Model):
     _order = 'sr_categorie, sequence, id'
 
     def init(self):
-        """Migratie: wijs SRD toe aan contractregels zonder lijn-valuta."""
+        """Migratie: wijs SRD toe aan contractregels zonder lijn-valuta en normaliseer GENEESK naar fiscaal_grondslag."""
         self.env.cr.execute("""
             UPDATE hr_contract_sr_line l
             SET    line_currency_id = c.id
             FROM   res_currency c
             WHERE  c.name = 'SRD'
               AND  l.line_currency_id IS NULL
+        """)
+        # Normaliseer bestaande GENEESK-regels naar de nieuwe 'fiscaal_grondslag' categorie.
+        self.env.cr.execute("""
+            UPDATE hr_contract_sr_line l
+            SET    sr_categorie = 'fiscaal_grondslag'
+            FROM   hr_contract_sr_line_type t
+            WHERE  l.type_id = t.id
+              AND  t.code = 'GENEESK'
+              AND  l.sr_categorie = 'belastbaar'
         """)
 
     contract_id = fields.Many2one(
@@ -127,7 +136,10 @@ class HrContractSrLine(models.Model):
             '• Aftrek Belastingvrij: Art. 10f inhouding die zowel de '
             'LB- als AOV-grondslag verlaagt en daarnaast op netto wordt ingehouden.\n\n'
             '• Inhouding: wordt ingehouden op het nettoloon. '
-            'Geen invloed op loonbelasting of AOV.'
+            'Geen invloed op loonbelasting of AOV.\n\n'
+            '• Fiscale Grondslag: voordeel in natura (bijv. VGB). Verhoogt de Art. 14 '
+            'grondslag voor LB en AOV (via SR_VGB_BELAST), maar wordt NIET als cash '
+            'uitbetaald op de loonstrook. Max gecapped op SR_VGB_MAX_JAAR.'
         ),
     )
 

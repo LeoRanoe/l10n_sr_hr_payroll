@@ -258,7 +258,10 @@
                     </thead>
                     <tbody>
                         <tr t-foreach="bd.get('payslip_line_rows', [])" t-as="row">
-                            <td><t t-esc="row.get('name')"/></td>
+                            <td>
+                                <t t-esc="row.get('name')"/>
+                                <t t-if="row.get('categorie_label')"><br/><span style="font-size:7.5pt; color:#64748b; font-style:italic;"><t t-esc="row.get('categorie_label')"/></span></t>
+                            </td>
                             <td class="o_sr_text_center"><t t-esc="row.get('quantity_display') or ''"/></td>
                             <td class="o_sr_text_end"><t t-esc="'{:,.2f}'.format(row.get('debit', 0)) if row.get('debit', 0) else ''"/></td>
                             <td class="o_sr_text_end"><t t-esc="'{:,.2f}'.format(row.get('credit', 0)) if row.get('credit', 0) else ''"/></td>

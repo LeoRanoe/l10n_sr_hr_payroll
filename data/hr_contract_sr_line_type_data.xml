@@ -40,9 +40,9 @@
         <record id="sr_line_type_geneeskunde" model="hr.contract.sr.line.type">
             <field name="name">Vrije Geneeskundige Behandeling</field>
             <field name="code">GENEESK</field>
-            <field name="sr_categorie">belastbaar</field>
+            <field name="sr_categorie">fiscaal_grondslag</field>
             <field name="sequence">35</field>
-            <field name="description">Vaste vrije geneeskundige behandeling per periode. Voor de 2026 payroll-engine wordt dit als belastbaar loonbestanddeel behandeld.</field>
+            <field name="description">Vrije geneeskundige behandeling (voordeel in natura). Het fiscaal belastbaar deel wordt gemaximeerd op SRD 200 per jaar (parameter SR_VGB_MAX_JAAR). Dit bedrag verhoogt de Art. 14 grondslag via de SR_VGB_BELAST salarisregel maar wordt NIET als cash uitbetaald op de loonstrook.</field>
         </record>
 
         <record id="sr_line_type_telefoon" model="hr.contract.sr.line.type">

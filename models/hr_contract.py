@@ -41,7 +41,7 @@ class HrContract(models.Model):
             'code': 'GENEESK',
             'xmlid': 'l10n_sr_hr_payroll.sr_line_type_geneeskunde',
             'name': 'Vrije Geneeskundige Behandeling',
-            'category': 'belastbaar',
+            'category': 'fiscaal_grondslag',
             'fallback_names': ('vrije geneeskundige behandeling', 'geneeskundige behandeling'),
         },
     }
@@ -269,11 +269,14 @@ class HrContract(models.Model):
             kb_belastbaar = kb_split['belastbaar']
             kb_vrijgesteld = kb_split['vrijgesteld']
 
+            # VGB fiscaal belastbaar deel (Art. 9 WLB — voordeel in natura, max SR_VGB_MAX_JAAR)
+            vgb_belastbaar = contract._sr_vgb_fiscaal_belastbaar(exchange_rate=rate)
+
             # Basisloon omrekenen naar SRD voor fiscale berekening
             wage_srd = contract._sr_get_wage_in_srd(exchange_rate=rate)
 
-            # Bruto belastbaar = basisloon (SRD) + vaste belastbare toelagen
-            bruto_belastbaar = wage_srd + belastbaar_toelagen
+            # Bruto belastbaar = basisloon + belastbare toelagen + KB belastbaar + VGB fiscaal
+            bruto_belastbaar = wage_srd + belastbaar_toelagen + kb_belastbaar + vgb_belastbaar
             result = calc.calculate_lb(
                 bruto_belastbaar, periodes, params,
                 aftrek_bv_per_periode=aftrek_bv,
@@ -734,13 +737,43 @@ class HrContract(models.Model):
             'vrijgesteld': calc.round_money(kb_exempt),
         }
 
+    def _sr_vgb_fiscaal_belastbaar(self, exchange_rate=None):
+        """
+        Berekent het fiscaal belastbaar deel van Vrije Geneeskundige Behandeling (Art. 9 WLB).
+
+        VGB is een voordeel in natura (bijv. werkgeversbijdrage medische verzekering).
+        Het verhoogt de Art. 14 grondslag voor LB en AOV maar wordt NIET als cash
+        uitbetaald. Het belastbaar deel is gemaximeerd op SR_VGB_MAX_JAAR/jaar.
+
+        Prioriteit:
+        1. Expliciete GENEESK-contractregel (categorie='fiscaal_grondslag') — gebruikt die waarde, gecapped.
+        2. Geen contractregel — automatisch 3% van basisloon (Art. 9 WLB standaardtarief), ook gecapped.
+
+        :returns: Belastbaar VGB per periode (gecapped op SR_VGB_MAX_JAAR/periodes)
+        """
+        self.ensure_one()
+        vgb_max_jaar = calc.get_sr_parameter_value(
+            self.env, 'SR_VGB_MAX_JAAR', Date.today(),
+            default=200.0, raise_if_not_found=False,
+        ) or 200.0
+        periodes = 26 if self.sr_salary_type == 'fn' else 12
+        vgb_max_periode = vgb_max_jaar / periodes
+
+        # Expliciete GENEESK contractregel heeft voorrang
+        vgb_contract = self._sr_resolve_regels('fiscaal_grondslag', exchange_rate=exchange_rate)
+        if vgb_contract:
+            return calc.round_money(min(vgb_contract, vgb_max_periode))
+
+        # Geen contractregel: automatisch 3% van basisloon (Art. 9 WLB), max VGB_MAX/periodes
+        wage_srd = self._sr_get_wage_in_srd(exchange_rate=exchange_rate)
+        if not wage_srd:
+            return 0.0
+        vgb_auto = calc.round_money(wage_srd * 0.03)
+        return calc.round_money(min(vgb_auto, vgb_max_periode))
+
     def generate_work_entries(self, date_start, date_stop, force=False):
         """
         Override: Allow admin/dev users to regenerate validated work entries.
-        
-        Base Odoo restricts regenerating validated work entries. This override
-        allows System Admins (in the 'base.group_system' group) to bypass this
-        restriction for testing and corrective work.
         
         :param date_start: Work entry period start
         :param date_stop: Work entry period stop

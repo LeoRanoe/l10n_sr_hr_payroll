@@ -26,6 +26,17 @@
     <data noupdate="0">
 
         <!-- ═══════════════════════════════════════════════════════════════
+             Salarisregel categorie SR_GRD — Fiscale Grondslag Uitbreiding
+             Regels in deze categorie verhogen GROSS (belastbaar loon voor LB/AOV)
+             maar worden NIET als cash uitbetaald en tellen NIET mee in NET.
+             Gebruik voor voordelen in natura zoals Vrije Geneeskundige Behandeling.
+             ═══════════════════════════════════════════════════════════════ -->
+        <record id="sr_grd_cat" model="hr.salary.rule.category">
+            <field name="name">Fiscale Grondslag (voordeel in natura)</field>
+            <field name="code">SR_GRD</field>
+        </record>
+
+        <!-- ═══════════════════════════════════════════════════════════════
              Aangepaste salarisregel categorie — post-GROSS vergoedingen
              Regels die NIET in de Art. 14 belastinggrondslag (GROSS) tellen
              maar WEL bijdragen aan het nettoloon. Door deze categorie te
@@ -103,9 +114,33 @@ result = kb['belastbaar']
         </record>
 
         <!-- ─────────────────────────────────────────────────────────
+             22 — SR_VGB_BELAST: VGB fiscaal belastbaar deel (Art. 9 WLB)
+             Voordeel in natura: max SRD 200/jaar (SR_VGB_MAX_JAAR).
+             Verhoogt GROSS → Art. 14 LB/AOV grondslag.
+             Wordt NIET als cash uitbetaald (appears_on_payslip = False).
+             ───────────────────────────────────────────────────── -->
+        <record id="sr_rule_vgb_belastbaar" model="hr.salary.rule">
+            <field name="struct_id" ref="l10n_sr_hr_payroll.sr_payroll_structure"/>
+            <field name="category_id" ref="l10n_sr_hr_payroll.sr_grd_cat"/>
+            <field name="name">VGB Fiscaal Belastbaar Deel (Voordeel in Natura)</field>
+            <field name="code">SR_VGB_BELAST</field>
+            <field name="sequence">22</field>
+            <field name="appears_on_payslip" eval="False"/>
+            <field name="condition_select">python</field>
+            <field name="condition_python">
+result = contract._sr_vgb_fiscaal_belastbaar(exchange_rate=payslip.sr_exchange_rate or 1.0) > 0
+            </field>
+            <field name="amount_select">code</field>
+            <field name="amount_python_compute">
+result = contract._sr_vgb_fiscaal_belastbaar(exchange_rate=payslip.sr_exchange_rate or 1.0)
+            </field>
+        </record>
+
+        <!-- ─────────────────────────────────────────────────────
              30 — GROSS: Totaal belastbaar bruto loon
-             Som van BASIC + ALW (inclusief toelagen + KB belastbaar).
-             ───────────────────────────────────────────────────────── -->
+             Som van BASIC + ALW + SR_GRD (inclusief toelagen + KB belastbaar
+             + VGB fiscaal voordeel).
+             ───────────────────────────────────────────────────── -->
         <record id="sr_rule_gross" model="hr.salary.rule">
             <field name="struct_id" ref="l10n_sr_hr_payroll.sr_payroll_structure"/>
             <field name="category_id" ref="hr_payroll.GROSS"/>
@@ -115,7 +150,7 @@ result = kb['belastbaar']
             <field name="condition_select">none</field>
             <field name="amount_select">code</field>
             <field name="amount_python_compute">
-result = categories['BASIC'] + categories['ALW']
+result = categories['BASIC'] + categories['ALW'] + categories['SR_GRD']
             </field>
         </record>
 

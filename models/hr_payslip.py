@@ -1074,12 +1074,13 @@ class HrPayslip(models.Model):
         aov_17a = abs(_line_total('SR_AOV_17A'))
         lb_overwerk = abs(_line_total('SR_LB_OVERWERK'))
         aov_overwerk = abs(_line_total('SR_AOV_OVERWERK'))
+        vgb_belastbaar_bedrag = abs(_line_total('SR_VGB_BELAST'))
 
         # ── Calculator voor Art. 14 stap-detail ──────────────────────────────
         # Herleid de wettelijke Art. 14 grondslag uit de expliciete belastbare
         # looncomponenten. Historische SR_HK-regels kunnen het GROSS/NET totaal
         # op bestaande slips verhogen, maar horen niet in de LB/AOV-grondslag.
-        gross = basic + toelagen + kb_belastbaar + input_belastbaar
+        gross = basic + toelagen + kb_belastbaar + input_belastbaar + vgb_belastbaar_bedrag
         params = calc.fetch_params_from_payslip(self)
         heffingskorting_calc = heffingskorting
         if abs(heffingskorting_calc) < 0.005 and contract:
@@ -1237,6 +1238,18 @@ class HrPayslip(models.Model):
         payslip_line_rows = []
         belasting_line_rows = []
         display_line_codes_to_skip = {'GROSS', 'NET', 'SR_HK'}
+        # Categorie-labels voor bekende loonregels (getoond op de loonstrook naast de omschrijving)
+        _code_categorie_label = {
+            'SR_KB_BELAST': 'Belastbaar',
+            'SR_KB_VRIJ': 'Belastingvrij',
+            'SR_KINDBIJ': 'Belastingvrij',
+            'SR_INPUT_BELASTB': 'Belastbaar',
+            'SR_INPUT_VRIJ': 'Belastingvrij',
+            'SR_AFTREK_BV': 'Aftrek belastingvrij',
+            'SR_PENSIOEN': 'Inhouding',
+            'SR_INPUT_AFTREK': 'Inhouding',
+        }
+        rule_exchange_rate = self.sr_exchange_rate or 1.0
         for line in self.line_ids.sorted(lambda record: (record.sequence, record.code or '', record.id)):
             total = line.total or 0.0
             if line.code in display_line_codes_to_skip or not line.appears_on_payslip or abs(total) < 0.005:
@@ -1247,6 +1260,35 @@ class HrPayslip(models.Model):
             if abs(quantity - 1.0) > 0.0001 and abs(quantity) > 0.0001:
                 quantity_display = '{:,.2f}'.format(quantity).rstrip('0').rstrip('.')
 
+            # SR_ALW: uitklappen naar individuele belastbare contractregels
+            if line.code == 'SR_ALW' and contract:
+                for regel in contract.sr_vaste_regels.sorted('sequence'):
+                    if regel._sr_effective_category() != 'belastbaar':
+                        continue
+                    regel_amount = contract._sr_resolve_line_amount(regel, exchange_rate=rule_exchange_rate)
+                    if abs(regel_amount) < 0.005:
+                        continue
+                    regel_name = (regel.type_id.name or regel.name or 'Toelage').upper()
+                    payslip_line_rows.append({
+                        'code': 'SR_ALW',
+                        'name': regel_name,
+                        'categorie_label': 'Belastbaar',
+                        'quantity': 1.0,
+                        'quantity_display': '',
+                        'debit': regel_amount,
+                        'credit': 0.0,
+                        'net': regel_amount,
+                    })
+                    belasting_line_rows.append({
+                        'code': 'SR_ALW',
+                        'name': regel_name,
+                        'quantity_display': '',
+                        'verloond_bedrag': regel_amount,
+                        'loonbelasting': 0.0,
+                        'premie_aov': 0.0,
+                    })
+                continue
+
             line_name = (line_label_map.get(line.code) or line.name or line.salary_rule_id.name or line.code or '').upper()
             debit = total if total > 0 else 0.0
             credit = abs(total) if total < 0 else 0.0
@@ -1254,6 +1296,7 @@ class HrPayslip(models.Model):
             payslip_line_rows.append({
                 'code': line.code,
                 'name': line_name,
+                'categorie_label': _code_categorie_label.get(line.code, ''),
                 'quantity': quantity,
                 'quantity_display': quantity_display,
                 'debit': debit,
