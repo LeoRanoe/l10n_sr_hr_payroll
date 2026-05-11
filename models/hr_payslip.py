@@ -1107,23 +1107,52 @@ class HrPayslip(models.Model):
             + input_belastbaar + input_vrijgesteld
             + overwerk + vakantie + gratificatie + bijz_beloning + uitkering_ineens
         )
+        toelagen_totaal = bruto_totaal - basic
         netto = bruto_totaal - totaal_inhoudingen - aftrek_bv
 
-        contract_inhoudingen = []
         rule_exchange_rate = self.sr_exchange_rate or 1.0
-        for line in contract.sr_vaste_regels.filtered(lambda record: record._sr_effective_category() == 'inhouding'):
+        contract_line_groups = {
+            'belastbaar': [],
+            'vrijgesteld': [],
+            'aftrek_belastingvrij': [],
+            'inhouding': [],
+        }
+        for line in contract.sr_vaste_regels.sorted(lambda record: (record.sequence, record.id)):
+            category = line._sr_effective_category()
+            if category not in contract_line_groups:
+                continue
+            if category == 'vrijgesteld' and line._is_sr_kindbijslag_line():
+                continue
             amount = contract._sr_resolve_line_amount(line, exchange_rate=rule_exchange_rate)
-            if amount > 0:
-                contract_inhoudingen.append({'name': line.name, 'amount': amount})
+            if amount <= 0:
+                continue
+            contract_line_groups[category].append({
+                'name': line.type_id.name or line.name or 'Contractregel',
+                'amount': amount,
+            })
 
-        input_inhoudingen = []
-        for input_line in self.input_line_ids.filtered(
-            lambda record: record.input_type_id.sr_categorie == 'inhouding' and record.amount > 0
-        ):
-            input_inhoudingen.append({
+        contract_belastbare_lines = contract_line_groups['belastbaar']
+        contract_vrijgestelde_lines = contract_line_groups['vrijgesteld']
+        contract_aftrek_bv_lines = contract_line_groups['aftrek_belastingvrij']
+        contract_inhoudingen = contract_line_groups['inhouding']
+
+        input_line_groups = {
+            'belastbaar': [],
+            'vrijgesteld': [],
+            'inhouding': [],
+        }
+        for input_line in self.input_line_ids.filtered(lambda record: record.amount > 0):
+            category = input_line.input_type_id.sr_categorie
+            if category not in input_line_groups:
+                continue
+            input_line_groups[category].append({
                 'name': input_line.input_type_id.name or input_line.name or 'Payslip input',
                 'amount': input_line.amount,
             })
+
+        input_belastbaar_lines = input_line_groups['belastbaar']
+        input_vrijgesteld_lines = input_line_groups['vrijgesteld']
+        input_inhoudingen = input_line_groups['inhouding']
 
         earnings_lines = []
 
@@ -1137,11 +1166,27 @@ class HrPayslip(models.Model):
             })
 
         _append_amount_line(earnings_lines, 'Salaris', basic, 'primary')
-        _append_amount_line(earnings_lines, 'Toelagen', toelagen)
+        if contract_belastbare_lines:
+            for earning in contract_belastbare_lines:
+                _append_amount_line(earnings_lines, earning['name'], earning['amount'])
+        else:
+            _append_amount_line(earnings_lines, 'Toelagen', toelagen)
         _append_amount_line(earnings_lines, 'Kinderbijslag', kinderbijslag, 'muted')
-        _append_amount_line(earnings_lines, 'Vrijgestelde vergoedingen', vrijgesteld_contract, 'muted')
-        _append_amount_line(earnings_lines, 'Belastbare payslip inputs', input_belastbaar)
-        _append_amount_line(earnings_lines, 'Vrijgestelde payslip inputs', input_vrijgesteld, 'muted')
+        if contract_vrijgestelde_lines:
+            for earning in contract_vrijgestelde_lines:
+                _append_amount_line(earnings_lines, earning['name'], earning['amount'], 'muted')
+        else:
+            _append_amount_line(earnings_lines, 'Vrijgestelde vergoedingen', vrijgesteld_contract, 'muted')
+        if input_belastbaar_lines:
+            for earning in input_belastbaar_lines:
+                _append_amount_line(earnings_lines, earning['name'], earning['amount'])
+        else:
+            _append_amount_line(earnings_lines, 'Belastbare payslip inputs', input_belastbaar)
+        if input_vrijgesteld_lines:
+            for earning in input_vrijgesteld_lines:
+                _append_amount_line(earnings_lines, earning['name'], earning['amount'], 'muted')
+        else:
+            _append_amount_line(earnings_lines, 'Vrijgestelde payslip inputs', input_vrijgesteld, 'muted')
         _append_amount_line(earnings_lines, 'Overwerk', overwerk)
         _append_amount_line(earnings_lines, 'Vakantiegeld', vakantie)
         _append_amount_line(earnings_lines, 'Gratificatie', gratificatie)
@@ -1157,17 +1202,23 @@ class HrPayslip(models.Model):
         _append_amount_line(deductions_lines, 'AOV bijzondere beloningen', aov_bijz, 'tax')
         _append_amount_line(deductions_lines, 'AOV uitkering ineens', aov_17a, 'tax')
         _append_amount_line(deductions_lines, 'AOV overwerk', aov_overwerk, 'tax')
-        _append_amount_line(deductions_lines, 'Andere inhoudingen', pensioen)
-        _append_amount_line(deductions_lines, 'Aftrek belastingvrij (Art. 10f)', aftrek_bv)
-        for inhouding in contract_inhoudingen:
-            _append_amount_line(deductions_lines, inhouding['name'], inhouding['amount'])
+        if contract_aftrek_bv_lines:
+            for inhouding in contract_aftrek_bv_lines:
+                _append_amount_line(deductions_lines, inhouding['name'], inhouding['amount'])
+        else:
+            _append_amount_line(deductions_lines, 'Aftrek belastingvrij (Art. 10f)', aftrek_bv)
+        if contract_inhoudingen:
+            for inhouding in contract_inhoudingen:
+                _append_amount_line(deductions_lines, inhouding['name'], inhouding['amount'])
+        else:
+            _append_amount_line(deductions_lines, 'Andere inhoudingen', pensioen)
         for inhouding in input_inhoudingen:
             _append_amount_line(deductions_lines, inhouding['name'], inhouding['amount'])
 
         summary_cards = [
-            {'label': 'Bruto loon', 'amount': bruto_totaal, 'tone': 'neutral'},
-            {'label': 'Totale inhoudingen', 'amount': totaal_inhoudingen + aftrek_bv, 'tone': 'danger'},
-            {'label': 'Netto loon', 'amount': netto, 'tone': 'success'},
+            {'label': 'Basisloon', 'amount': basic, 'tone': 'neutral'},
+            {'label': 'Toelagen', 'amount': toelagen_totaal, 'tone': 'neutral'},
+            {'label': 'Inhoudingen', 'amount': totaal_inhoudingen + aftrek_bv, 'tone': 'danger'},
         ]
         employee = self.employee_id
         bank_account = employee.bank_account_id
@@ -1249,7 +1300,33 @@ class HrPayslip(models.Model):
             'SR_PENSIOEN': 'Inhouding',
             'SR_INPUT_AFTREK': 'Inhouding',
         }
-        rule_exchange_rate = self.sr_exchange_rate or 1.0
+
+        def _append_breakdown_rows(code, rows, categorie_label, is_credit=False):
+            for item in rows:
+                amount = item['amount']
+                row_name = (item['name'] or 'Post').upper()
+                debit = 0.0 if is_credit else amount
+                credit = amount if is_credit else 0.0
+                payslip_line_rows.append({
+                    'code': code,
+                    'name': row_name,
+                    'categorie_label': categorie_label,
+                    'quantity': 1.0,
+                    'quantity_display': '',
+                    'debit': debit,
+                    'credit': credit,
+                    'net': debit - credit,
+                })
+                belasting_line_rows.append({
+                    'code': code,
+                    'name': row_name,
+                    'categorie_label': categorie_label,
+                    'quantity_display': '',
+                    'verloond_bedrag': -amount if is_credit else amount,
+                    'loonbelasting': 0.0,
+                    'premie_aov': 0.0,
+                })
+
         for line in self.line_ids.sorted(lambda record: (record.sequence, record.code or '', record.id)):
             total = line.total or 0.0
             if line.code in display_line_codes_to_skip or not line.appears_on_payslip or abs(total) < 0.005:
@@ -1260,33 +1337,27 @@ class HrPayslip(models.Model):
             if abs(quantity - 1.0) > 0.0001 and abs(quantity) > 0.0001:
                 quantity_display = '{:,.2f}'.format(quantity).rstrip('0').rstrip('.')
 
-            # SR_ALW: uitklappen naar individuele belastbare contractregels
-            if line.code == 'SR_ALW' and contract:
-                for regel in contract.sr_vaste_regels.sorted('sequence'):
-                    if regel._sr_effective_category() != 'belastbaar':
-                        continue
-                    regel_amount = contract._sr_resolve_line_amount(regel, exchange_rate=rule_exchange_rate)
-                    if abs(regel_amount) < 0.005:
-                        continue
-                    regel_name = (regel.type_id.name or regel.name or 'Toelage').upper()
-                    payslip_line_rows.append({
-                        'code': 'SR_ALW',
-                        'name': regel_name,
-                        'categorie_label': 'Belastbaar',
-                        'quantity': 1.0,
-                        'quantity_display': '',
-                        'debit': regel_amount,
-                        'credit': 0.0,
-                        'net': regel_amount,
-                    })
-                    belasting_line_rows.append({
-                        'code': 'SR_ALW',
-                        'name': regel_name,
-                        'quantity_display': '',
-                        'verloond_bedrag': regel_amount,
-                        'loonbelasting': 0.0,
-                        'premie_aov': 0.0,
-                    })
+            # Uitklappen naar individuele contract- of inputregels waar mogelijk.
+            if line.code == 'SR_ALW' and contract_belastbare_lines:
+                _append_breakdown_rows('SR_ALW', contract_belastbare_lines, 'Belastbaar')
+                continue
+            if line.code == 'SR_KINDBIJ' and contract_vrijgestelde_lines:
+                _append_breakdown_rows('SR_KINDBIJ', contract_vrijgestelde_lines, 'Belastingvrij')
+                continue
+            if line.code == 'SR_INPUT_BELASTB' and input_belastbaar_lines:
+                _append_breakdown_rows('SR_INPUT_BELASTB', input_belastbaar_lines, 'Belastbaar')
+                continue
+            if line.code == 'SR_INPUT_VRIJ' and input_vrijgesteld_lines:
+                _append_breakdown_rows('SR_INPUT_VRIJ', input_vrijgesteld_lines, 'Belastingvrij')
+                continue
+            if line.code == 'SR_AFTREK_BV' and contract_aftrek_bv_lines:
+                _append_breakdown_rows('SR_AFTREK_BV', contract_aftrek_bv_lines, 'Aftrek belastingvrij', is_credit=True)
+                continue
+            if line.code == 'SR_PENSIOEN' and contract_inhoudingen:
+                _append_breakdown_rows('SR_PENSIOEN', contract_inhoudingen, 'Inhouding', is_credit=True)
+                continue
+            if line.code == 'SR_INPUT_AFTREK' and input_inhoudingen:
+                _append_breakdown_rows('SR_INPUT_AFTREK', input_inhoudingen, 'Inhouding', is_credit=True)
                 continue
 
             line_name = (line_label_map.get(line.code) or line.name or line.salary_rule_id.name or line.code or '').upper()

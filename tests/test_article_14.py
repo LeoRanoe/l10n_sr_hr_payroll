@@ -688,13 +688,14 @@ class TestArtikel14Breakdown(common.TransactionCase):
         self.assertEqual(bd['payslip_layout'], 'employee_simple')
         self.assertEqual(bd['payslip_layout_label'], 'Klassiek Debet / Credit')
         self.assertTrue(any(line['name'] == 'Salaris' for line in bd['earnings_lines']))
-        self.assertTrue(any(card['label'] == 'Netto loon' for card in bd['summary_cards']))
+        self.assertTrue(any(card['label'] == 'Basisloon' for card in bd['summary_cards']))
+        self.assertTrue(any(card['label'] == 'Inhoudingen' for card in bd['summary_cards']))
         self.assertFalse(any(card['label'] == 'Heffingskorting' for card in bd['summary_cards']))
         self.assertTrue(any(row['name'] == 'SALARIS' for row in bd['payslip_line_rows']))
         self.assertIsInstance(bd['display_debit_total'], float)
 
-    def test_breakdown_toont_andere_inhoudingen_als_generieke_nettopost(self):
-        """Geaggregeerde contractinhoudingen moeten generiek als andere inhoudingen worden gelabeld."""
+    def test_breakdown_splitst_contractinhoudingen_per_regel(self):
+        """Contractinhoudingen moeten per regel zichtbaar zijn met hun categorie-label."""
         contract = self.env['hr.contract'].create({
             'name': 'Breakdown Netto Inhouding Testcontract',
             'employee_id': self.employee.id,
@@ -722,10 +723,13 @@ class TestArtikel14Breakdown(common.TransactionCase):
         payslip.compute_sheet()
 
         bd = payslip._get_sr_artikel14_breakdown()
-        inhouding_row = next(row for row in bd['payslip_line_rows'] if row['code'] == 'SR_PENSIOEN')
+        inhouding_row = next(
+            row for row in bd['payslip_line_rows']
+            if row['code'] == 'SR_PENSIOEN' and row['name'] == 'ZIEKTEKOSTENPREMIE'
+        )
 
-        self.assertEqual(inhouding_row['name'], 'ANDERE INHOUDINGEN')
-        self.assertTrue(any(line['name'] == 'Andere inhoudingen' for line in bd['deductions_lines']))
+        self.assertEqual(inhouding_row['categorie_label'], 'Inhouding')
+        self.assertTrue(any(line['name'] == 'Ziektekostenpremie' for line in bd['deductions_lines']))
 
     def test_breakdown_aov_basis_toont_aftrek_bv_voor_franchise(self):
         """AOV weergave moet eerst Art. 10f aftrek verwerken en daarna pas de franchise."""
