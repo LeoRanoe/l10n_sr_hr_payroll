@@ -125,6 +125,18 @@
                                     </group>
                                 </group>
                                 <group>
+                                    <group string="Contract invoer">
+                                        <field name="sr_show_contract_shortcuts"
+                                               string="Toon standaard shortcutvelden op contracten"
+                                               help="Als dit aan staat, worden vaste standaardposten zoals kinderbijslag en representatie via snelle velden beheerd. Als dit uit staat, gebruikt men alleen de tabel Vaste Loon Regels."/>
+                                    </group>
+                                    <group string="Toelichting">
+                                        <div class="text-muted">
+                                            Schakel dit uit als bedrijven liever alleen met de volledige tabel werken en geen dubbele weergave van dezelfde standaardposten willen zien.
+                                        </div>
+                                    </group>
+                                </group>
+                                <group>
                                     <group string="Dagkoersen naar SRD">
                                         <field name="sr_exchange_rate_usd"
                                                string="1 USD → SRD"

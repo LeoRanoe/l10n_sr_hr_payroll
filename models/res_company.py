@@ -10,13 +10,18 @@ class ResCompany(models.Model):
     _inherit = 'res.company'
 
     def init(self):
-        """Migratie: initialiseer standaard contractvaluta op SRD voor bestaande bedrijven."""
+        """Migratie: initialiseer standaard contractvaluta en shortcut-weergave voor bestaande bedrijven."""
         self.env.cr.execute("""
             UPDATE res_company c
             SET    sr_default_contract_currency_id = cur.id
             FROM   res_currency cur
             WHERE  cur.name = 'SRD'
               AND  c.sr_default_contract_currency_id IS NULL
+        """)
+        self.env.cr.execute("""
+            UPDATE res_company
+            SET    sr_show_contract_shortcuts = FALSE
+            WHERE  sr_show_contract_shortcuts IS NULL
         """)
 
     sr_default_contract_currency_id = fields.Many2one(
@@ -28,6 +33,15 @@ class ResCompany(models.Model):
             'Standaard contractvaluta voor nieuwe SR-looncontracten in dit bedrijf. '
             'Kies SRD voor Surinaamse contracten, USD of EUR voor buitenlandse valutacontracten. '
             'Elke werknemer kan dit per contract aanpassen.'
+        ),
+    )
+    sr_show_contract_shortcuts = fields.Boolean(
+        string='Toon standaard contract-shortcuts',
+        default=False,
+        help=(
+            'Toont de ingebouwde snelle contractvelden zoals kinderbijslag, transport, '
+            'representatie en vrije geneeskundige behandeling. Als dit uit staat, beheer je '
+            'alle vaste toelagen en inhoudingen alleen via de tabel Vaste Loon Regels.'
         ),
     )
 

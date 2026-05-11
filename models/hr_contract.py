@@ -101,6 +101,12 @@ class HrContract(models.Model):
             'De gehanteerde koers wordt per loonstrook bevroren opgeslagen.'
         ),
     )
+    sr_show_contract_shortcuts = fields.Boolean(
+        string='Toon standaard contract-shortcuts',
+        related='company_id.sr_show_contract_shortcuts',
+        store=False,
+        readonly=True,
+    )
 
     sr_hourly_wage = fields.Float(
         string='Uurloon (SRD)',

@@ -161,6 +161,16 @@ class ResConfigSettings(models.TransientModel):
         default=_SR_PAYSLIP_LAYOUT_DEFAULT,
         help='Nieuwe SR-loonstroken nemen deze layout standaard over. Je kunt dit per loonstrook aanpassen.',
     )
+    sr_show_contract_shortcuts = fields.Boolean(
+        string='Toon standaard contract-shortcuts',
+        related='company_id.sr_show_contract_shortcuts',
+        readonly=False,
+        help=(
+            'Schakel de ingebouwde snelle contractvelden aan of uit. Als dit uit staat, '
+            'beheren gebruikers alle vaste toelagen en inhoudingen alleen via de tabel '
+            'Vaste Loon Regels op het contract.'
+        ),
+    )
 
     @api.model
     def _sr_default_param(self, code):

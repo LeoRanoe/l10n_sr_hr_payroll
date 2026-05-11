@@ -6,6 +6,17 @@ from odoo.exceptions import ValidationError
 from .sr_categorie import SR_CATEGORIE_BASE
 
 _SR_LINE_SUPPORTED_CURRENCIES = frozenset({'SRD', 'USD', 'EUR'})
+_SR_SHORTCUT_TYPE_CODES = frozenset({'KINDBIJ', 'TRANSPORT', 'REPRES', 'GENEESK'})
+_SR_SHORTCUT_FALLBACK_NAMES = frozenset({
+    'kinderbijslag',
+    'transportvergoeding',
+    'transport',
+    'vervoer',
+    'representatie toelage',
+    'representatie',
+    'vrije geneeskundige behandeling',
+    'geneeskundige behandeling',
+})
 
 
 class HrContractSrLine(models.Model):
@@ -142,10 +153,27 @@ class HrContractSrLine(models.Model):
             'uitbetaald op de loonstrook. Max gecapped op SR_VGB_MAX_JAAR.'
         ),
     )
+    sr_is_shortcut_managed = fields.Boolean(
+        string='Beheerd via shortcutveld',
+        compute='_compute_sr_is_shortcut_managed',
+        store=True,
+        index=True,
+        help='Technisch veld: markeert regels die door de standaard contract-shortcuts beheerd kunnen worden.',
+    )
 
     def _sr_effective_category(self):
         self.ensure_one()
         return self.type_id.sr_categorie or self.sr_categorie
+
+    @api.depends('type_id.code', 'name')
+    def _compute_sr_is_shortcut_managed(self):
+        for line in self:
+            shortcut_managed = False
+            if line.type_id and line.type_id.code in _SR_SHORTCUT_TYPE_CODES:
+                shortcut_managed = True
+            elif not line.type_id and (line.name or '').strip().casefold() in _SR_SHORTCUT_FALLBACK_NAMES:
+                shortcut_managed = True
+            line.sr_is_shortcut_managed = shortcut_managed
 
     @api.onchange('type_id')
     def _onchange_type_id(self):
