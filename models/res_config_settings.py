@@ -166,9 +166,18 @@ class ResConfigSettings(models.TransientModel):
         related='company_id.sr_show_contract_shortcuts',
         readonly=False,
         help=(
-            'Schakel de ingebouwde snelle contractvelden aan of uit. Als dit uit staat, '
+            'Schakel de aparte shortcut-sectie op contracten aan of uit. Als dit uit staat, '
             'beheren gebruikers alle vaste toelagen en inhoudingen alleen via de tabel '
             'Vaste Loon Regels op het contract.'
+        ),
+    )
+    sr_contract_shortcut_type_ids = fields.Many2many(
+        related='company_id.sr_contract_shortcut_type_ids',
+        readonly=False,
+        string='Shortcut types op contracten',
+        help=(
+            'Kies welke looncodetypes als shortcuts bovenaan contracten zichtbaar moeten '
+            'zijn. Dit mag ook een eigen, zelf aangemaakte looncode zijn.'
         ),
     )
 

@@ -107,6 +107,17 @@ class HrContract(models.Model):
         store=False,
         readonly=True,
     )
+    sr_contract_shortcut_type_ids = fields.Many2many(
+        related='company_id.sr_contract_shortcut_type_ids',
+        string='Contract shortcut types',
+        store=False,
+        readonly=True,
+    )
+    sr_has_contract_shortcut_types = fields.Boolean(
+        string='Heeft gekozen shortcut types',
+        compute='_compute_sr_has_contract_shortcut_types',
+        store=False,
+    )
 
     sr_hourly_wage = fields.Float(
         string='Uurloon (SRD)',
@@ -232,6 +243,11 @@ class HrContract(models.Model):
         store=False,
         sanitize=False,
     )
+
+    @api.depends('company_id.sr_contract_shortcut_type_ids')
+    def _compute_sr_has_contract_shortcut_types(self):
+        for contract in self:
+            contract.sr_has_contract_shortcut_types = bool(contract.company_id.sr_contract_shortcut_type_ids)
 
     @api.depends(
         'wage',

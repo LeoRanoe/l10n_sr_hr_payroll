@@ -128,11 +128,19 @@
                                     <group string="Contract invoer">
                                         <field name="sr_show_contract_shortcuts"
                                                string="Toon standaard shortcutvelden op contracten"
-                                               help="Als dit aan staat, worden vaste standaardposten zoals kinderbijslag en representatie via snelle velden beheerd. Als dit uit staat, gebruikt men alleen de tabel Vaste Loon Regels."/>
+                                               help="Als dit aan staat, verschijnt bovenaan het contract een aparte shortcut-sectie voor de gekozen looncodetypes. Als dit uit staat, gebruikt men alleen de tabel Vaste Loon Regels."/>
+                                        <field name="sr_contract_shortcut_type_ids"
+                                               widget="many2many_tags"
+                                               options="{'no_create': False, 'no_create_edit': False}"
+                                               placeholder="Kies de looncode types die als shortcuts zichtbaar moeten zijn..."
+                                               invisible="not sr_show_contract_shortcuts"/>
                                     </group>
                                     <group string="Toelichting">
                                         <div class="text-muted">
                                             Schakel dit uit als bedrijven liever alleen met de volledige tabel werken en geen dubbele weergave van dezelfde standaardposten willen zien.
+                                        </div>
+                                        <div class="text-muted" invisible="not sr_show_contract_shortcuts">
+                                            Kies hier zelf welke types als shortcut bovenaan het contract moeten komen. Dit mag ook een eigen looncode-type zijn dat het bedrijf later zelf toevoegt.
                                         </div>
                                     </group>
                                 </group>

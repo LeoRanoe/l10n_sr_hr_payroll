@@ -39,9 +39,21 @@ class ResCompany(models.Model):
         string='Toon standaard contract-shortcuts',
         default=False,
         help=(
-            'Toont de ingebouwde snelle contractvelden zoals kinderbijslag, transport, '
-            'representatie en vrije geneeskundige behandeling. Als dit uit staat, beheer je '
-            'alle vaste toelagen en inhoudingen alleen via de tabel Vaste Loon Regels.'
+            'Toont een aparte shortcut-sectie op het contract voor de geselecteerde '
+            'looncodetypes. Als dit uit staat, beheer je alle vaste toelagen en '
+            'inhoudingen alleen via de tabel Vaste Loon Regels.'
+        ),
+    )
+    sr_contract_shortcut_type_ids = fields.Many2many(
+        'hr.contract.sr.line.type',
+        'res_company_sr_shortcut_line_type_rel',
+        'company_id',
+        'line_type_id',
+        string='Contract shortcut types',
+        help=(
+            'Bepaalt welke looncodetypes als snelle contract-shortcuts bovenaan het '
+            'contractformulier verschijnen. Zo kan elk bedrijf zelf kiezen welke '
+            'standaardposten apart zichtbaar moeten zijn.'
         ),
     )
 

@@ -17,6 +17,12 @@ _SR_SHORTCUT_FALLBACK_NAMES = frozenset({
     'vrije geneeskundige behandeling',
     'geneeskundige behandeling',
 })
+_SR_SHORTCUT_FALLBACK_NAMES_BY_CODE = {
+    'KINDBIJ': frozenset({'kinderbijslag'}),
+    'TRANSPORT': frozenset({'transportvergoeding', 'transport', 'vervoer'}),
+    'REPRES': frozenset({'representatie toelage', 'representatie'}),
+    'GENEESK': frozenset({'vrije geneeskundige behandeling', 'geneeskundige behandeling'}),
+}
 
 
 class HrContractSrLine(models.Model):
@@ -155,25 +161,46 @@ class HrContractSrLine(models.Model):
     )
     sr_is_shortcut_managed = fields.Boolean(
         string='Beheerd via shortcutveld',
-        compute='_compute_sr_is_shortcut_managed',
+        compute='_compute_sr_shortcut_flags',
         store=True,
         index=True,
         help='Technisch veld: markeert regels die door de standaard contract-shortcuts beheerd kunnen worden.',
+    )
+    sr_is_company_shortcut = fields.Boolean(
+        string='Zichtbaar in contract-shortcuts',
+        compute='_compute_sr_shortcut_flags',
+        store=True,
+        index=True,
+        help='Technisch veld: markeert regels die volgens de bedrijfsinstellingen in de contract-shortcut sectie vallen.',
     )
 
     def _sr_effective_category(self):
         self.ensure_one()
         return self.type_id.sr_categorie or self.sr_categorie
 
-    @api.depends('type_id.code', 'name')
-    def _compute_sr_is_shortcut_managed(self):
+    @api.depends('type_id.code', 'name', 'contract_id.company_id.sr_contract_shortcut_type_ids')
+    def _compute_sr_shortcut_flags(self):
         for line in self:
+            fallback_name = (line.name or '').strip().casefold()
             shortcut_managed = False
             if line.type_id and line.type_id.code in _SR_SHORTCUT_TYPE_CODES:
                 shortcut_managed = True
-            elif not line.type_id and (line.name or '').strip().casefold() in _SR_SHORTCUT_FALLBACK_NAMES:
+            elif not line.type_id and fallback_name in _SR_SHORTCUT_FALLBACK_NAMES:
                 shortcut_managed = True
+
+            company_shortcut = False
+            selected_types = line.contract_id.company_id.sr_contract_shortcut_type_ids
+            if line.type_id and line.type_id in selected_types:
+                company_shortcut = True
+            elif not line.type_id and selected_types:
+                selected_codes = set(selected_types.mapped('code'))
+                company_shortcut = any(
+                    fallback_name in _SR_SHORTCUT_FALLBACK_NAMES_BY_CODE.get(code, frozenset())
+                    for code in selected_codes
+                )
+
             line.sr_is_shortcut_managed = shortcut_managed
+            line.sr_is_company_shortcut = company_shortcut
 
     @api.onchange('type_id')
     def _onchange_type_id(self):
