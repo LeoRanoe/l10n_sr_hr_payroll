@@ -38,6 +38,11 @@
                             <field name="sr_show_contract_shortcuts" invisible="1"/>
                             <field name="sr_contract_shortcut_type_ids" invisible="1"/>
                             <field name="sr_has_contract_shortcut_types" invisible="1"/>
+                            <field name="sr_has_kinderbijslag_shortcut" invisible="1"/>
+                            <field name="sr_has_transport_shortcut" invisible="1"/>
+                            <field name="sr_has_representatie_shortcut" invisible="1"/>
+                            <field name="sr_has_geneeskundige_shortcut" invisible="1"/>
+                            <field name="sr_has_custom_contract_shortcut_types" invisible="1"/>
                             <group string="Basisloon &amp; Verloning" name="sr_basis_verloning">
                                 <group>
                                     <field name="sr_contract_currency"
@@ -125,42 +130,70 @@
                                      invisible="not sr_contract_currency or sr_contract_currency.name == 'SRD'">
                                     <i class="fa fa-info-circle"/> De shortcutregels hieronder tonen bedragen in SRD. In de algemene tabel hieronder kunt u voor overige regels nog steeds per regel de valuta instellen (SRD of contractvaluta). Bedragen in vreemde valuta worden automatisch omgerekend naar SRD bij loonverwerking.
                                 </div>
-                                <field name="sr_vaste_regels"
-                                       nolabel="1"
-                                       domain="[('sr_is_company_shortcut', '=', True)]">
-                                    <list editable="bottom">
-                                        <field name="sequence" widget="handle"/>
-                                        <field name="type_id"
-                                               placeholder="Selecteer een shortcut type..."
-                                               domain="[('id', 'in', parent.sr_contract_shortcut_type_ids)]"
-                                               options="{'no_create': False, 'no_create_edit': False}"/>
-                                        <field name="name"
-                                               placeholder="Automatisch of handmatig..."/>
-                                        <field name="sr_categorie" readonly="type_id"/>
-                                        <field name="amount_type" string="Berekening"/>
-                                        <field name="amount" widget="monetary" options="{'currency_field': 'currency_id'}"
-                                               column_invisible="False"
-                                               readonly="amount_type == 'percentage'"/>
-                                        <field name="line_currency_id"
-                                               string="Valuta"
-                                               options="{'no_create': True, 'no_open': True}"
-                                               domain="[('name', 'in', ['SRD', 'USD', 'EUR'])]"
-                                               optional="show"
-                                               readonly="amount_type == 'percentage'"/>
-                                        <field name="percentage"
-                                               string="%"
-                                               column_invisible="False"
-                                               readonly="amount_type != 'percentage'"/>
-                                        <field name="percentage_base"
-                                               string="% Basis"
-                                               column_invisible="False"
-                                               readonly="amount_type != 'percentage'"/>
-                                        <field name="currency_id" column_invisible="True"/>
-                                    </list>
-                                </field>
-                                <div class="text-muted small pt-1">
-                                    Deze sectie toont alleen de looncode-types die in <strong>SR Payroll Instellingen</strong> als contract-shortcut zijn gekozen.
-                                </div>
+                    <div colspan="2" class="alert alert-light border mb-2" role="status">
+                     Vul de meest gebruikte shortcut-types hieronder direct als losse invoervelden in. Dat leest sneller dan een tabel en schrijft nog steeds naar dezelfde fiscale contractregels.
+                    </div>
+                    <group string="Belastingvrije shortcuts">
+                     <field name="sr_kinderbijslag_bedrag"
+                         widget="monetary"
+                         options="{'currency_field': 'currency_id'}"
+                         invisible="not sr_has_kinderbijslag_shortcut"/>
+                     <field name="sr_vervoer_toelage"
+                         widget="monetary"
+                         options="{'currency_field': 'currency_id'}"
+                         invisible="not sr_has_transport_shortcut"/>
+                    </group>
+                    <group string="Belastbare &amp; fiscale shortcuts">
+                     <field name="sr_representatie_toelage"
+                         widget="monetary"
+                         options="{'currency_field': 'currency_id'}"
+                         invisible="not sr_has_representatie_shortcut"/>
+                     <field name="sr_vrije_geneeskundige_behandeling"
+                         widget="monetary"
+                         options="{'currency_field': 'currency_id'}"
+                         invisible="not sr_has_geneeskundige_shortcut"/>
+                    </group>
+                    <group string="Eigen shortcut types" invisible="not sr_has_custom_contract_shortcut_types">
+                     <div class="text-muted small mb-2" colspan="2">
+                         Voor zelf aangemaakte shortcut-types blijft hieronder een compacte invoerlijst beschikbaar.
+                     </div>
+                     <field name="sr_vaste_regels"
+                         nolabel="1"
+                         domain="[('sr_is_company_shortcut', '=', True), ('sr_is_shortcut_managed', '=', False)]">
+                         <list editable="bottom">
+                          <field name="sequence" widget="handle"/>
+                          <field name="type_id"
+                              placeholder="Selecteer een gekozen shortcut type..."
+                              domain="[('id', 'in', parent.sr_contract_shortcut_type_ids), ('code', 'not in', ['KINDBIJ', 'TRANSPORT', 'REPRES', 'GENEESK'])]"
+                              options="{'no_create': False, 'no_create_edit': False}"/>
+                          <field name="name"
+                              placeholder="Automatisch of handmatig..."/>
+                          <field name="amount" widget="monetary" options="{'currency_field': 'currency_id'}"
+                              column_invisible="False"
+                              readonly="amount_type == 'percentage'"/>
+                          <field name="line_currency_id"
+                              string="Valuta"
+                              options="{'no_create': True, 'no_open': True}"
+                              domain="[('name', 'in', ['SRD', 'USD', 'EUR'])]"
+                              optional="show"
+                              readonly="amount_type == 'percentage'"/>
+                          <field name="amount_type" string="Berekening"/>
+                          <field name="percentage"
+                              string="%"
+                              column_invisible="False"
+                              readonly="amount_type != 'percentage'"/>
+                          <field name="percentage_base"
+                              string="% Basis"
+                              column_invisible="False"
+                              readonly="amount_type != 'percentage'"/>
+                          <field name="sr_categorie" readonly="type_id"/>
+                          <field name="currency_id" column_invisible="True"/>
+                         </list>
+                     </field>
+                    </group>
+                    <div class="text-muted small pt-1">
+                     Deze sectie toont de gekozen looncode-types als snelle invoer. De onderliggende fiscale contractregels blijven leidend voor payroll en rapportage.
+                    </div>
                             </group>
                             <div class="alert alert-warning border mb-2" role="status" invisible="not sr_show_contract_shortcuts or sr_has_contract_shortcut_types">
                                 <strong>Geen shortcut-types gekozen:</strong> zet in <strong>SR Payroll Instellingen</strong> eerst aan welke looncodetypes als contract-shortcut zichtbaar moeten zijn.

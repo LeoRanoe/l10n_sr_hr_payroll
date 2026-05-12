@@ -10,6 +10,9 @@ from odoo.tools import float_compare
 from . import sr_artikel14_calculator as calc
 
 
+SR_STANDARD_SHORTCUT_CODES = frozenset({'KINDBIJ', 'TRANSPORT', 'REPRES', 'GENEESK'})
+
+
 class HrContract(models.Model):
     _inherit = 'hr.contract'
 
@@ -116,6 +119,31 @@ class HrContract(models.Model):
     sr_has_contract_shortcut_types = fields.Boolean(
         string='Heeft gekozen shortcut types',
         compute='_compute_sr_has_contract_shortcut_types',
+        store=False,
+    )
+    sr_has_kinderbijslag_shortcut = fields.Boolean(
+        string='Toon Kinderbijslag shortcut',
+        compute='_compute_sr_shortcut_ui_flags',
+        store=False,
+    )
+    sr_has_transport_shortcut = fields.Boolean(
+        string='Toon Transport shortcut',
+        compute='_compute_sr_shortcut_ui_flags',
+        store=False,
+    )
+    sr_has_representatie_shortcut = fields.Boolean(
+        string='Toon Representatie shortcut',
+        compute='_compute_sr_shortcut_ui_flags',
+        store=False,
+    )
+    sr_has_geneeskundige_shortcut = fields.Boolean(
+        string='Toon Geneeskundige shortcut',
+        compute='_compute_sr_shortcut_ui_flags',
+        store=False,
+    )
+    sr_has_custom_contract_shortcut_types = fields.Boolean(
+        string='Heeft eigen shortcut types',
+        compute='_compute_sr_shortcut_ui_flags',
         store=False,
     )
 
@@ -248,6 +276,19 @@ class HrContract(models.Model):
     def _compute_sr_has_contract_shortcut_types(self):
         for contract in self:
             contract.sr_has_contract_shortcut_types = bool(contract.company_id.sr_contract_shortcut_type_ids)
+
+    @api.depends('company_id.sr_contract_shortcut_type_ids', 'company_id.sr_contract_shortcut_type_ids.code')
+    def _compute_sr_shortcut_ui_flags(self):
+        for contract in self:
+            selected_codes = set(contract.company_id.sr_contract_shortcut_type_ids.mapped('code'))
+            contract.sr_has_kinderbijslag_shortcut = 'KINDBIJ' in selected_codes
+            contract.sr_has_transport_shortcut = 'TRANSPORT' in selected_codes
+            contract.sr_has_representatie_shortcut = 'REPRES' in selected_codes
+            contract.sr_has_geneeskundige_shortcut = 'GENEESK' in selected_codes
+            contract.sr_has_custom_contract_shortcut_types = any(
+                code not in SR_STANDARD_SHORTCUT_CODES
+                for code in selected_codes
+            )
 
     @api.depends(
         'wage',
