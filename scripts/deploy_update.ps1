@@ -5,8 +5,7 @@
 .DESCRIPTION
     1. Trekt de nieuwste code van de staging-branch van GitHub.
     2. Stopt de Odoo Windows-service.
-    3. Voert automatisch SQL-migraties en een Odoo module-upgrade uit als er
-       nieuwe commits zijn opgehaald of als -UpgradeModule is meegegeven.
+    3. Voert automatisch SQL-migraties en een Odoo module-upgrade uit.
     4. Herstart de Odoo Windows-service.
 
     Vereisten op de VM:
@@ -33,7 +32,7 @@
     Git-remote. Standaard: origin
 
 .PARAMETER UpgradeModule
-    Schakelaar: forceer een database-sync ook als er geen nieuwe commit is.
+    Achterwaarts compatibele schakelaar; database-sync gebeurt nu standaard al.
 
 .PARAMETER SkipUpgradeModule
     Schakelaar: sla de Odoo module-upgrade over, ook als er nieuwe commits zijn.
@@ -170,7 +169,6 @@ $dbPassword = Get-OdooConfValue -Path $odooConf -Key 'db_password'
 $sqlMigrationScripts = @(Get-ChildItem -Path $PSScriptRoot -Filter 'migrate_*.sql' -File -ErrorAction SilentlyContinue | Sort-Object Name)
 $previousCommitHash = $null
 $newCommitHash = $null
-$hasNewCommit = $false
 $shouldUpgradeModule = $false
 $shouldRunSqlMigrations = $false
 
@@ -183,10 +181,10 @@ Write-Host "  Module    : $ModuleName"
 Write-Host "  Branch    : $Remote/$Branch"
 Write-Host "  Repo map  : $moduleDir"
 Write-Host "  Database  : $Database"
-Write-Host '  DB sync   : automatisch bij nieuwe commits'
+Write-Host '  DB sync   : standaard bij elke deploy-run'
 
 if ($UpgradeModule) {
-    Write-Warn 'Geforceerde database-sync ingeschakeld (-UpgradeModule). Dit duurt langer.'
+    Write-Warn ' -UpgradeModule is niet meer nodig; database-sync draait nu standaard.'
 }
 if ($SkipUpgradeModule) {
     Write-Warn 'Automatische module-upgrade uitgeschakeld (-SkipUpgradeModule).'
@@ -264,7 +262,6 @@ try {
             $newCommitHash = $newCommitHash.ToString().Trim()
         }
 
-        $hasNewCommit = $previousCommitHash -ne $newCommitHash
         if ($newCommitHash) {
             $shortCommitHash = (& $gitExe rev-parse --short HEAD 2>$null | Select-Object -First 1)
             if ($shortCommitHash) {
@@ -272,10 +269,10 @@ try {
             }
         }
 
-        if ($hasNewCommit) {
-            Write-OK 'Nieuwe commit gedetecteerd; database-sync wordt automatisch uitgevoerd.'
+        if ($previousCommitHash -ne $newCommitHash) {
+            Write-OK 'Nieuwe commit gedetecteerd.'
         } else {
-            Write-OK 'Geen nieuwe commit opgehaald; database-sync wordt overgeslagen tenzij geforceerd.'
+            Write-OK 'Geen nieuwe commit opgehaald; database-sync draait toch standaard voor consistentie.'
         }
     }
 }
@@ -283,17 +280,8 @@ finally {
     Pop-Location
 }
 
-if ($DryRun) {
-    if ($UpgradeModule) {
-        $shouldUpgradeModule = $true
-    } else {
-        Write-Warn 'Dry-run: automatische database-sync wordt pas na een echte git fetch bepaald.'
-    }
-} else {
-    $shouldUpgradeModule = (-not $SkipUpgradeModule) -and ($UpgradeModule -or $hasNewCommit)
-}
-
-$shouldRunSqlMigrations = $shouldUpgradeModule -and (-not $SkipSqlMigrations) -and ($sqlMigrationScripts.Count -gt 0)
+$shouldUpgradeModule = -not $SkipUpgradeModule
+$shouldRunSqlMigrations = (-not $SkipSqlMigrations) -and ($sqlMigrationScripts.Count -gt 0)
 
 # ---------------------------------------------------------------------------
 # Stap 2: Odoo service opzoeken
@@ -382,8 +370,6 @@ if ($shouldRunSqlMigrations) {
     Write-Warn 'SQL migraties overgeslagen (-SkipSqlMigrations).'
 } elseif ($sqlMigrationScripts.Count -eq 0) {
     Write-OK 'Geen migrate_*.sql scripts gevonden.'
-} else {
-    Write-OK 'Geen database-sync nodig; SQL migraties worden overgeslagen.'
 }
 
 # ---------------------------------------------------------------------------
@@ -423,8 +409,6 @@ if ($shouldUpgradeModule) {
     }
 } elseif ($SkipUpgradeModule) {
     Write-Warn 'Module-upgrade overgeslagen (-SkipUpgradeModule).'
-} else {
-    Write-OK 'Geen nieuwe commit opgehaald; module-upgrade niet nodig.'
 }
 
 # ---------------------------------------------------------------------------

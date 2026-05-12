@@ -198,7 +198,7 @@ if (Test-Path $psqlExe) {
             } else {
                 Write-Fail 'Module is in geen enkele database als installed gevonden.'
                 Write-Host '  Installeer de module via http://172.27.131.3:8069/odoo/settings/apps' -ForegroundColor Yellow
-                Write-Host '  of voer deploy_update.cmd uit; dat doet bij nieuwe commits automatisch de database-sync.' -ForegroundColor Yellow
+                Write-Host '  of voer deploy_update.cmd uit; dat doet standaard de database-sync en module-upgrade.' -ForegroundColor Yellow
             }
         }
     } else {

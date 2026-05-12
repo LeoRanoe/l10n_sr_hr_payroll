@@ -16,7 +16,7 @@ echo.
 echo  SR Payroll — Deploy Update
 echo  ===========================
 echo  Branch : staging
-echo  Actie  : pull + automatische DB sync + Odoo herstart
+echo  Actie  : pull + DB migratie + module-upgrade + Odoo herstart
 echo.
 
 :: Controleer of het PowerShell-script bestaat
