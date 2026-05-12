@@ -198,7 +198,7 @@ if (Test-Path $psqlExe) {
             } else {
                 Write-Fail 'Module is in geen enkele database als installed gevonden.'
                 Write-Host '  Installeer de module via http://172.27.131.3:8069/odoo/settings/apps' -ForegroundColor Yellow
-                Write-Host '  of voer deploy_update.cmd uit met de -UpgradeModule schakelaar.' -ForegroundColor Yellow
+                Write-Host '  of voer deploy_update.cmd uit; dat doet bij nieuwe commits automatisch de database-sync.' -ForegroundColor Yellow
             }
         }
     } else {
@@ -370,7 +370,7 @@ if ($zeroTests -and -not $failLines -and -not $errorLines) {
     Write-Warn ('     Controleer: ' + "psql -U openpg -d `"$Database`" -c `"SELECT state FROM ir_module_module WHERE name='$ModuleName';`"")
     Write-Warn '  2. De database naam in odoo.conf overschrijft de -d parameter.'
     Write-Warn ('     Controleer odoo.conf op "db_name =" of "dbfilter =".')
-    Write-Warn '  3. Installeer de module eerst via Odoo UI of voer deploy_update.cmd -UpgradeModule uit.'
+    Write-Warn '  3. Installeer de module eerst via Odoo UI of voer deploy_update.cmd uit.'
 } elseif ($failLines.Count -eq 0 -and $errorLines.Count -eq 0) {
     Write-OK 'Geen FAIL of ERROR gevonden.'
     Write-OK 'Alle tests zijn geslaagd.'

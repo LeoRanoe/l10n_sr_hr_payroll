@@ -2,7 +2,7 @@
 :: ============================================================
 :: SR Payroll — Deploy & Update
 :: Dubbelklik dit bestand om de laatste staging-code te pullen
-:: en Odoo te herstarten.
+:: de database te synchroniseren en Odoo te herstarten.
 ::
 :: Voer uit als Administrator (rechtsklik → Als administrator uitvoeren)
 :: ============================================================
@@ -16,7 +16,7 @@ echo.
 echo  SR Payroll — Deploy Update
 echo  ===========================
 echo  Branch : staging
-echo  Actie  : pull + Odoo herstart
+echo  Actie  : pull + automatische DB sync + Odoo herstart
 echo.
 
 :: Controleer of het PowerShell-script bestaat

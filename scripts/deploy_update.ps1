@@ -1,11 +1,13 @@
 <#
 .SYNOPSIS
-    Pull de laatste wijzigingen van staging en herstart Odoo.
+    Pull de laatste wijzigingen van staging, synchroniseert de database en herstart Odoo.
 
 .DESCRIPTION
     1. Trekt de nieuwste code van de staging-branch van GitHub.
     2. Stopt de Odoo Windows-service.
-    3. Herstart de Odoo Windows-service (en voert optioneel een module-upgrade uit).
+    3. Voert automatisch SQL-migraties en een Odoo module-upgrade uit als er
+       nieuwe commits zijn opgehaald of als -UpgradeModule is meegegeven.
+    4. Herstart de Odoo Windows-service.
 
     Vereisten op de VM:
     - Git staat in het PATH.
@@ -31,7 +33,13 @@
     Git-remote. Standaard: origin
 
 .PARAMETER UpgradeModule
-    Schakelaar: voer ook -u <module> uit (nodig bij modelwijzigingen).
+    Schakelaar: forceer een database-sync ook als er geen nieuwe commit is.
+
+.PARAMETER SkipUpgradeModule
+    Schakelaar: sla de Odoo module-upgrade over, ook als er nieuwe commits zijn.
+
+.PARAMETER SkipSqlMigrations
+    Schakelaar: sla losse migrate_*.sql scripts over.
 
 .PARAMETER DryRun
     Schakelaar: toon wat er gedaan zou worden zonder iets uit te voeren.
@@ -39,6 +47,7 @@
 .EXAMPLE
     .\deploy_update.ps1
     .\deploy_update.ps1 -UpgradeModule
+    .\deploy_update.ps1 -SkipUpgradeModule
     .\deploy_update.ps1 -DryRun
 #>
 
@@ -51,6 +60,8 @@ param(
     [string]$Branch       = 'staging',
     [string]$Remote       = 'origin',
     [switch]$UpgradeModule,
+    [switch]$SkipUpgradeModule,
+    [switch]$SkipSqlMigrations,
     [switch]$DryRun
 )
 
@@ -94,6 +105,36 @@ function Invoke-Step {
     & $Action
 }
 
+function Get-OdooConfValue {
+    param(
+        [string]$Path,
+        [string]$Key,
+        [string]$Default = ''
+    )
+
+    if (-not (Test-Path $Path)) {
+        return $Default
+    }
+
+    $pattern = '^\s*' + [regex]::Escape($Key) + '\s*=\s*(.*)\s*$'
+    $match = Select-String -Path $Path -Pattern $pattern | Select-Object -First 1
+    if (-not $match) {
+        return $Default
+    }
+
+    $value = $match.Matches[0].Groups[1].Value.Trim()
+    if (-not $value -or $value -eq 'False') {
+        return $Default
+    }
+
+    return $value
+}
+
+if ($UpgradeModule -and $SkipUpgradeModule) {
+    Write-Fail 'Gebruik -UpgradeModule en -SkipUpgradeModule niet tegelijk.'
+    exit 1
+}
+
 # ---------------------------------------------------------------------------
 # Administrator-check
 # ---------------------------------------------------------------------------
@@ -120,6 +161,18 @@ $moduleDir = Join-Path $resolvedAddonsRoot $ModuleName
 $pythonExe = Join-Path $resolvedOdooRoot 'python\python.exe'
 $odooBin   = Join-Path $resolvedOdooRoot 'server\odoo-bin'
 $odooConf  = Join-Path $resolvedOdooRoot 'server\odoo.conf'
+$pgPath    = Get-OdooConfValue -Path $odooConf -Key 'pg_path' -Default (Join-Path $resolvedOdooRoot 'PostgreSQL\bin')
+$psqlExe   = Join-Path $pgPath 'psql.exe'
+$dbHost    = Get-OdooConfValue -Path $odooConf -Key 'db_host' -Default 'localhost'
+$dbPort    = Get-OdooConfValue -Path $odooConf -Key 'db_port' -Default '5432'
+$dbUser    = Get-OdooConfValue -Path $odooConf -Key 'db_user' -Default 'openpg'
+$dbPassword = Get-OdooConfValue -Path $odooConf -Key 'db_password'
+$sqlMigrationScripts = @(Get-ChildItem -Path $PSScriptRoot -Filter 'migrate_*.sql' -File -ErrorAction SilentlyContinue | Sort-Object Name)
+$previousCommitHash = $null
+$newCommitHash = $null
+$hasNewCommit = $false
+$shouldUpgradeModule = $false
+$shouldRunSqlMigrations = $false
 
 Write-Host ''
 Write-Host '====================================================' -ForegroundColor DarkCyan
@@ -130,9 +183,16 @@ Write-Host "  Module    : $ModuleName"
 Write-Host "  Branch    : $Remote/$Branch"
 Write-Host "  Repo map  : $moduleDir"
 Write-Host "  Database  : $Database"
+Write-Host '  DB sync   : automatisch bij nieuwe commits'
 
 if ($UpgradeModule) {
-    Write-Warn 'Module-upgrade ingeschakeld (-UpgradeModule). Dit duurt langer.'
+    Write-Warn 'Geforceerde database-sync ingeschakeld (-UpgradeModule). Dit duurt langer.'
+}
+if ($SkipUpgradeModule) {
+    Write-Warn 'Automatische module-upgrade uitgeschakeld (-SkipUpgradeModule).'
+}
+if ($SkipSqlMigrations) {
+    Write-Warn 'Automatische SQL-migraties uitgeschakeld (-SkipSqlMigrations).'
 }
 if ($DryRun) {
     Write-Warn 'DRY-RUN modus -- er wordt niets daadwerkelijk uitgevoerd.'
@@ -143,7 +203,7 @@ Write-Host ''
 # Stap 1: Git pull
 # ---------------------------------------------------------------------------
 
-Write-Step "Stap 1/4 -- Nieuwste code ophalen van $Remote/$Branch"
+Write-Step "Stap 1/6 -- Nieuwste code ophalen van $Remote/$Branch"
 
 if (-not (Test-Path (Join-Path $moduleDir '.git'))) {
     Write-Fail "Geen git-repository gevonden in: $moduleDir"
@@ -160,6 +220,13 @@ $gitExe = $gitCmd.Source
 
 Push-Location $moduleDir
 try {
+    if (-not $DryRun) {
+        $previousCommitHash = (& $gitExe rev-parse HEAD 2>$null | Select-Object -First 1)
+        if ($previousCommitHash) {
+            $previousCommitHash = $previousCommitHash.ToString().Trim()
+        }
+    }
+
     Invoke-Step "git fetch $Remote" {
         # SilentlyContinue: voorkomt dat PS5.1 git-stderr als exception behandelt
         $prev = $ErrorActionPreference; $ErrorActionPreference = 'SilentlyContinue'
@@ -192,9 +259,23 @@ try {
     }
 
     if (-not $DryRun) {
-        $commitHash = (& $gitExe rev-parse --short HEAD 2>$null)
-        if ($commitHash) {
-            Write-OK "Code bijgewerkt naar commit: $($commitHash.Trim())"
+        $newCommitHash = (& $gitExe rev-parse HEAD 2>$null | Select-Object -First 1)
+        if ($newCommitHash) {
+            $newCommitHash = $newCommitHash.ToString().Trim()
+        }
+
+        $hasNewCommit = $previousCommitHash -ne $newCommitHash
+        if ($newCommitHash) {
+            $shortCommitHash = (& $gitExe rev-parse --short HEAD 2>$null | Select-Object -First 1)
+            if ($shortCommitHash) {
+                Write-OK "Code bijgewerkt naar commit: $($shortCommitHash.ToString().Trim())"
+            }
+        }
+
+        if ($hasNewCommit) {
+            Write-OK 'Nieuwe commit gedetecteerd; database-sync wordt automatisch uitgevoerd.'
+        } else {
+            Write-OK 'Geen nieuwe commit opgehaald; database-sync wordt overgeslagen tenzij geforceerd.'
         }
     }
 }
@@ -202,11 +283,23 @@ finally {
     Pop-Location
 }
 
+if ($DryRun) {
+    if ($UpgradeModule) {
+        $shouldUpgradeModule = $true
+    } else {
+        Write-Warn 'Dry-run: automatische database-sync wordt pas na een echte git fetch bepaald.'
+    }
+} else {
+    $shouldUpgradeModule = (-not $SkipUpgradeModule) -and ($UpgradeModule -or $hasNewCommit)
+}
+
+$shouldRunSqlMigrations = $shouldUpgradeModule -and (-not $SkipSqlMigrations) -and ($sqlMigrationScripts.Count -gt 0)
+
 # ---------------------------------------------------------------------------
 # Stap 2: Odoo service opzoeken
 # ---------------------------------------------------------------------------
 
-Write-Step 'Stap 2/4 -- Odoo Windows-service opsporen'
+Write-Step 'Stap 2/6 -- Odoo Windows-service opsporen'
 
 $odooService = Get-Service -ErrorAction SilentlyContinue |
     Where-Object { $_.Name -like '*odoo*' -or $_.DisplayName -like '*odoo*' } |
@@ -225,7 +318,7 @@ Write-OK ("Service gevonden: '" + $odooService.Name + "' (status: " + $odooServi
 # Stap 3: Service stoppen
 # ---------------------------------------------------------------------------
 
-Write-Step ("Stap 3/4 -- Odoo-service stoppen ('" + $odooService.Name + "')")
+Write-Step ("Stap 3/6 -- Odoo-service stoppen ('" + $odooService.Name + "')")
 
 Invoke-Step ("Stop-Service '" + $odooService.Name + "'") {
     if ($odooService.Status -eq 'Running') {
@@ -239,11 +332,67 @@ Invoke-Step ("Stop-Service '" + $odooService.Name + "'") {
 }
 
 # ---------------------------------------------------------------------------
-# Stap 4a (optioneel): Module-upgrade uitvoeren
+# Stap 4: Optionele SQL migraties uitvoeren
 # ---------------------------------------------------------------------------
 
-if ($UpgradeModule) {
-    Write-Step ("Stap 4/4 -- Module '" + $ModuleName + "' upgraden in database '" + $Database + "'")
+Write-Step 'Stap 4/6 -- SQL migraties toepassen'
+
+if ($shouldRunSqlMigrations) {
+    if (-not (Test-Path $psqlExe)) {
+        Write-Fail "psql.exe niet gevonden op: $psqlExe"
+        exit 1
+    }
+
+    $previousPgPassword = $env:PGPASSWORD
+    try {
+        if ($dbPassword) {
+            $env:PGPASSWORD = $dbPassword
+        } else {
+            Remove-Item Env:PGPASSWORD -ErrorAction SilentlyContinue
+        }
+
+        foreach ($sqlScript in $sqlMigrationScripts) {
+            Invoke-Step ("psql -f " + $sqlScript.Name) {
+                Write-Host ("    SQL migratie: " + $sqlScript.Name) -ForegroundColor DarkGray
+                & $psqlExe `
+                    -v 'ON_ERROR_STOP=1' `
+                    -h $dbHost `
+                    -p $dbPort `
+                    -U $dbUser `
+                    -d $Database `
+                    -f $sqlScript.FullName
+
+                if ($LASTEXITCODE -ne 0) {
+                    Write-Fail ("SQL migratie mislukt voor '" + $sqlScript.Name + "' (exit " + $LASTEXITCODE + ").")
+                    exit 1
+                }
+            }
+        }
+
+        Write-OK ("SQL migraties succesvol toegepast: " + (($sqlMigrationScripts | ForEach-Object Name) -join ', '))
+    }
+    finally {
+        if ($null -ne $previousPgPassword) {
+            $env:PGPASSWORD = $previousPgPassword
+        } else {
+            Remove-Item Env:PGPASSWORD -ErrorAction SilentlyContinue
+        }
+    }
+} elseif ($SkipSqlMigrations) {
+    Write-Warn 'SQL migraties overgeslagen (-SkipSqlMigrations).'
+} elseif ($sqlMigrationScripts.Count -eq 0) {
+    Write-OK 'Geen migrate_*.sql scripts gevonden.'
+} else {
+    Write-OK 'Geen database-sync nodig; SQL migraties worden overgeslagen.'
+}
+
+# ---------------------------------------------------------------------------
+# Stap 5: Optionele module-upgrade uitvoeren
+# ---------------------------------------------------------------------------
+
+Write-Step ("Stap 5/6 -- Module '" + $ModuleName + "' upgraden in database '" + $Database + "'")
+
+if ($shouldUpgradeModule) {
 
     if (-not (Test-Path $pythonExe)) {
         Write-Fail "Python niet gevonden op: $pythonExe"
@@ -272,14 +421,17 @@ if ($UpgradeModule) {
         }
         Write-OK ("Module '" + $ModuleName + "' succesvol geupgraded.")
     }
+} elseif ($SkipUpgradeModule) {
+    Write-Warn 'Module-upgrade overgeslagen (-SkipUpgradeModule).'
 } else {
-    Write-Step 'Stap 4/4 -- Odoo-service starten (geen module-upgrade)'
-    Write-Warn 'Gebruik -UpgradeModule als er nieuwe velden of views zijn toegevoegd.'
+    Write-OK 'Geen nieuwe commit opgehaald; module-upgrade niet nodig.'
 }
 
 # ---------------------------------------------------------------------------
-# Service starten
+# Stap 6: Service starten
 # ---------------------------------------------------------------------------
+
+Write-Step ("Stap 6/6 -- Odoo-service starten ('" + $odooService.Name + "')")
 
 Invoke-Step ("Start-Service '" + $odooService.Name + "'") {
     Write-Host '    Service starten...' -ForegroundColor DarkGray
