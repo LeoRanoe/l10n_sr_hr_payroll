@@ -153,44 +153,9 @@
                          options="{'currency_field': 'currency_id'}"
                          invisible="not sr_has_geneeskundige_shortcut"/>
                     </group>
-                    <group string="Eigen shortcut types" invisible="not sr_has_custom_contract_shortcut_types">
-                     <div class="text-muted small mb-2" colspan="2">
-                         Voor zelf aangemaakte shortcut-types blijft hieronder een compacte invoerlijst beschikbaar.
-                     </div>
-                     <field name="sr_vaste_regels"
-                         nolabel="1"
-                         domain="[('sr_is_company_shortcut', '=', True), ('sr_is_shortcut_managed', '=', False)]">
-                         <list editable="bottom">
-                          <field name="sequence" widget="handle"/>
-                          <field name="type_id"
-                              placeholder="Selecteer een gekozen shortcut type..."
-                              domain="[('id', 'in', parent.sr_contract_shortcut_type_ids), ('code', 'not in', ['KINDBIJ', 'TRANSPORT', 'REPRES', 'GENEESK'])]"
-                              options="{'no_create': False, 'no_create_edit': False}"/>
-                          <field name="name"
-                              placeholder="Automatisch of handmatig..."/>
-                          <field name="amount" widget="monetary" options="{'currency_field': 'currency_id'}"
-                              column_invisible="False"
-                              readonly="amount_type == 'percentage'"/>
-                          <field name="line_currency_id"
-                              string="Valuta"
-                              options="{'no_create': True, 'no_open': True}"
-                              domain="[('name', 'in', ['SRD', 'USD', 'EUR'])]"
-                              optional="show"
-                              readonly="amount_type == 'percentage'"/>
-                          <field name="amount_type" string="Berekening"/>
-                          <field name="percentage"
-                              string="%"
-                              column_invisible="False"
-                              readonly="amount_type != 'percentage'"/>
-                          <field name="percentage_base"
-                              string="% Basis"
-                              column_invisible="False"
-                              readonly="amount_type != 'percentage'"/>
-                          <field name="sr_categorie" readonly="type_id"/>
-                          <field name="currency_id" column_invisible="True"/>
-                         </list>
-                     </field>
-                    </group>
+                    <div class="text-muted small pt-1" invisible="not sr_has_custom_contract_shortcut_types">
+                     Andere of zelf aangemaakte types beheert u hieronder in <strong>Overige Vaste Toelagen &amp; Inhoudingen</strong>, zodat deze shortcut-sectie compact en netjes blijft.
+                    </div>
                     <div class="text-muted small pt-1">
                      Deze sectie toont de gekozen looncode-types als snelle invoer. De onderliggende fiscale contractregels blijven leidend voor payroll en rapportage.
                     </div>
@@ -233,13 +198,13 @@
                             </div>
                             <field name="sr_vaste_regels"
                                 nolabel="1"
-                                domain="[('sr_is_company_shortcut', '=', False)]"
+                                domain="['|', ('sr_is_company_shortcut', '=', False), ('sr_is_shortcut_managed', '=', False)]"
                                 invisible="not sr_show_contract_shortcuts or not sr_has_contract_shortcut_types">
                                 <list editable="bottom">
                                  <field name="sequence" widget="handle"/>
                                  <field name="type_id"
                                      placeholder="Selecteer een type..."
-                                     domain="[('id', 'not in', parent.sr_contract_shortcut_type_ids)]"
+                                     domain="['|', ('id', 'not in', parent.sr_contract_shortcut_type_ids), ('code', 'not in', ['KINDBIJ', 'TRANSPORT', 'REPRES', 'GENEESK'])]"
                                      options="{'no_create': False, 'no_create_edit': False}"/>
                                  <field name="name"
                                      placeholder="Automatisch of handmatig..."/>
