@@ -129,6 +129,88 @@ function Get-OdooConfValue {
     return $value
 }
 
+function Invoke-Psql {
+    param(
+        [string]$DbName,
+        [string]$Sql
+    )
+
+    if (-not (Test-Path $psqlExe)) {
+        return [PSCustomObject]@{ Output = @("psql.exe niet gevonden op: $psqlExe"); ExitCode = 1 }
+    }
+
+    $previousPgPassword = $env:PGPASSWORD
+    try {
+        if ($dbPassword) {
+            $env:PGPASSWORD = $dbPassword
+        } else {
+            Remove-Item Env:PGPASSWORD -ErrorAction SilentlyContinue
+        }
+
+        $prev = $ErrorActionPreference
+        $ErrorActionPreference = 'SilentlyContinue'
+        $out = & $psqlExe -v 'ON_ERROR_STOP=1' -U $dbUser -h $dbHost -p $dbPort -d $DbName -t -A -c $Sql 2>&1
+        $code = $LASTEXITCODE
+        $ErrorActionPreference = $prev
+    }
+    finally {
+        if ($null -ne $previousPgPassword) {
+            $env:PGPASSWORD = $previousPgPassword
+        } else {
+            Remove-Item Env:PGPASSWORD -ErrorAction SilentlyContinue
+        }
+    }
+
+    return [PSCustomObject]@{ Output = $out; ExitCode = $code }
+}
+
+function Resolve-TargetDatabase {
+    param(
+        [string]$RequestedDatabase,
+        [string]$ModuleName
+    )
+
+    $candidateDatabases = @()
+    $listRes = Invoke-Psql -DbName 'postgres' -Sql "SELECT datname FROM pg_database WHERE datistemplate = false ORDER BY datname;"
+    if ($listRes.ExitCode -ne 0) {
+        throw "Kon PostgreSQL databases niet uitlezen: $($listRes.Output -join ' ')"
+    }
+
+    $candidateDatabases = @(
+        $listRes.Output |
+            ForEach-Object { $_.ToString().Trim() } |
+            Where-Object { $_ }
+    )
+
+    if ($candidateDatabases -contains $RequestedDatabase) {
+        return $RequestedDatabase
+    }
+
+    Write-Warn ("Database '" + $RequestedDatabase + "' bestaat niet op deze machine.")
+    Write-Host '    Zoeken in welke database de payroll-module is geinstalleerd...' -ForegroundColor DarkGray
+
+    $moduleSql = "SELECT state FROM ir_module_module WHERE name='$ModuleName' LIMIT 1;"
+    $moduleInstalledIn = @()
+
+    foreach ($dbName in $candidateDatabases) {
+        $moduleRes = Invoke-Psql -DbName $dbName -Sql $moduleSql
+        if ($moduleRes.ExitCode -eq 0 -and ($moduleRes.Output -join '').Trim() -eq 'installed') {
+            $moduleInstalledIn += $dbName
+        }
+    }
+
+    if ($moduleInstalledIn.Count -eq 1) {
+        Write-OK ("Module '" + $ModuleName + "' gevonden in database: " + $moduleInstalledIn[0])
+        return $moduleInstalledIn[0]
+    }
+
+    if ($moduleInstalledIn.Count -gt 1) {
+        throw ("Meerdere databases met module '" + $ModuleName + "' gevonden: " + ($moduleInstalledIn -join ', ') + ". Geef -Database expliciet op.")
+    }
+
+    throw ("Database '" + $RequestedDatabase + "' bestaat niet en module '" + $ModuleName + "' is in geen enkele database als installed gevonden.")
+}
+
 if ($UpgradeModule -and $SkipUpgradeModule) {
     Write-Fail 'Gebruik -UpgradeModule en -SkipUpgradeModule niet tegelijk.'
     exit 1
@@ -196,6 +278,17 @@ if ($DryRun) {
     Write-Warn 'DRY-RUN modus -- er wordt niets daadwerkelijk uitgevoerd.'
 }
 Write-Host ''
+
+try {
+    $resolvedDatabase = Resolve-TargetDatabase -RequestedDatabase $Database -ModuleName $ModuleName
+    if ($resolvedDatabase -ne $Database) {
+        Write-Warn ("Doeldatabase aangepast van '" + $Database + "' naar '" + $resolvedDatabase + "'.")
+        $Database = $resolvedDatabase
+    }
+} catch {
+    Write-Fail $_.Exception.Message
+    exit 1
+}
 
 # ---------------------------------------------------------------------------
 # Stap 1: Git pull
@@ -331,41 +424,19 @@ if ($shouldRunSqlMigrations) {
         exit 1
     }
 
-    $previousPgPassword = $env:PGPASSWORD
-    try {
-        if ($dbPassword) {
-            $env:PGPASSWORD = $dbPassword
-        } else {
-            Remove-Item Env:PGPASSWORD -ErrorAction SilentlyContinue
-        }
-
-        foreach ($sqlScript in $sqlMigrationScripts) {
-            Invoke-Step ("psql -f " + $sqlScript.Name) {
-                Write-Host ("    SQL migratie: " + $sqlScript.Name) -ForegroundColor DarkGray
-                & $psqlExe `
-                    -v 'ON_ERROR_STOP=1' `
-                    -h $dbHost `
-                    -p $dbPort `
-                    -U $dbUser `
-                    -d $Database `
-                    -f $sqlScript.FullName
-
-                if ($LASTEXITCODE -ne 0) {
-                    Write-Fail ("SQL migratie mislukt voor '" + $sqlScript.Name + "' (exit " + $LASTEXITCODE + ").")
-                    exit 1
-                }
+    foreach ($sqlScript in $sqlMigrationScripts) {
+        Invoke-Step ("psql -f " + $sqlScript.Name) {
+            Write-Host ("    SQL migratie: " + $sqlScript.Name) -ForegroundColor DarkGray
+            $sqlRes = Invoke-Psql -DbName $Database -Sql (Get-Content -Path $sqlScript.FullName -Raw)
+            if ($sqlRes.ExitCode -ne 0) {
+                Write-Fail ("SQL migratie mislukt voor '" + $sqlScript.Name + "' (exit " + $sqlRes.ExitCode + ").")
+                Write-Host ("    " + (($sqlRes.Output | ForEach-Object { $_.ToString().Trim() } | Where-Object { $_ }) -join ' ')) -ForegroundColor Yellow
+                exit 1
             }
         }
+    }
 
-        Write-OK ("SQL migraties succesvol toegepast: " + (($sqlMigrationScripts | ForEach-Object Name) -join ', '))
-    }
-    finally {
-        if ($null -ne $previousPgPassword) {
-            $env:PGPASSWORD = $previousPgPassword
-        } else {
-            Remove-Item Env:PGPASSWORD -ErrorAction SilentlyContinue
-        }
-    }
+    Write-OK ("SQL migraties succesvol toegepast: " + (($sqlMigrationScripts | ForEach-Object Name) -join ', '))
 } elseif ($SkipSqlMigrations) {
     Write-Warn 'SQL migraties overgeslagen (-SkipSqlMigrations).'
 } elseif ($sqlMigrationScripts.Count -eq 0) {
