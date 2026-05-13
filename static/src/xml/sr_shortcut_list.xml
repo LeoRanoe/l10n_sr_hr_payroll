@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <!--
+        Template for SrShortcutListField.
+        Each hr.contract.sr.line that is a company shortcut is rendered as a
+        self-contained card with directly editable labelled fields.
+        No table, no kanban card click-to-open flow.
+    -->
+    <t t-name="l10n_sr_hr_payroll.SrShortcutListField">
+        <div class="sr-sc-widget">
+
+            <t t-foreach="this.list.records" t-as="record" t-key="record.id">
+                <div class="sr-sc-entry">
+
+                    <!-- ── Row 1 : Looncode  +  Categorie  +  delete button ── -->
+                    <div class="sr-sc-row sr-sc-row-top">
+
+                        <div class="sr-sc-col sr-sc-col-type">
+                            <span class="sr-sc-lbl">Looncode</span>
+                            <Field name="'type_id'"
+                                   record="record"
+                                   fieldInfo="this.fieldInfo('type_id')"
+                                   readonly="props.readonly"/>
+                        </div>
+
+                        <div class="sr-sc-col sr-sc-col-cat">
+                            <span class="sr-sc-lbl">Categorie</span>
+                            <Field name="'sr_categorie'"
+                                   record="record"
+                                   fieldInfo="this.fieldInfo('sr_categorie')"
+                                   readonly="true"/>
+                        </div>
+
+                        <div class="sr-sc-col sr-sc-col-del" t-if="!props.readonly">
+                            <button class="btn sr-sc-del-btn"
+                                    t-on-click.stop="() => this.removeRecord(record)"
+                                    title="Verwijderen"
+                                    aria-label="Verwijderen">
+                                <i class="fa fa-trash-o" title="Verwijderen"/>
+                            </button>
+                        </div>
+
+                    </div>
+
+                    <!-- ── Row 2 : Berekening + bedrag-of-percentage velden ── -->
+                    <div class="sr-sc-row sr-sc-row-amount">
+
+                        <div class="sr-sc-col sr-sc-col-calc">
+                            <span class="sr-sc-lbl">Berekening</span>
+                            <Field name="'amount_type'"
+                                   record="record"
+                                   fieldInfo="this.fieldInfo('amount_type')"
+                                   readonly="props.readonly"/>
+                        </div>
+
+                        <!-- Vaste waarde -->
+                        <div class="sr-sc-col sr-sc-col-amount"
+                             t-att-class="{'d-none': record.data.amount_type === 'percentage'}">
+                            <span class="sr-sc-lbl">Bedrag</span>
+                            <Field name="'amount'"
+                                   record="record"
+                                   fieldInfo="this.fieldInfo('amount')"
+                                   readonly="props.readonly"/>
+                        </div>
+
+                        <div class="sr-sc-col sr-sc-col-currency"
+                             t-att-class="{'d-none': record.data.amount_type === 'percentage'}">
+                            <span class="sr-sc-lbl">Valuta</span>
+                            <Field name="'line_currency_id'"
+                                   record="record"
+                                   fieldInfo="this.fieldInfo('line_currency_id')"
+                                   readonly="props.readonly"/>
+                        </div>
+
+                        <!-- Percentage -->
+                        <div class="sr-sc-col sr-sc-col-pct"
+                             t-att-class="{'d-none': record.data.amount_type !== 'percentage'}">
+                            <span class="sr-sc-lbl">Percentage</span>
+                            <Field name="'percentage'"
+                                   record="record"
+                                   fieldInfo="this.fieldInfo('percentage')"
+                                   readonly="props.readonly"/>
+                        </div>
+
+                        <div class="sr-sc-col sr-sc-col-pctbase"
+                             t-att-class="{'d-none': record.data.amount_type !== 'percentage'}">
+                            <span class="sr-sc-lbl">% Basis</span>
+                            <Field name="'percentage_base'"
+                                   record="record"
+                                   fieldInfo="this.fieldInfo('percentage_base')"
+                                   readonly="props.readonly"/>
+                        </div>
+
+                    </div>
+
+                </div>
+            </t>
+
+            <!-- ── Lege-staat bericht ── -->
+            <div t-if="this.list.records.length === 0 and !props.readonly"
+                 class="sr-sc-empty text-muted small fst-italic py-2">
+                Nog geen shortcuts. Klik hieronder om te beginnen.
+            </div>
+
+            <!-- ── Shortcut toevoegen ── -->
+            <div t-if="!props.readonly" class="sr-sc-add-row">
+                <a href="#" role="button" class="sr-sc-add-btn"
+                   t-on-click.prevent.stop="() => this.addRecord()">
+                    <i class="fa fa-plus me-1"/>Shortcut toevoegen
+                </a>
+            </div>
+
+        </div>
+    </t>
+
+</templates>
