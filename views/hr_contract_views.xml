@@ -28,35 +28,28 @@
                         <div>
                             <strong><i class="fa fa-info-circle"/> Artikel 14 WLB — Actief</strong>
                             <span class="text-muted ms-2">
-                                Contractdata uit deze tab stroomt door naar werkboekingen, loonstroken en het rekenvoorbeeld.
+                                Contractdata uit deze tab stroomt door naar werkboekingen en loonstroken.
                             </span>
                         </div>
                     </div>
 
                     <notebook>
                         <page string="Fiscale Data" name="sr_fiscale_data_tab">
-                            <field name="sr_show_contract_shortcuts" invisible="1"/>
-                            <field name="sr_contract_shortcut_type_ids" invisible="1"/>
-                            <field name="sr_has_contract_shortcut_types" invisible="1"/>
-                            <field name="sr_has_kinderbijslag_shortcut" invisible="1"/>
-                            <field name="sr_has_transport_shortcut" invisible="1"/>
-                            <field name="sr_has_representatie_shortcut" invisible="1"/>
-                            <field name="sr_has_geneeskundige_shortcut" invisible="1"/>
-                            <field name="sr_has_custom_contract_shortcut_types" invisible="1"/>
                             <group string="Basisloon &amp; Verloning" name="sr_basis_verloning">
                                 <group>
                                     <field name="sr_contract_currency"
                                            options="{'no_create': True, 'no_open': True}"
                                            domain="[('name', 'in', ['SRD', 'USD', 'EUR'])]"
                                            string="Contractvaluta"
-                                           help="Kies de valuta van het basisloon. Wordt omgerekend naar SRD via de dagkoers in de Payroll Instellingen."/>
+                                           help="Basisloonvaluta. Bij vreemde valuta: zie koers onder 'Wisselkoers (bedrijfsinstelling)'. Alle bedragen worden naar SRD omgerekend."/>
                                      <field name="wage" widget="monetary" options="{'currency_field': 'sr_contract_currency'}" required="1"/>
                                     <field name="sr_salary_type"
                                            widget="radio"
                                            string="Belastingtype"
-                                           required="1"/>
+                                           required="1"
+                                           help="Maandloon: 12 periodes, uurloon = basisloon ÷ 173,33. FN: 26 periodes, uurloon = basisloon ÷ 80."/>
                                     <field name="sr_hourly_wage" readonly="1"
-                                           help="Bruto uurloon berekend uit het basisloon (automatisch)."/>
+                                           help="Bruto uurloon (automatisch berekend)."/>
                                     <!-- Valutapaar: wisselkoers + SRD equivalent — alleen zichtbaar voor vreemde valuta -->
                                     <field name="sr_current_exchange_rate_display"
                                            readonly="1"
@@ -71,38 +64,8 @@
                                            string="Basisloon in SRD"/>
                                 </group>
                                 <group>
-                                    <!-- Valutapaar badge: duidelijke samenvatting van het paar -->
-                                    <div class="alert alert-primary border mb-2 d-flex align-items-center gap-2"
-                                         role="status"
-                                         invisible="not sr_contract_currency or sr_contract_currency.name == 'SRD'">
-                                        <i class="fa fa-exchange fa-lg me-2"/>
-                                        <div>
-                                            <strong>Valutapaar actief:</strong>
-                                            <span class="ms-1">
-                                                <field name="sr_contract_currency" readonly="1"
-                                                       options="{'no_open': True}" class="d-inline"/>
-                                                <span class="mx-1">↔ SRD</span>
-                                            </span>
-                                            <div class="text-muted small mt-1">
-                                                Koers: 1 <field name="sr_contract_currency" readonly="1"
-                                                               options="{'no_open': True}" class="d-inline"/>
-                                                = <field name="sr_current_exchange_rate_display" readonly="1"
-                                                        digits="[16, 2]" class="d-inline"/> SRD
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="alert alert-warning border mb-0" role="alert"
-                                         invisible="sr_contract_currency == False or sr_contract_currency.name == 'SRD'">
-                                        Controleer of de koers actueel is vóór het berekenen van de loonstrook. De definitieve loonstrook bewaart een bevroren wisselkoers snapshot.
-                                    </div>
                                     <div class="alert alert-danger border mb-0" role="alert" invisible="wage &gt; 0">
                                         Een actief SR payroll-contract vereist een positief basisloon. Zonder loon worden uurloon, overwerk en LB/AOV geblokkeerd.
-                                    </div>
-                                    <div class="alert alert-light border mb-0" role="status" invisible="sr_salary_type != 'monthly'">
-                                        <strong>Maandloon:</strong> 12 periodes per jaar. Uurloon = basisloon ÷ 173,33. De AOV franchise uit SR Payroll Instellingen wordt toegepast.
-                                    </div>
-                                    <div class="alert alert-light border mb-0" role="status" invisible="sr_salary_type != 'fn'">
-                                        <strong>FN:</strong> 26 periodes per jaar. Uurloon = basisloon ÷ 80. De payroll-engine past geen AOV franchise toe en valideert tegen de 2026 FN-kalender.
                                     </div>
                                 </group>
                             </group>
@@ -125,70 +88,6 @@
                                 </group>
                             </group>
 
-                            <group string="Contract shortcuts" name="sr_named_allowances"
-                                   invisible="not sr_show_contract_shortcuts or not sr_has_contract_shortcut_types">
-                                <group>
-                                    <field name="sr_vervoer_toelage"
-                                           string="Vervoer / Transport"
-                                           widget="monetary"
-                                           options="{'currency_field': 'currency_id'}"
-                                           invisible="not sr_has_transport_shortcut"/>
-                                    <field name="sr_representatie_toelage"
-                                           string="Representatie"
-                                           widget="monetary"
-                                           options="{'currency_field': 'currency_id'}"
-                                           invisible="not sr_has_representatie_shortcut"/>
-                                    <field name="sr_vrije_geneeskundige_behandeling"
-                                           string="Vrije Geneeskundige Behandeling"
-                                           widget="monetary"
-                                           options="{'currency_field': 'currency_id'}"
-                                           invisible="not sr_has_geneeskundige_shortcut"/>
-                                </group>
-                                <group>
-                                    <div class="text-muted small pt-1"
-                                         invisible="not sr_contract_currency or sr_contract_currency.name == 'SRD'">
-                                        <i class="fa fa-info-circle"/> Bedragen worden in de instellingen omgerekend naar SRD via de dagkoers.
-                                    </div>
-                                </group>
-                                <!-- Aangepaste shortcut types (niet-standaard looncodes) -->
-                                <div colspan="2" invisible="not sr_has_custom_contract_shortcut_types">
-                                    <separator string="Overige shortcuts"/>
-                                    <field name="sr_vaste_regels"
-                                           nolabel="1"
-                                           domain="[('sr_is_company_shortcut', '=', True), ('type_id.code', 'not in', ['KINDBIJ', 'TRANSPORT', 'REPRES', 'GENEESK'])]">
-                                        <list editable="bottom">
-                                            <field name="type_id"
-                                                   string="Looncode"
-                                                   domain="[('id', 'in', parent.sr_contract_shortcut_type_ids)]"
-                                                   options="{'no_create': False, 'no_create_edit': False}"/>
-                                            <field name="sr_categorie" string="Categorie" readonly="1"/>
-                                            <field name="amount_type" string="Berekening"/>
-                                            <field name="amount"
-                                                   string="Bedrag"
-                                                   widget="monetary"
-                                                   options="{'currency_field': 'currency_id'}"
-                                                   readonly="amount_type == 'percentage'"/>
-                                            <field name="line_currency_id"
-                                                   string="Valuta"
-                                                   options="{'no_create': True, 'no_open': True}"
-                                                   domain="[('name', 'in', ['SRD', 'USD', 'EUR'])]"
-                                                   readonly="amount_type == 'percentage'"/>
-                                            <field name="percentage"
-                                                   string="Percentage"
-                                                   readonly="amount_type != 'percentage'"/>
-                                            <field name="percentage_base"
-                                                   string="% Basis"
-                                                   readonly="amount_type != 'percentage'"/>
-                                            <field name="currency_id" column_invisible="True"/>
-                                        </list>
-                                    </field>
-                                </div>
-                            </group>
-                            <div class="alert alert-warning border mb-2" role="status"
-                                 invisible="not sr_show_contract_shortcuts or sr_has_contract_shortcut_types">
-                                <strong>Geen shortcut-types gekozen:</strong> activeer in <strong>SR Payroll Instellingen</strong> welke toelagen als contract-shortcut zichtbaar moeten zijn.
-                            </div>
-
                             <group string="Overwerk &amp; Werkboekingen" name="sr_overwerk">
                                 <group>
                                     <field name="sr_has_overtime_right"/>
@@ -208,51 +107,13 @@
                             </group>
 
                             <separator string="Overige Vaste Toelagen &amp; Inhoudingen"/>
-                            <div class="text-muted small mb-2" invisible="not sr_show_contract_shortcuts or not sr_has_contract_shortcut_types">
-                                Dit is de fiscale bron voor vaste toelagen en inhoudingen op het contract.
-                                De gekozen shortcut-posten worden hierboven beheerd en hieronder verborgen.
-                            </div>
-                            <div class="text-muted small mb-2" invisible="sr_show_contract_shortcuts and sr_has_contract_shortcut_types">
+                            <div class="text-muted small mb-2">
                                 Dit is de fiscale bron voor alle vaste toelagen en inhoudingen op het contract.
                                 Kies per regel de categorie: <strong>Belastbaar</strong>, <strong>Belastingvrij</strong>,
                                 <strong>Aftrek Belastingvrij</strong> of <strong>Inhouding</strong>.
                                 Bij een gekozen <strong>Type</strong> bepaalt het type altijd de fiscale categorie.
                             </div>
-                            <field name="sr_vaste_regels"
-                                nolabel="1"
-                                domain="[('sr_is_company_shortcut', '=', False)]"
-                                invisible="not sr_show_contract_shortcuts or not sr_has_contract_shortcut_types">
-                                <list editable="bottom">
-                                 <field name="sequence" widget="handle"/>
-                                 <field name="type_id"
-                                     placeholder="Selecteer een type..."
-                                     domain="[('id', 'not in', parent.sr_contract_shortcut_type_ids)]"
-                                     options="{'no_create': False, 'no_create_edit': False}"/>
-                                 <field name="name"
-                                     placeholder="Automatisch of handmatig..."/>
-                                 <field name="sr_categorie" readonly="type_id"/>
-                                 <field name="amount_type" string="Berekening"/>
-                                 <field name="amount" widget="monetary" options="{'currency_field': 'currency_id'}"
-                                     column_invisible="False"
-                                     readonly="amount_type == 'percentage'"/>
-                                 <field name="line_currency_id"
-                                     string="Valuta"
-                                     options="{'no_create': True, 'no_open': True}"
-                                     domain="[('name', 'in', ['SRD', 'USD', 'EUR'])]"
-                                     optional="show"
-                                     readonly="amount_type == 'percentage'"/>
-                                 <field name="percentage"
-                                     string="%"
-                                     column_invisible="False"
-                                     readonly="amount_type != 'percentage'"/>
-                                 <field name="percentage_base"
-                                     string="% Basis"
-                                     column_invisible="False"
-                                     readonly="amount_type != 'percentage'"/>
-                                 <field name="currency_id" column_invisible="True"/>
-                                </list>
-                            </field>
-                            <field name="sr_vaste_regels" nolabel="1" invisible="sr_show_contract_shortcuts and sr_has_contract_shortcut_types">
+                            <field name="sr_vaste_regels" nolabel="1">
                                 <list editable="bottom">
                                     <field name="sequence" widget="handle"/>
                                     <field name="type_id"
@@ -285,64 +146,26 @@
                         </page>
 
                         <page string="Controle &amp; Voorbeeld" name="sr_controle_preview_tab">
-                            <group string="Eenmalige &amp; Variabele Betalingen (via Loonstrook)" name="sr_payslip_info">
-                                <div colspan="2" class="alert alert-info small" role="status">
-                                    <strong><i class="fa fa-lightbulb"/> Hoe eigen loon codes aanmaken?</strong><br/>
-                                    Bedragen die niet elke periode hetzelfde zijn, zoals vakantietoelage,
-                                    bonus of gratificatie, beheer je via <strong>Loonstrook inputs</strong>.
-                                    <strong>Overwerk</strong> komt normaal automatisch uit <strong>Werkboekingen</strong>
-                                    wanneer het contract overwerkrecht heeft en het werkboekingstype als SR overwerk staat ingesteld:
-                                    <ol class="mt-1 mb-0 ps-3">
-                                        <li>Ga naar <strong>Configuratie → Salaris → Andere invoertypen</strong></li>
-                                        <li>Maak een nieuwe loon code aan (bijv. "Olie Toeslag Variabel")</li>
-                                        <li>Stel de <strong>SR Loon Categorie</strong> in (belastbaar / vrijgesteld / overwerk / vakantie / gratificatie / bijzondere beloning)</li>
-                                        <li>Voeg het bedrag toe bij het aanmaken van de loonstrook</li>
-                                    </ol>
-                                    <div class="mt-2 pt-2 border-top">
-                                        <strong>Vooringestelde codes:</strong>
-                                        SR_IN_OVERWERK_150 (Werkdag overwerk) ·
-                                        SR_IN_OVERWERK_200 (Zon/feestdag overwerk) ·
-                                        SR_IN_OVERWERK (oud/generiek) ·
-                                        SR_IN_VAKANTIE (Vakantietoelage Art. 10i) ·
-                                        SR_IN_GRAT (Gratificatie Art. 10j) ·
-                                        SR_IN_BIJZ (Bijzondere Beloning Art. 17) ·
-                                        SR_IN_VRIJ (Vrije Vergoeding) ·
-                                        SR_IN_AFTREK (Extra Inhouding)
-                                    </div>
-                                </div>
-                            </group>
-
-                            <group string="Referentie — Artikel 14 Tariefschijven" name="sr_tarieven">
-                                <div colspan="2" class="py-1">
-                                    <field name="sr_tax_bracket_html" nolabel="1" readonly="1"/>
-                                </div>
-                            </group>
-
-                            <group string="Rekenvoorbeeld — Geschatte Loonstrook per Periode" name="sr_rekenvoorbeeld">
-                                <div colspan="2" class="alert alert-warning small mb-2" role="status">
-                                    <i class="fa fa-exclamation-triangle"/>&#160;<em>Schatting op basis van vaste contractwaarden. Eenmalige loonstrookinvoer zoals overwerk, vakantie of bonus is niet inbegrepen. Definitieve bedragen staan op de loonstrook.</em>
-                                </div>
+                            <separator string="Geschatte Loonstrook per Periode"/>
+                            <div class="alert alert-info small mb-3" role="status">
+                                <i class="fa fa-info-circle"/>&#160;Schatting op basis van vaste contractwaarden. Variabele invoer (overwerk, vakantie, bonus) is niet inbegrepen — definitieve bedragen staan op de loonstrook.
+                            </div>
+                            <group>
                                 <group string="Bruto &amp; Belastbaar">
-                                    <field name="sr_preview_bruto" readonly="1" widget="monetary" options="{'currency_field': 'currency_id'}" string="Bruto Loon (incl. vaste toelagen)"/>
+                                    <field name="sr_preview_bruto" readonly="1" widget="monetary" options="{'currency_field': 'currency_id'}" string="Bruto Loon"/>
                                     <field name="sr_preview_belastinggrondslag" readonly="1" widget="monetary" options="{'currency_field': 'currency_id'}" string="Grondslag voor Belasting"/>
                                     <field name="sr_preview_belastbaar_jaar" readonly="1" widget="monetary" options="{'currency_field': 'currency_id'}" string="Belastbaar Jaarloon (Art. 14)"/>
                                 </group>
-                                <group string="Geschatte Inhoudingen &amp; Netto">
-                                    <field name="sr_preview_lb_periode" readonly="1" widget="monetary" options="{'currency_field': 'currency_id'}" string="In te houden Loonbelasting (Art. 14)"/>
-                                    <field name="sr_preview_aov_periode" readonly="1" widget="monetary" options="{'currency_field': 'currency_id'}" string="AOV Inhouding per Periode (4%)"/>
-                                    <field name="sr_preview_netto" readonly="1" widget="monetary" options="{'currency_field': 'currency_id'}" string="Geschat Nettoloon" class="fw-bold text-success"/>
+                                <group string="Inhoudingen &amp; Netto">
+                                    <field name="sr_preview_lb_periode" readonly="1" widget="monetary" options="{'currency_field': 'currency_id'}" string="Loonbelasting (Art. 14)"/>
+                                    <field name="sr_preview_aov_periode" readonly="1" widget="monetary" options="{'currency_field': 'currency_id'}" string="AOV Inhouding (4%)"/>
+                                    <field name="sr_preview_netto" readonly="1" widget="monetary" options="{'currency_field': 'currency_id'}" string="Geschat Nettoloon"/>
                                 </group>
                             </group>
-
-                            <group string="Berekeningsdetail — Stap-voor-Stap (Art. 14)" name="sr_debug_panel">
-                                <div colspan="2" class="text-muted small mb-2">
-                                    Alle tussenliggende berekenstappen voor controle en verificatie.
-                                    Gebruik dit om de loonstrookbedragen te begrijpen en te vergelijken.
-                                </div>
-                                <div colspan="2">
-                                    <field name="sr_preview_breakdown_html" nolabel="1" readonly="1"/>
-                                </div>
-                            </group>
+                            <separator string="Artikel 14 Tariefschijven"/>
+                            <field name="sr_tax_bracket_html" nolabel="1" readonly="1"/>
+                            <separator string="Berekeningsdetail — Stap-voor-Stap"/>
+                            <field name="sr_preview_breakdown_html" nolabel="1" readonly="1"/>
                         </page>
                     </notebook>
                 </page>
