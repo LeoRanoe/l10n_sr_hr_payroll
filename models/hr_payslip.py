@@ -561,10 +561,10 @@ class HrPayslip(models.Model):
 
     def _sr_wage_in_srd(self):
         """
-        Geeft het contractloon terug in SRD.
+        Geeft het contractloon per periode terug in SRD.
 
-        Voor SRD-contracten: direct contract.wage.
-        Voor USD/EUR-contracten: contract.wage × sr_exchange_rate.
+        Het basisloon wordt altijd als maandloon ingevoerd.
+        Voor FN-contracten wordt automatisch omgerekend: maandloon × 12 ÷ 26.
         De bevroren wisselkoers wordt gebruikt zodat herberekening consistent blijft.
         """
         self.ensure_one()
@@ -574,9 +574,14 @@ class HrPayslip(models.Model):
         rate = self.sr_exchange_rate or 1.0
         currency = self.sr_frozen_contract_currency_id
         if currency and currency.name not in ('SRD', False, ''):
-            result = Decimal(str(wage)) * Decimal(str(rate))
-            return float(result.quantize(_SR_MONEY_QUANT, rounding=ROUND_HALF_UP))
-        return wage
+            wage_srd = Decimal(str(wage)) * Decimal(str(rate))
+        else:
+            wage_srd = Decimal(str(wage))
+
+        if self.contract_id.sr_salary_type == 'fn':
+            wage_srd = wage_srd * Decimal('12') / Decimal('26')
+
+        return float(wage_srd.quantize(_SR_MONEY_QUANT, rounding=ROUND_HALF_UP))
 
     def _rule_parameter(self, code):
         self.ensure_one()

@@ -42,14 +42,23 @@
                                            domain="[('name', 'in', ['SRD', 'USD', 'EUR'])]"
                                            string="Contractvaluta"
                                            help="Basisloonvaluta. Bij vreemde valuta: zie koers onder 'Wisselkoers (bedrijfsinstelling)'. Alle bedragen worden naar SRD omgerekend."/>
-                                     <field name="wage" widget="monetary" options="{'currency_field': 'sr_contract_currency'}" required="1"/>
+                                    <field name="wage" widget="monetary" options="{'currency_field': 'sr_contract_currency'}" required="1"
+                                           string="Basisloon (per maand)"
+                                           help="Voer het maandloon in. Voor FN-contracten berekent het systeem automatisch het bedrag per fortnight (× 12 ÷ 26)."/>
                                     <field name="sr_salary_type"
                                            widget="radio"
                                            string="Belastingtype"
                                            required="1"
-                                           help="Maandloon: 12 periodes, uurloon = basisloon ÷ 173,33. FN: 26 periodes, uurloon = basisloon ÷ 80."/>
+                                           help="Maandloon: 12 periodes. FN: 26 periodes — basisloon wordt automatisch omgerekend (maandloon × 12 ÷ 26) per fortnight."/>
+                                    <field name="sr_wage_per_period_srd"
+                                           readonly="1"
+                                           widget="monetary"
+                                           options="{'currency_field': 'currency_id'}"
+                                           invisible="sr_salary_type != 'fn'"
+                                           string="Loon per Fortnight (SRD)"
+                                           help="Automatisch berekend: maandloon × 12 ÷ 26. Dit bedrag wordt als BASIC op de loonstrook gebruikt."/>
                                     <field name="sr_hourly_wage" readonly="1"
-                                           help="Bruto uurloon (automatisch berekend)."/>
+                                           help="Bruto uurloon (automatisch berekend): maandloon ÷ 173,33."/>
                                     <!-- Valutapaar: wisselkoers + SRD equivalent — alleen zichtbaar voor vreemde valuta -->
                                     <field name="sr_current_exchange_rate_display"
                                            readonly="1"
@@ -61,7 +70,7 @@
                                            widget="monetary"
                                            options="{'currency_field': 'currency_id'}"
                                            invisible="not sr_contract_currency or sr_contract_currency.name == 'SRD'"
-                                           string="Basisloon in SRD"/>
+                                           string="Basisloon in SRD (maand)"/>
                                 </group>
                                 <group>
                                     <div class="alert alert-danger border mb-0" role="alert" invisible="wage &gt; 0">

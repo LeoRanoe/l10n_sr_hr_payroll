@@ -334,7 +334,8 @@ class TestQAAudit2026(common.TransactionCase):
             salary_type = self.env.cr.fetchone()[0]
 
             self.assertEqual(salary_type, 'fn')
-            self.assertAlmostEqual(contract.sr_hourly_wage, 45.6250, places=4)
+            # FN gebruikt nu ook 173,33 als deler (maandloon ingevoerd): 100 × 36,5 / 173,33 ≈ 21,0577
+            self.assertAlmostEqual(contract.sr_hourly_wage, 21.0577, places=4)
 
             contract.write({'sr_salary_type': 'monthly'})
             contract.invalidate_recordset(['sr_hourly_wage'])

@@ -402,8 +402,9 @@ class TestIntegratieVolledigeCyclus(common.TransactionCase):
         Fortnight contract genereert een geldige loonstrook met
         SR_LB en SR_AOV regels. Geen AOV franchise voor fortnight.
         """
-        fn_loon = 8000.0  # SRD 8.000 per fortnight
-        contract = self._maak_contract(wage=fn_loon, salary_type='fn')
+        fn_per_periode = 8000.0  # gewenst SRD per fortnight
+        maandloon = round(fn_per_periode * 26 / 12, 2)  # ingevoerd als maandloon
+        contract = self._maak_contract(wage=maandloon, salary_type='fn')
         payslip = self._maak_loonstrook(
             contract,
             date_from=_fn_period_2026_9()[0],
@@ -412,7 +413,7 @@ class TestIntegratieVolledigeCyclus(common.TransactionCase):
 
         aov = self._haal_totaal(payslip, 'SR_AOV')
         # AOV fortnight: geen franchise (context: "geen franchise per FN")
-        expected_aov = -(fn_loon * 0.04)
+        expected_aov = -(fn_per_periode * 0.04)
         self.assertAlmostEqual(aov, expected_aov, places=2,
                                msg='AOV fortnight (geen franchise) klopt niet')
         self.assertEqual(
@@ -421,7 +422,8 @@ class TestIntegratieVolledigeCyclus(common.TransactionCase):
 
     def test_fortnight_loonstrook_accepteert_eigen_betaalschema(self):
         """FN-loonstroken mogen eigen betaalschema gebruiken (niet gebonden aan SR-kalender)."""
-        contract = self._maak_contract(wage=8000.0, salary_type='fn')
+        maandloon = round(8000.0 * 26 / 12, 2)
+        contract = self._maak_contract(wage=maandloon, salary_type='fn')
         # 1 mei - 14 mei zit niet in de standaard SR-kalender, maar is een geldige 14-dagenperiode
         payslip = self._maak_loonstrook(
             contract,
@@ -435,7 +437,8 @@ class TestIntegratieVolledigeCyclus(common.TransactionCase):
 
     def test_fortnight_loonstrook_weigert_te_lange_periode(self):
         """FN-loonstroken met een periode buiten 13–16 dagen moeten worden geweigerd."""
-        contract = self._maak_contract(wage=8000.0, salary_type='fn')
+        maandloon = round(8000.0 * 26 / 12, 2)
+        contract = self._maak_contract(wage=maandloon, salary_type='fn')
 
         with self.assertRaises(UserError):
             self._maak_loonstrook(
@@ -649,10 +652,12 @@ class TestIntegratieContractPreview(common.TransactionCase):
 
     def test_preview_aov_fortnight_geen_franchise(self):
         """
-        Fortnight SRD 5.000 → AOV grondslag = 5.000 (geen franchise)
+        Fortnight SRD 5.000/periode → AOV grondslag = 5.000 (geen franchise)
         sr_preview_aov_periode = 5.000 × 4% = 200.
+        Maandloon ingevoerd als 5000 × 26/12, systeem rekent terug naar 5000/FN.
         """
-        contract = self._maak_contract(wage=5000.0, salary_type='fn')
+        maandloon = round(5000.0 * 26 / 12, 2)
+        contract = self._maak_contract(wage=maandloon, salary_type='fn')
         verwacht = 5000.0 * 0.04  # geen franchise
         self.assertAlmostEqual(
             contract.sr_preview_aov_periode, verwacht, places=2,

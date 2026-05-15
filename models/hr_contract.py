@@ -151,7 +151,7 @@ class HrContract(models.Model):
         string='Uurloon (SRD)',
         digits=(16, 4),
         compute='_compute_sr_hourly_wage',
-        help='Bruto uurloon in SRD: basisloon (omgerekend) ÷ 173,33 (maandloon) of ÷ 80 (fortnight).',
+        help='Bruto uurloon in SRD: maandloon ÷ 173,33 (geldt voor zowel maandloon als FN).',
     )
     sr_current_exchange_rate_display = fields.Float(
         string='Actuele Wisselkoers',
@@ -165,7 +165,14 @@ class HrContract(models.Model):
         currency_field='currency_id',
         compute='_compute_sr_currency_pair_display',
         store=False,
-        help='Basisloon omgerekend naar SRD op basis van de actuele wisselkoers uit de bedrijfsinstellingen.',
+        help='Maandloon omgerekend naar SRD op basis van de actuele wisselkoers.',
+    )
+    sr_wage_per_period_srd = fields.Monetary(
+        string='Loon per Fortnight (SRD)',
+        currency_field='currency_id',
+        compute='_compute_sr_wage_per_period',
+        store=False,
+        help='Automatisch berekend: maandloon × 12 ÷ 26. Dit bedrag wordt op de loonstrook als BASIC gebruikt.',
     )
     sr_kinderbijslag_bedrag = fields.Monetary(
         string='Kinderbijslag per Periode',
@@ -335,18 +342,18 @@ class HrContract(models.Model):
             # VGB fiscaal belastbaar deel (Art. 9 WLB — voordeel in natura, max SR_VGB_MAX_JAAR)
             vgb_belastbaar = contract._sr_vgb_fiscaal_belastbaar(exchange_rate=rate)
 
-            # Basisloon omrekenen naar SRD voor fiscale berekening
-            wage_srd = contract._sr_get_wage_in_srd(exchange_rate=rate)
+            # Basisloon per periode in SRD (FN: maandloon × 12/26)
+            wage_per_period = contract._sr_get_wage_per_period_srd(exchange_rate=rate)
 
-            # Bruto belastbaar = basisloon + belastbare toelagen + KB belastbaar + VGB fiscaal
-            bruto_belastbaar = wage_srd + belastbaar_toelagen + kb_belastbaar + vgb_belastbaar
+            # Bruto belastbaar = basisloon per periode + belastbare toelagen + KB belastbaar + VGB fiscaal
+            bruto_belastbaar = wage_per_period + belastbaar_toelagen + kb_belastbaar + vgb_belastbaar
             result = calc.calculate_lb(
                 bruto_belastbaar, periodes, params,
                 aftrek_bv_per_periode=aftrek_bv,
                 heffingskorting_per_periode=heffingskorting,
             )
 
-            bruto_totaal = wage_srd + belastbaar_toelagen + kb_belastbaar + kb_vrijgesteld + vrijgesteld_toelagen
+            bruto_totaal = wage_per_period + belastbaar_toelagen + kb_belastbaar + kb_vrijgesteld + vrijgesteld_toelagen
             contract.sr_preview_bruto = calc.round_money(bruto_totaal)
             contract.sr_preview_belastinggrondslag = result['grondslag_belasting_per_periode']
             contract.sr_preview_belastbaar_jaar = result['belastbaar_jaar']
@@ -361,7 +368,7 @@ class HrContract(models.Model):
             )
             contract.sr_preview_breakdown_html = calc.generate_breakdown_html(
                 result=result,
-                wage=wage_srd,
+                wage=wage_per_period,
                 periodes=periodes,
                 salary_type=contract.sr_salary_type,
                 kb_split=kb_split,
@@ -481,18 +488,22 @@ class HrContract(models.Model):
                     }
                 }
 
+    @api.depends('wage', 'sr_salary_type', 'sr_contract_currency',
+                 'company_id.sr_exchange_rate_usd', 'company_id.sr_exchange_rate_eur')
+    def _compute_sr_wage_per_period(self):
+        for contract in self:
+            contract.sr_wage_per_period_srd = contract._sr_get_wage_per_period_srd()
+
     @api.depends('wage', 'sr_salary_type', 'sr_contract_currency')
     def _compute_sr_hourly_wage(self):
-        """Berekent het bruto uurloon in SRD: basisloon (omgerekend) ÷ 173,33 (maandloon) of ÷ 80 (fortnight)."""
+        """Bruto uurloon in SRD: maandloon ÷ 173,33 (geldt voor zowel maandloon als FN)."""
         for contract in self:
             if not contract.wage:
                 contract.sr_hourly_wage = 0.0
                 continue
-            # Wisselkoers ophalen voor vreemde valuta
             rate = contract._sr_get_current_exchange_rate()
             wage_srd = Decimal(str(contract._sr_get_wage_in_srd(exchange_rate=rate)))
-            divisor = Decimal('80.0') if contract.sr_salary_type == 'fn' else Decimal('173.333333')
-            hourly = wage_srd / divisor
+            hourly = wage_srd / Decimal('173.333333')
             contract.sr_hourly_wage = float(
                 hourly.quantize(Decimal('0.0001'), rounding=ROUND_HALF_UP)
             )
@@ -509,13 +520,26 @@ class HrContract(models.Model):
             contract.sr_wage_srd = wage_srd
 
     def _sr_get_wage_in_srd(self, exchange_rate=None):
-        """Zet het contractloon om naar SRD met dezelfde afronding als de payslip snapshot."""
+        """Zet het contractloon (maandloon) om naar SRD."""
         self.ensure_one()
         wage = Decimal(str(self.wage or 0.0))
         if not wage:
             return 0.0
         rate = Decimal(str(exchange_rate if exchange_rate is not None else self._sr_get_current_exchange_rate()))
         wage_srd = wage * rate
+        return float(wage_srd.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP))
+
+    def _sr_get_wage_per_period_srd(self, exchange_rate=None):
+        """Geeft het loon per uitbetalingsperiode terug in SRD.
+
+        Het basisloon wordt altijd als maandloon ingevoerd.
+        Voor FN-contracten wordt automatisch omgerekend: maandloon × 12 ÷ 26.
+        Voor maandloon: ongewijzigd.
+        """
+        self.ensure_one()
+        wage_srd = Decimal(str(self._sr_get_wage_in_srd(exchange_rate=exchange_rate)))
+        if self.sr_salary_type == 'fn':
+            wage_srd = wage_srd * Decimal('12') / Decimal('26')
         return float(wage_srd.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP))
 
     def _sr_get_current_exchange_rate(self):

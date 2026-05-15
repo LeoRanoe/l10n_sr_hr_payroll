@@ -490,19 +490,22 @@ class TestSrVasteRegels(common.TransactionCase):
 
     def test_fortnight_belastbaar_preview(self):
         """Bij fortnight loon moet sr_preview_belastbaar_jaar kloppen voor 26 periodes."""
-        contract = self._create_contract(wage=5000.0, salary_type='fn', vaste_regels=[
+        fn_per_periode = 5000.0
+        maandloon = round(fn_per_periode * 26 / 12, 2)
+        contract = self._create_contract(wage=maandloon, salary_type='fn', vaste_regels=[
             (0, 0, {'name': 'Olie', 'sr_categorie': 'belastbaar', 'amount': 200.0}),
         ])
-        # (5000 + 200) * 26 = 135.200 → minus vrijstellingen
-        bruto_jaar = (5000.0 + 200.0) * 26  # = 135200
-        # Berekend belastbaar jaar hangt af van vrijstelling, maar moet positief zijn
+        # (fn_per_periode + 200) * 26 → minus vrijstellingen; moet positief zijn
         self.assertGreater(contract.sr_preview_belastbaar_jaar, 0.0)
 
     def test_fortnight_gemengde_regels(self):
         """Fortnight contract met gemengde regels moet correcte preview geven."""
-        contract = self._create_contract(wage=5000.0, salary_type='fn', vaste_regels=[
+        fn_per_periode = 5000.0
+        maandloon = round(fn_per_periode * 26 / 12, 2)
+        contract = self._create_contract(wage=maandloon, salary_type='fn', vaste_regels=[
             (0, 0, {'name': 'Belastbaar', 'sr_categorie': 'belastbaar', 'amount': 300.0}),
             (0, 0, {'name': 'Vrijgesteld', 'sr_categorie': 'vrijgesteld', 'amount': 150.0}),
         ])
-        # Bruto = 5000 + 300 + 150 = 5450
-        self.assertAlmostEqual(contract.sr_preview_bruto, 5450.0, delta=0.01)
+        # Bruto = fn_per_periode + 300 + 150 = 5450
+        verwacht_bruto = fn_per_periode + 300.0 + 150.0
+        self.assertAlmostEqual(contract.sr_preview_bruto, verwacht_bruto, delta=0.05)

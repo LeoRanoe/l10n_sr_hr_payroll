@@ -292,12 +292,12 @@ class TestArtikel14Berekening(common.TransactionCase):
     # ──────────────────────────────────────────────────────────────────────
     def test_fortnight_vs_maandloon_equivalentie(self):
         """
-        Fortnight loon van 1/26 jaarloon moet per jaar dezelfde belasting geven
-        als een maandloon van 1/12 van hetzelfde jaarloon.
+        Zelfde maandloon → zelfde jaarbelasting, ongeacht maandloon of fortnight.
+        Het systeem rekent FN automatisch om: maandloon × 12/26 per fortnight.
         """
         jaarloon = 240000.0  # SRD 240.000/jaar
         maandloon = jaarloon / 12  # 20.000/maand
-        fn_loon = jaarloon / 26    # ≈ 9.230,77/fortnight
+        fn_loon = jaarloon / 12    # zelfde maandloon ingevoerd voor FN contract
 
         contract_maand = self._create_contract(wage=maandloon, salary_type='monthly')
         contract_fn = self._create_contract(wage=fn_loon, salary_type='fn', employee=self.employee_b)
@@ -564,10 +564,11 @@ class TestArtikel14AOV(common.TransactionCase):
 
     def test_aov_fortnight_geen_franchise(self):
         """
-        Fortnight loon SRD 5.000 → AOV grondslag = 5.000 (geen franchise)
-        AOV = 5.000 × 4% = 200
+        Fortnight loon SRD 5.000/fortnight (ingevoerd als maandloon × 26/12) →
+        AOV grondslag = 5.000 (geen franchise), AOV = 5.000 × 4% = 200
         """
-        payslip = self._make_payslip(wage=5000.0, salary_type='fn')
+        maandloon = round(5000.0 * 26 / 12, 2)  # geeft per-FN ≈ 5000
+        payslip = self._make_payslip(wage=maandloon, salary_type='fn')
         aov = payslip.line_ids.filtered(lambda l: l.code == 'SR_AOV').total
         verwacht_aov = -(5000.0 * 0.04)
         self.assertAlmostEqual(aov, verwacht_aov, places=2,
@@ -835,7 +836,7 @@ class TestArtikel14Breakdown(common.TransactionCase):
             'employee_id': self.employee.id,
             'company_id': self.company.id,
             'structure_type_id': self.structure_type.id,
-            'wage': 7692.31,  # ≈ SRD 200.000 / 26
+            'wage': round(200000.0 / 12, 2),  # ≈ SRD 200.000/jaar als maandloon
             'sr_salary_type': 'fn',
             'date_start': date(2026, 1, 1),
             'state': 'open',
