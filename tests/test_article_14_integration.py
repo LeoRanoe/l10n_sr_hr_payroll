@@ -419,15 +419,29 @@ class TestIntegratieVolledigeCyclus(common.TransactionCase):
             payslip._get_sr_artikel14_breakdown()['fn_period_label'], '2026FN9'
         )
 
-    def test_fortnight_loonstrook_weigert_ongeldig_2026_tijdvak(self):
-        """2026 FN-loonstroken buiten de contextkalender moeten worden geweigerd."""
+    def test_fortnight_loonstrook_accepteert_eigen_betaalschema(self):
+        """FN-loonstroken mogen eigen betaalschema gebruiken (niet gebonden aan SR-kalender)."""
+        contract = self._maak_contract(wage=8000.0, salary_type='fn')
+        # 1 mei - 14 mei zit niet in de standaard SR-kalender, maar is een geldige 14-dagenperiode
+        payslip = self._maak_loonstrook(
+            contract,
+            date_from=date(2026, 5, 1),
+            date_to=date(2026, 5, 14),
+        )
+        self.assertTrue(payslip, 'Custom FN-betaalschema moet worden geaccepteerd')
+        bd = payslip._get_sr_artikel14_breakdown()
+        self.assertTrue(bd.get('is_fn'), 'Loonstrook moet als fortnight herkend worden')
+        self.assertTrue(bd.get('fn_period_label'), 'FN-periode label moet aanwezig zijn')
+
+    def test_fortnight_loonstrook_weigert_te_lange_periode(self):
+        """FN-loonstroken met een periode buiten 13–16 dagen moeten worden geweigerd."""
         contract = self._maak_contract(wage=8000.0, salary_type='fn')
 
         with self.assertRaises(UserError):
             self._maak_loonstrook(
                 contract,
                 date_from=date(2026, 5, 1),
-                date_to=date(2026, 5, 14),
+                date_to=date(2026, 5, 31),
             )
 
     # ──────────────────────────────────────────────────────────────────

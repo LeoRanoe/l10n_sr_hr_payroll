@@ -826,31 +826,47 @@ class HrPayslip(models.Model):
         return 26 if contract.sr_salary_type == 'fn' else 12
 
     def _sr_get_fn_period_2026(self):
-        """Geeft het 2026 fortnight-tijdvak terug volgens de modulecontext."""
+        """Geeft fortnight periode-info terug op basis van de loonstrookdatums.
+
+        Probeert eerst een exacte match met de standaard SR-kalender; anders
+        wordt de periodelabel dynamisch berekend vanuit de dag-positie in het jaar.
+        Zo kunnen bedrijven hun eigen betaalschema gebruiken (bijv. 1-14 en 16-31).
+        """
         self.ensure_one()
         if not self.date_from or not self.date_to:
             return False
         for period in SR_FN_2026_PERIODS:
             if self.date_from == period['date_from'] and self.date_to == period['date_to']:
                 return period
-        return False
+        year = self.date_from.year
+        day_of_year = (self.date_from - dt_date(year, 1, 1)).days
+        period_num = max(1, min(26, day_of_year // 14 + 1))
+        return {
+            'indicator': f'{year}{period_num:02d}',
+            'label': f'{year}FN{period_num}',
+            'date_from': self.date_from,
+            'date_to': self.date_to,
+        }
 
     def _sr_validate_fn_period_2026(self):
-        """Forceer voor 2026 exact de 26 gedocumenteerde fortnight-periodes."""
+        """Valideert dat een FN-loonstrook ca. 14 dagen beslaat (13–16 dagen).
+
+        Bedrijven mogen hun eigen betaalschema bepalen — de periode hoeft niet
+        exact overeen te komen met de standaard SR-kalender.
+        """
         self.ensure_one()
         contract = self.contract_id
         if not contract or contract.sr_salary_type != 'fn':
             return
         if not self.date_from or not self.date_to:
             return
-        if self.date_from.year != 2026 and self.date_to.year != 2026:
-            return
-        if self._sr_get_fn_period_2026():
-            return
-        raise UserError(
-            'Fortnight-loonstroken in 2026 moeten exact overeenkomen met de '
-            'gedocumenteerde 26 tijdvakken uit de Suriname context.'
-        )
+        duration = (self.date_to - self.date_from).days + 1
+        if duration < 13 or duration > 16:
+            raise UserError(
+                f'Fortnight-loonstroken moeten ca. 14 dagen beslaan (13–16 dagen). '
+                f'De ingestelde periode beslaat {duration} dag(en). '
+                f'Pas de datums aan of gebruik Maandloon voor een andere periodelengte.'
+            )
 
     def _sr_get_cached_result(self, gross_per_periode, aftrek_bv=0.0, heffingskorting=0.0):
         """
