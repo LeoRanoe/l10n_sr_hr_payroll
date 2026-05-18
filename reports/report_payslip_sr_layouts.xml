@@ -733,8 +733,8 @@
                             <td class="text-end"><t t-esc="'SRD {:,.2f}'.format(bd.get('franchise_periode', 0))"/></td>
                         </tr>
                         <tr t-else="">
-                            <td class="text-muted fst-italic">Geen franchise (fortnight loon)</td>
-                            <td class="text-end text-muted">-</td>
+                            <td class="text-muted fst-italic">Franchise pro-rata uit maandbedrag</td>
+                            <td class="text-end text-muted"><t t-esc="'SRD {:,.2f}'.format(bd.get('franchise_periode', 0))"/></td>
                         </tr>
                         <tr>
                             <td>AOV grondslag</td>

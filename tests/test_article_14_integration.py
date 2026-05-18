@@ -16,7 +16,7 @@ en end-to-end loonverwerkingsflows.
 
 from datetime import date
 
-from odoo.exceptions import UserError
+from odoo.exceptions import UserError, ValidationError
 from odoo.tests import common, tagged
 
 
@@ -183,6 +183,13 @@ class TestIntegratieVolledigeCyclus(common.TransactionCase):
             net, gross + lb + aov, places=2,
             msg='Nettoloon ≠ Bruto + LB + AOV (saldo klopt niet)',
         )
+
+    def test_salary_type_change_blocked_when_non_draft_slip_exists(self):
+        contract = self._maak_contract(wage=15000.0, salary_type='fn')
+        self._maak_loonstrook(contract)
+
+        with self.assertRaisesRegex(ValidationError, 'SR betaaltype'):
+            contract.write({'sr_salary_type': 'monthly'})
 
     # ──────────────────────────────────────────────────────────────────
     # Test 3: Nettoloon ligt altijd LAGER dan brutoloon (bij belastbaar loon)
@@ -401,7 +408,7 @@ class TestIntegratieVolledigeCyclus(common.TransactionCase):
     def test_fortnight_loonstrook_aangemaakt(self):
         """
         Fortnight contract genereert een geldige loonstrook met SR_LB en SR_AOV regels.
-        Franchise proportioneel geschaald: 400 × 12/26 ≈ 184,62/FN voor jaarequivalentie.
+        Voor FN geldt geen AOV-franchise.
         """
         fn_per_periode = 8000.0  # gewenst SRD per fortnight
         maandloon = round(fn_per_periode * 26 / 12, 2)  # ingevoerd als maandloon
@@ -413,10 +420,9 @@ class TestIntegratieVolledigeCyclus(common.TransactionCase):
         )
 
         aov = self._haal_totaal(payslip, 'SR_AOV')
-        franchise_fn = round(400.0 * 12 / 26, 2)  # 184.62
-        expected_aov = -round((fn_per_periode - franchise_fn) * 0.04, 2)
+        expected_aov = -round((fn_per_periode - (400.0 * 12 / 26)) * 0.04, 2)
         self.assertAlmostEqual(aov, expected_aov, delta=0.02,
-                               msg='AOV fortnight (geschaalde franchise) klopt niet')
+                               msg='AOV fortnight met geprorateerde franchise klopt niet')
         self.assertEqual(
             payslip._get_sr_artikel14_breakdown()['fn_period_label'], '2026FN9'
         )
@@ -447,6 +453,115 @@ class TestIntegratieVolledigeCyclus(common.TransactionCase):
                 date_from=date(2026, 5, 1),
                 date_to=date(2026, 5, 31),
             )
+
+    def test_fortnight_maureen_like_netto_met_geprorateerde_aov_franchise(self):
+        """Maureen-achtig FN-pakket moet netto met pro-rata AOV-franchise berekend worden."""
+
+        def _maureen_like_lines():
+            return [
+                (0, 0, {
+                    'name': 'Kleding Toelage',
+                    'type_id': self.env.ref('l10n_sr_hr_payroll.sr_line_type_kleding').id,
+                    'sr_categorie': 'belastbaar',
+                    'amount': 1000.0,
+                }),
+                (0, 0, {
+                    'name': 'Representatie Toelage',
+                    'type_id': self.env.ref('l10n_sr_hr_payroll.sr_line_type_representatie').id,
+                    'sr_categorie': 'belastbaar',
+                    'amount': 1500.0,
+                }),
+                (0, 0, {
+                    'name': 'Kinderbijslag',
+                    'type_id': self.env.ref('l10n_sr_hr_payroll.sr_line_type_kinderbijslag').id,
+                    'sr_categorie': 'vrijgesteld',
+                    'amount': 600.0,
+                }),
+                (0, 0, {
+                    'name': 'Pensioenpremie',
+                    'type_id': self.env.ref('l10n_sr_hr_payroll.sr_line_type_pensioen').id,
+                    'sr_categorie': 'aftrek_belastingvrij',
+                    'amount': 900.0,
+                }),
+                (0, 0, {
+                    'name': 'Ziektekostenpremie',
+                    'type_id': self.env.ref('l10n_sr_hr_payroll.sr_line_type_ziektekosten').id,
+                    'sr_categorie': 'inhouding',
+                    'amount': 1234.0,
+                }),
+            ]
+
+        contract_fn = self.env['hr.contract'].create({
+            'name': 'Integratie Contract Maureen FN',
+            'employee_id': self.employee.id,
+            'company_id': self.company.id,
+            'structure_type_id': self.structure_type.id,
+            'wage': 15000.0,
+            'sr_salary_type': 'fn',
+            'sr_aantal_kinderen': 2,
+            'sr_vaste_regels': _maureen_like_lines(),
+            'date_start': date(2026, 1, 1),
+            'state': 'open',
+        })
+
+        payslip_fn = self._maak_loonstrook(
+            contract_fn,
+            date_from=date(2026, 5, 7),
+            date_to=date(2026, 5, 20),
+        )
+
+        self.assertAlmostEqual(
+            contract_fn.sr_preview_aov_periode,
+            300.92,
+            delta=0.05,
+            msg='Preview AOV moet voor FN met geprorateerde franchise worden berekend',
+        )
+        self.assertAlmostEqual(
+            contract_fn.sr_preview_netto,
+            6609.23,
+            delta=0.05,
+            msg='Preview netto voor Maureen-achtig FN-pakket klopt niet',
+        )
+        self.assertAlmostEqual(
+            self._haal_totaal(payslip_fn, 'SR_AOV'),
+            -300.92,
+            delta=0.05,
+            msg='Loonstrook AOV moet voor FN met geprorateerde franchise worden berekend',
+        )
+        self.assertAlmostEqual(
+            self._haal_totaal(payslip_fn, 'NET'),
+            6609.23,
+            delta=0.05,
+            msg='Loonstrook netto voor Maureen-achtig FN-pakket klopt niet',
+        )
+
+    def test_batch_recompute_corrigeert_legacy_fn_aov_loonstrook(self):
+        """Een FN-loonstrook met oude AOV-berekening moet als legacy-kandidaat herrekend worden."""
+        fn_per_periode = 5000.0
+        maandloon = round(fn_per_periode * 26 / 12, 2)
+        contract = self._maak_contract(wage=maandloon, salary_type='fn')
+        payslip = self._maak_loonstrook(
+            contract,
+            date_from=date(2026, 5, 7),
+            date_to=date(2026, 5, 20),
+        )
+
+        aov_line = payslip.line_ids.filtered(lambda line: line.code == 'SR_AOV')[:1]
+        self.assertAlmostEqual(aov_line.total, -192.62, delta=0.02)
+
+        # Simuleer een historische slip die nog zonder de pro-rata franchise is opgeslagen.
+        self.env.cr.execute(
+            "UPDATE hr_payslip_line SET amount = %s, total = %s WHERE id = %s",
+            (-200.0, -200.0, aov_line.id),
+        )
+        self.env.invalidate_all()
+
+        result = payslip._sr_recompute_legacy_fn_aov_slips()
+        payslip = self.env['hr.payslip'].browse(payslip.id)
+
+        self.assertEqual(result['count'], 1)
+        self.assertEqual(result['recomputed_ids'], [payslip.id])
+        self.assertAlmostEqual(self._haal_totaal(payslip, 'SR_AOV'), -192.62, delta=0.02)
 
     # ──────────────────────────────────────────────────────────────────
     # Test 8: Breakdown dict consistent met SR_LB salarisregel (integratiecheck)
@@ -652,19 +767,18 @@ class TestIntegratieContractPreview(common.TransactionCase):
             msg='sr_preview_aov_periode maandloon klopt niet',
         )
 
-    def test_preview_aov_fortnight_franchise_geschaald(self):
+    def test_preview_aov_fortnight_met_geprorateerde_franchise(self):
         """
-        Fortnight SRD 5.000/periode → franchise = 400 × 12/26 ≈ 184,62.
-        AOV grondslag = 5.000 − 184,62 = 4.815,38 → sr_preview_aov_periode ≈ 192,62.
+        Fortnight SRD 5.000/periode → pro-rata franchise.
+        AOV grondslag = 5.000 − (400 × 12 ÷ 26) → sr_preview_aov_periode ≈ 192,62.
         Maandloon ingevoerd als 5000 × 26/12, systeem rekent terug naar 5000/FN.
         """
         maandloon = round(5000.0 * 26 / 12, 2)
         contract = self._maak_contract(wage=maandloon, salary_type='fn')
-        franchise_fn = round(400.0 * 12 / 26, 2)  # 184.62
-        verwacht = round((5000.0 - franchise_fn) * 0.04, 2)
+        verwacht = round((5000.0 - (400.0 * 12 / 26)) * 0.04, 2)
         self.assertAlmostEqual(
             contract.sr_preview_aov_periode, verwacht, delta=0.02,
-            msg='sr_preview_aov_periode fortnight (geschaalde franchise) klopt niet',
+            msg='sr_preview_aov_periode fortnight met geprorateerde franchise klopt niet',
         )
 
     # ──────────────────────────────────────────────────────────────────

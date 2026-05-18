@@ -873,7 +873,7 @@ class TestQAAudit2026(common.TransactionCase):
         self.assertAlmostEqual(excess_slip._sr_bijz_belastbaar_totaal(), 500.0, places=2)
         self.assertLess(self._line_total(excess_slip, 'SR_LB_BIJZ'), 0.0)
 
-    def test_aov_franchise_applies_only_to_monthly_calculation(self):
+    def test_aov_franchise_is_prorated_by_period(self):
         params = calc.fetch_params_from_rule_parameter(self.env, date(2026, 4, 30))
         monthly = calc.calculate_lb(4000.0, 12, params)
         fortnight = calc.calculate_lb(4000.0, 26, params)
@@ -882,7 +882,6 @@ class TestQAAudit2026(common.TransactionCase):
         self.assertEqual(monthly['aov_grondslag'], 3600.0)
         self.assertEqual(monthly['aov_per_periode'], 144.0)
 
-        # FN franchise = 400 × 12 ÷ 26 ≈ 184,62; grondslag = 4000 − 184,62 = 3815,38; AOV = 3815,38 × 4% = 152,62
         self.assertAlmostEqual(fortnight['franchise_periode'], 184.62, places=2)
         self.assertAlmostEqual(fortnight['aov_grondslag'], 3815.38, places=2)
         self.assertAlmostEqual(fortnight['aov_per_periode'], 152.62, places=2)

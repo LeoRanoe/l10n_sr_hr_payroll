@@ -164,6 +164,26 @@ function Invoke-Psql {
     return [PSCustomObject]@{ Output = $out; ExitCode = $code }
 }
 
+function Invoke-OdooShell {
+    param(
+        [string]$DbName,
+        [string]$ScriptText
+    )
+
+    $prev = $ErrorActionPreference
+    try {
+        $ErrorActionPreference = 'SilentlyContinue'
+        $out = $ScriptText | & $pythonExe $odooBin shell --config $odooConf --database $DbName 2>&1
+        $code = $LASTEXITCODE
+        $ErrorActionPreference = $prev
+    }
+    finally {
+        $ErrorActionPreference = $prev
+    }
+
+    return [PSCustomObject]@{ Output = $out; ExitCode = $code }
+}
+
 function Resolve-TargetDatabase {
     param(
         [string]$RequestedDatabase,
@@ -477,6 +497,44 @@ if ($shouldUpgradeModule) {
             exit 1
         }
         Write-OK ("Module '" + $ModuleName + "' succesvol geupgraded.")
+
+        $legacyFnRecomputeScript = @"
+result = env['hr.payslip']._sr_recompute_legacy_fn_aov_slips()
+env.cr.commit()
+print('SR_FN_AOV_RECOMPUTE_COUNT=' + str(result.get('count', 0)))
+for line in result.get('detail_lines', []):
+    print(line)
+"@
+        $recomputeRes = Invoke-OdooShell -DbName $Database -ScriptText $legacyFnRecomputeScript
+        if ($recomputeRes.ExitCode -ne 0) {
+            Write-Fail ("Automatische FN-herrekening mislukt (exit " + $recomputeRes.ExitCode + ").")
+            $recomputeRes.Output | ForEach-Object { Write-Host ("    " + $_) -ForegroundColor Yellow }
+            exit 1
+        }
+
+        $recomputeOutput = @(
+            $recomputeRes.Output |
+                ForEach-Object { $_.ToString().TrimEnd() } |
+                Where-Object { $_ }
+        )
+        $countLine = $recomputeOutput |
+            Where-Object { $_ -like 'SR_FN_AOV_RECOMPUTE_COUNT=*' } |
+            Select-Object -Last 1
+
+        if ($countLine) {
+            $recomputedCount = [int]($countLine -replace '^SR_FN_AOV_RECOMPUTE_COUNT=', '')
+            if ($recomputedCount -gt 0) {
+                Write-OK ("Automatische FN-herrekening voltooid voor " + $recomputedCount + ' loonstro(o)k(en).')
+                $recomputeOutput |
+                    Where-Object { $_ -notlike 'SR_FN_AOV_RECOMPUTE_COUNT=*' } |
+                    ForEach-Object { Write-Host ("    " + $_) -ForegroundColor DarkGray }
+            } else {
+                Write-OK 'Geen legacy FN-loonstroken gevonden voor automatische herrekening.'
+            }
+        } else {
+            Write-Warn 'Automatische FN-herrekening gaf geen telresultaat terug.'
+            $recomputeOutput | ForEach-Object { Write-Host ("    " + $_) -ForegroundColor DarkGray }
+        }
     }
 } elseif ($SkipUpgradeModule) {
     Write-Warn 'Module-upgrade overgeslagen (-SkipUpgradeModule).'

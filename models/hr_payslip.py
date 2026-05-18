@@ -14,6 +14,7 @@ from . import sr_artikel14_calculator as calc
 # Keyed on (payslip_id, gross, aftrek_bv) and isolated per request thread.
 _sr_calc_thread_local = threading.local()
 _SR_MONEY_QUANT = Decimal('0.01')
+_SR_INTERNAL_MONEY_QUANT = Decimal('0.000001')
 _SR_HOURLY_RATE_QUANT = Decimal('0.000001')
 _SR_PAYSLIP_LAYOUT_DEFAULT = 'employee_simple'
 _SR_PAYSLIP_LAYOUT_CONFIG_KEY = 'sr_payroll.sr_default_payslip_layout'
@@ -345,6 +346,151 @@ class HrPayslip(models.Model):
                 )
         return super().write(vals)
 
+    def _sr_line_total(self, *codes):
+        self.ensure_one()
+        total = sum((
+            Decimal(str(line.total or 0.0))
+            for line in self.line_ids
+            if line.code in codes
+        ), Decimal('0'))
+        return float(total.quantize(_SR_MONEY_QUANT, rounding=ROUND_HALF_UP))
+
+    def _sr_collect_legacy_fn_aov_recompute_candidates(self):
+        sr_struct = self.env.ref('l10n_sr_hr_payroll.sr_payroll_structure', raise_if_not_found=False)
+        candidates = self.env['hr.payslip']
+        before_by_id = {}
+
+        if not sr_struct:
+            return candidates, before_by_id
+
+        slips = self.filtered(
+            lambda slip: slip.struct_id == sr_struct
+            and slip.contract_id
+            and slip.contract_id.sr_salary_type == 'fn'
+            and slip.state != 'cancel'
+        )
+
+        for slip in slips:
+            if slip._sr_get_periodes() != 26:
+                continue
+
+            stored_aov = abs(slip._sr_line_total('SR_AOV'))
+            gross = (
+                slip._sr_line_total('BASIC')
+                + slip._sr_line_total('SR_ALW')
+                + slip._sr_line_total('SR_KB_BELAST')
+                + slip._sr_line_total('SR_INPUT_BELASTB')
+                + abs(slip._sr_line_total('SR_VGB_BELAST'))
+            )
+            aftrek_bv = abs(slip._sr_line_total('SR_AFTREK_BV'))
+            heffingskorting = slip._sr_line_total('SR_HK')
+            if abs(heffingskorting) < 0.005 and slip.contract_id:
+                heffingskorting = slip.contract_id._sr_get_heffingskorting_per_periode(
+                    slip._rule_parameter('SR_HEFFINGSKORTING'),
+                    round_result=False,
+                )
+            params = calc.fetch_params_from_payslip(slip)
+            expected_aov = calc.calculate_lb(
+                gross,
+                26,
+                params,
+                aftrek_bv_per_periode=aftrek_bv,
+                heffingskorting_per_periode=heffingskorting,
+            )['aov_per_periode']
+            if abs(Decimal(str(stored_aov)) - Decimal(str(expected_aov))) <= Decimal('0.01'):
+                continue
+
+            before_by_id[slip.id] = {
+                'aov': stored_aov,
+                'net': slip._sr_line_total('NET'),
+            }
+            candidates |= slip
+
+        return candidates, before_by_id
+
+    def _sr_recompute_legacy_fn_aov_slips(self, limit=None):
+        sr_struct = self.env.ref('l10n_sr_hr_payroll.sr_payroll_structure', raise_if_not_found=False)
+        slips = self
+
+        if not slips:
+            if not sr_struct:
+                return {
+                    'count': 0,
+                    'recomputed_ids': [],
+                    'detail_lines': [],
+                }
+            slips = self.search([
+                ('struct_id', '=', sr_struct.id),
+                ('contract_id', '!=', False),
+                ('contract_id.sr_salary_type', '=', 'fn'),
+                ('state', 'in', ('draft', 'verify', 'done', 'paid')),
+            ], order='date_from, number, id', limit=limit)
+        elif limit:
+            slips = slips[:limit]
+
+        candidates, before_by_id = slips._sr_collect_legacy_fn_aov_recompute_candidates()
+        if not candidates:
+            return {
+                'count': 0,
+                'recomputed_ids': [],
+                'detail_lines': [],
+            }
+
+        recompute_ctx = dict(
+            self.env.context,
+            sr_allow_confirmed_recompute=True,
+            tracking_disable=True,
+            mail_notrack=True,
+            mail_create_nolog=True,
+            mail_create_nosubscribe=True,
+        )
+        candidates.with_context(**recompute_ctx).compute_sheet()
+        recomputed_slips = self.browse(candidates.ids)
+        detail_lines = []
+        for slip in recomputed_slips:
+            before = before_by_id.get(slip.id, {})
+            after_aov = abs(slip._sr_line_total('SR_AOV'))
+            after_net = slip._sr_line_total('NET')
+            slip_label = slip.number or slip.name or f'ID {slip.id}'
+            detail_lines.append(
+                f'{slip_label} ({slip.employee_id.name}): '
+                f'AOV {before.get("aov", 0.0):.2f}->{after_aov:.2f}, '
+                f'NET {before.get("net", 0.0):.2f}->{after_net:.2f}'
+            )
+
+        return {
+            'count': len(recomputed_slips),
+            'recomputed_ids': recomputed_slips.ids,
+            'detail_lines': detail_lines,
+        }
+
+    def action_sr_recompute_legacy_fn_aov_slips(self):
+        result = self._sr_recompute_legacy_fn_aov_slips()
+        count = result['count']
+        detail_preview = '; '.join(result['detail_lines'][:3])
+
+        if count:
+            message = f'{count} FN-loonstro(o)k(en) herrekend zonder AOV-franchise.'
+            if detail_preview:
+                message = f'{message} {detail_preview}'
+            if len(result['detail_lines']) > 3:
+                message = f'{message} ...'
+            notif_type = 'success'
+        else:
+            message = 'Geen FN-loonstroken gevonden die nog met de oude AOV-franchise berekend zijn.'
+            notif_type = 'warning'
+
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'display_notification',
+            'params': {
+                'title': 'FN AOV herrekening',
+                'message': message,
+                'type': notif_type,
+                'sticky': False,
+            },
+        }
+
     def _sr_require_positive_contract_wage(self):
         self.ensure_one()
         sr_struct = self.env.ref('l10n_sr_hr_payroll.sr_payroll_structure', raise_if_not_found=False)
@@ -559,7 +705,7 @@ class HrPayslip(models.Model):
             ),
         })
 
-    def _sr_wage_in_srd(self):
+    def _sr_wage_in_srd(self, round_result=True):
         """
         Geeft het contractloon per periode terug in SRD.
 
@@ -581,7 +727,8 @@ class HrPayslip(models.Model):
         if self.contract_id.sr_salary_type == 'fn':
             wage_srd = wage_srd * Decimal('12') / Decimal('26')
 
-        return float(wage_srd.quantize(_SR_MONEY_QUANT, rounding=ROUND_HALF_UP))
+        quant = _SR_MONEY_QUANT if round_result else _SR_INTERNAL_MONEY_QUANT
+        return float(wage_srd.quantize(quant, rounding=ROUND_HALF_UP))
 
     def _rule_parameter(self, code):
         self.ensure_one()
@@ -884,9 +1031,9 @@ class HrPayslip(models.Model):
         cache = _get_sr_calc_cache()
         cache_key = (
             self.id,
-            str(self._sr_money_quantize(gross_per_periode)),
-            str(self._sr_money_quantize(aftrek_bv)),
-            str(self._sr_money_quantize(heffingskorting)),
+            str(self._sr_money_quantize(gross_per_periode, quant=_SR_INTERNAL_MONEY_QUANT)),
+            str(self._sr_money_quantize(aftrek_bv, quant=_SR_INTERNAL_MONEY_QUANT)),
+            str(self._sr_money_quantize(heffingskorting, quant=_SR_INTERNAL_MONEY_QUANT)),
         )
         if cache_key in cache:
             return cache[cache_key]
@@ -913,7 +1060,8 @@ class HrPayslip(models.Model):
         :returns: positief bedrag loonbelasting per periode
         """
         heffingskorting = self.contract_id._sr_get_heffingskorting_per_periode(
-            self._rule_parameter('SR_HEFFINGSKORTING')
+            self._rule_parameter('SR_HEFFINGSKORTING'),
+            round_result=False,
         ) if self.contract_id else 0.0
         return self._sr_get_cached_result(
             gross_per_periode,
@@ -932,7 +1080,8 @@ class HrPayslip(models.Model):
         :returns: positief bedrag AOV per periode
         """
         heffingskorting = self.contract_id._sr_get_heffingskorting_per_periode(
-            self._rule_parameter('SR_HEFFINGSKORTING')
+            self._rule_parameter('SR_HEFFINGSKORTING'),
+            round_result=False,
         ) if self.contract_id else 0.0
         return self._sr_get_cached_result(
             gross_per_periode,
@@ -1106,7 +1255,8 @@ class HrPayslip(models.Model):
         heffingskorting_calc = heffingskorting
         if abs(heffingskorting_calc) < 0.005 and contract:
             heffingskorting_calc = contract._sr_get_heffingskorting_per_periode(
-                self._rule_parameter('SR_HEFFINGSKORTING')
+                self._rule_parameter('SR_HEFFINGSKORTING'),
+                round_result=False,
             )
         r = calc.calculate_lb(
             gross,

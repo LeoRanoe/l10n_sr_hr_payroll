@@ -1701,7 +1701,7 @@
                                 <article class="sr-flow-card">
                                     <span class="sr-step">6</span>
                                     <h3>AOV bijdrage</h3>
-                                    <p><t t-esc="'{:.0f}'.format(v.get('SR_AOV_TARIEF', 0.04) * 100)"/>% over bruto minus franchise SRD <t t-esc="'{:,.0f}'.format(v.get('SR_AOV_FRANCHISE_MAAND', 400))"/> voor maandloon; FN kent geen franchise.</p>
+                                    <p><t t-esc="'{:.0f}'.format(v.get('SR_AOV_TARIEF', 0.04) * 100)"/>% over bruto minus franchise. De maandfranchise van SRD <t t-esc="'{:,.0f}'.format(v.get('SR_AOV_FRANCHISE_MAAND', 400))"/> wordt voor FN pro-rata omgerekend naar de periode.</p>
                                 </article>
                                 <article class="sr-flow-card">
                                     <span class="sr-step">7</span>

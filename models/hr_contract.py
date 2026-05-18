@@ -11,6 +11,7 @@ from . import sr_artikel14_calculator as calc
 
 
 SR_STANDARD_SHORTCUT_CODES = frozenset({'KINDBIJ', 'TRANSPORT', 'REPRES', 'GENEESK'})
+SR_INTERNAL_MONEY_QUANT = Decimal('0.000001')
 
 
 class HrContract(models.Model):
@@ -326,24 +327,24 @@ class HrContract(models.Model):
 
         for contract in self:
             periodes = 26 if contract.sr_salary_type == 'fn' else 12
-            heffingskorting = contract._sr_get_heffingskorting_per_periode()
+            heffingskorting = contract._sr_get_heffingskorting_per_periode(round_result=False)
 
             rate = contract._sr_get_current_exchange_rate()
-            belastbaar_toelagen = contract._sr_resolve_regels('belastbaar', exchange_rate=rate)
-            vrijgesteld_toelagen = contract._sr_resolve_other_vrijgestelde_regels(exchange_rate=rate)
-            inhoudingen = contract._sr_resolve_regels('inhouding', exchange_rate=rate)
-            aftrek_bv = contract._sr_resolve_regels('aftrek_belastingvrij', exchange_rate=rate)
+            belastbaar_toelagen = contract._sr_resolve_regels('belastbaar', exchange_rate=rate, round_result=False)
+            vrijgesteld_toelagen = contract._sr_resolve_other_vrijgestelde_regels(exchange_rate=rate, round_result=False)
+            inhoudingen = contract._sr_resolve_regels('inhouding', exchange_rate=rate, round_result=False)
+            aftrek_bv = contract._sr_resolve_regels('aftrek_belastingvrij', exchange_rate=rate, round_result=False)
 
             # Kinderbijslag splitsing (Art. 10h)
-            kb_split = contract._sr_kinderbijslag_split(exchange_rate=rate)
+            kb_split = contract._sr_kinderbijslag_split(exchange_rate=rate, round_result=False)
             kb_belastbaar = kb_split['belastbaar']
             kb_vrijgesteld = kb_split['vrijgesteld']
 
             # VGB fiscaal belastbaar deel (Art. 9 WLB — voordeel in natura, max SR_VGB_MAX_JAAR)
-            vgb_belastbaar = contract._sr_vgb_fiscaal_belastbaar(exchange_rate=rate)
+            vgb_belastbaar = contract._sr_vgb_fiscaal_belastbaar(exchange_rate=rate, round_result=False)
 
             # Basisloon per periode in SRD (FN: maandloon × 12/26)
-            wage_per_period = contract._sr_get_wage_per_period_srd(exchange_rate=rate)
+            wage_per_period = contract._sr_get_wage_per_period_srd(exchange_rate=rate, round_result=False)
 
             # Bruto belastbaar = basisloon per periode + belastbare toelagen + KB belastbaar + VGB fiscaal
             bruto_belastbaar = wage_per_period + belastbaar_toelagen + kb_belastbaar + vgb_belastbaar
@@ -519,7 +520,7 @@ class HrContract(models.Model):
             wage_srd = contract._sr_get_wage_in_srd(exchange_rate=rate)
             contract.sr_wage_srd = wage_srd
 
-    def _sr_get_wage_in_srd(self, exchange_rate=None):
+    def _sr_get_wage_in_srd(self, exchange_rate=None, round_result=True):
         """Zet het contractloon (maandloon) om naar SRD."""
         self.ensure_one()
         wage = Decimal(str(self.wage or 0.0))
@@ -527,9 +528,10 @@ class HrContract(models.Model):
             return 0.0
         rate = Decimal(str(exchange_rate if exchange_rate is not None else self._sr_get_current_exchange_rate()))
         wage_srd = wage * rate
-        return float(wage_srd.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP))
+        quant = calc.MONEY_QUANT if round_result else SR_INTERNAL_MONEY_QUANT
+        return float(wage_srd.quantize(quant, rounding=ROUND_HALF_UP))
 
-    def _sr_get_wage_per_period_srd(self, exchange_rate=None):
+    def _sr_get_wage_per_period_srd(self, exchange_rate=None, round_result=True):
         """Geeft het loon per uitbetalingsperiode terug in SRD.
 
         Het basisloon wordt altijd als maandloon ingevoerd.
@@ -537,10 +539,13 @@ class HrContract(models.Model):
         Voor maandloon: ongewijzigd.
         """
         self.ensure_one()
-        wage_srd = Decimal(str(self._sr_get_wage_in_srd(exchange_rate=exchange_rate)))
+        wage_srd = Decimal(str(
+            self._sr_get_wage_in_srd(exchange_rate=exchange_rate, round_result=False)
+        ))
         if self.sr_salary_type == 'fn':
             wage_srd = wage_srd * Decimal('12') / Decimal('26')
-        return float(wage_srd.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP))
+        quant = calc.MONEY_QUANT if round_result else SR_INTERNAL_MONEY_QUANT
+        return float(wage_srd.quantize(quant, rounding=ROUND_HALF_UP))
 
     def _sr_get_current_exchange_rate(self):
         """Leest de actuele wisselkoers voor de contractvaluta (voor preview/display)."""
@@ -560,7 +565,31 @@ class HrContract(models.Model):
         sr_struct = self.env.ref('l10n_sr_hr_payroll.sr_payroll_structure', raise_if_not_found=False)
         return bool(sr_struct and self.structure_type_id == sr_struct.type_id)
 
+    def _sr_guard_salary_type_change_with_existing_slips(self, new_salary_type):
+        if self.env.context.get('sr_allow_salary_type_change_with_slips'):
+            return
+        changing_contracts = self.filtered(
+            lambda contract: contract._sr_is_payroll_contract()
+            and contract.sr_salary_type
+            and contract.sr_salary_type != new_salary_type
+        )
+        if not changing_contracts:
+            return
+
+        blocking_slip = self.env['hr.payslip'].search([
+            ('contract_id', 'in', changing_contracts.ids),
+            ('state', 'not in', ('draft', 'cancel')),
+        ], limit=1)
+        if blocking_slip:
+            raise ValidationError(
+                'Je kunt het SR betaaltype niet wijzigen zolang er al berekende of bevestigde '
+                'loonstroken op dit contract bestaan. Annuleer of corrigeer eerst de bestaande '
+                'loonstroken en probeer daarna opnieuw.'
+            )
+
     def write(self, vals):
+        if 'sr_salary_type' in vals:
+            self._sr_guard_salary_type_change_with_existing_slips(vals['sr_salary_type'])
         result = super().write(vals)
         if 'sr_has_overtime_right' in vals:
             work_entries = self.env['hr.work.entry'].search([
@@ -707,7 +736,7 @@ class HrContract(models.Model):
                 contract.sr_vrije_geneeskundige_behandeling,
             )
 
-    def _sr_get_heffingskorting_per_periode(self, heffingskorting_maand=None):
+    def _sr_get_heffingskorting_per_periode(self, heffingskorting_maand=None, round_result=True):
         """Geeft de netto heffingskorting terug voor maandloon of FN."""
         self.ensure_one()
         if heffingskorting_maand is None:
@@ -720,11 +749,13 @@ class HrContract(models.Model):
             return 0.0
 
         periodes = 26 if self.sr_salary_type == 'fn' else 12
-        if periodes == 12:
-            return calc.round_money(heffingskorting_maand)
-        return calc.round_money(heffingskorting_maand * 12.0 / 26.0)
+        heffingskorting_per_periode = Decimal(str(heffingskorting_maand))
+        if periodes != 12:
+            heffingskorting_per_periode = heffingskorting_per_periode * Decimal('12') / Decimal('26')
+        quant = calc.MONEY_QUANT if round_result else SR_INTERNAL_MONEY_QUANT
+        return float(heffingskorting_per_periode.quantize(quant, rounding=ROUND_HALF_UP))
 
-    def _sr_resolve_line_amount(self, line, exchange_rate=None):
+    def _sr_resolve_line_amount(self, line, exchange_rate=None, round_result=True):
         """
         Berekent het effectieve bedrag van een vaste loon regel in SRD.
 
@@ -732,18 +763,22 @@ class HrContract(models.Model):
         Bij percentage: berekend over het loon per periode (FN: maandloon × 12/26) in SRD.
         Bij vast bedrag in vreemde valuta (USD/EUR): converteert naar SRD via exchange_rate.
         """
+        quant = calc.MONEY_QUANT if round_result else SR_INTERNAL_MONEY_QUANT
+
         if line.amount_type == 'percentage' and line.percentage:
-            wage_srd = self._sr_get_wage_per_period_srd(exchange_rate=exchange_rate)
+            wage_srd = self._sr_get_wage_per_period_srd(exchange_rate=exchange_rate, round_result=False)
             if line.percentage_base == 'bruto_belastbaar':
                 base = wage_srd + sum(
-                    self._sr_resolve_line_amount(l, exchange_rate=exchange_rate) for l in self.sr_vaste_regels
+                    self._sr_resolve_line_amount(l, exchange_rate=exchange_rate, round_result=False)
+                    for l in self.sr_vaste_regels
                     if l._sr_effective_category() == 'belastbaar'
                     and l.amount_type != 'percentage'
                     and l.id != line.id
                 )
             else:
                 base = wage_srd
-            return calc.round_money(base * (line.percentage / 100.0))
+            percentage_amount = Decimal(str(base)) * Decimal(str(line.percentage or 0.0)) / Decimal('100')
+            return float(percentage_amount.quantize(quant, rounding=ROUND_HALF_UP))
 
         # Vast bedrag — converteer naar SRD als de lijn-valuta vreemd is
         amount = Decimal(str(line.amount or 0.0))
@@ -754,27 +789,33 @@ class HrContract(models.Model):
         # Alle vaste bedragen zijn maandelijkse bedragen — FN: schaal naar per-fortnight (× 12 ÷ 26)
         if self.sr_salary_type == 'fn':
             amount = amount * Decimal('12') / Decimal('26')
-        return calc.round_money(float(amount.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)))
+        return float(amount.quantize(quant, rounding=ROUND_HALF_UP))
 
-    def _sr_resolve_regels(self, categorie, exchange_rate=None):
+    def _sr_resolve_regels(self, categorie, exchange_rate=None, round_result=True):
         """
         Totale bedrag van vaste regels voor een bepaalde categorie.
 
         Handelt percentages automatisch af via _sr_resolve_line_amount.
         """
-        return calc.round_money(sum(
-            self._sr_resolve_line_amount(r, exchange_rate=exchange_rate) for r in self.sr_vaste_regels
+        total = sum((
+            Decimal(str(self._sr_resolve_line_amount(r, exchange_rate=exchange_rate, round_result=False)))
+            for r in self.sr_vaste_regels
             if r._sr_effective_category() == categorie
-        ))
+        ), Decimal('0'))
+        quant = calc.MONEY_QUANT if round_result else SR_INTERNAL_MONEY_QUANT
+        return float(total.quantize(quant, rounding=ROUND_HALF_UP))
 
-    def _sr_resolve_other_vrijgestelde_regels(self, exchange_rate=None):
+    def _sr_resolve_other_vrijgestelde_regels(self, exchange_rate=None, round_result=True):
         """Totale vrijgestelde contractregels exclusief kinderbijslag (Art. 10h)."""
-        return calc.round_money(sum(
-            self._sr_resolve_line_amount(r, exchange_rate=exchange_rate) for r in self.sr_vaste_regels
+        total = sum((
+            Decimal(str(self._sr_resolve_line_amount(r, exchange_rate=exchange_rate, round_result=False)))
+            for r in self.sr_vaste_regels
             if r._sr_effective_category() == 'vrijgesteld' and not r._is_sr_kindbijslag_line()
-        ))
+        ), Decimal('0'))
+        quant = calc.MONEY_QUANT if round_result else SR_INTERNAL_MONEY_QUANT
+        return float(total.quantize(quant, rounding=ROUND_HALF_UP))
 
-    def _sr_kinderbijslag_split(self, max_kind_maand=None, max_maand=None, exchange_rate=None):
+    def _sr_kinderbijslag_split(self, max_kind_maand=None, max_maand=None, exchange_rate=None, round_result=True):
         """
         Splitst kinderbijslag in belastbaar en vrijgesteld deel (Art. 10h).
 
@@ -803,29 +844,40 @@ class HrContract(models.Model):
             r for r in self.sr_vaste_regels
             if r._is_sr_kindbijslag_line()
         ]
-        total_kb = sum(self._sr_resolve_line_amount(r, exchange_rate=exchange_rate) for r in kb_lines) if kb_lines else 0.0
+        total_kb = sum((
+            Decimal(str(self._sr_resolve_line_amount(r, exchange_rate=exchange_rate, round_result=False)))
+            for r in kb_lines
+        ), Decimal('0')) if kb_lines else Decimal('0')
 
         if total_kb <= 0:
             return {'belastbaar': 0.0, 'vrijgesteld': 0.0}
 
         if not self.sr_aantal_kinderen or self.sr_aantal_kinderen <= 0:
             # Geen kinderen geregistreerd: volledige KB is belastbaar
-            return {'belastbaar': total_kb, 'vrijgesteld': 0.0}
+            quant = calc.MONEY_QUANT if round_result else SR_INTERNAL_MONEY_QUANT
+            return {
+                'belastbaar': float(total_kb.quantize(quant, rounding=ROUND_HALF_UP)),
+                'vrijgesteld': 0.0,
+            }
 
         periodes = 26 if self.sr_salary_type == 'fn' else 12
         eligible_children = min(self.sr_aantal_kinderen, self.SR_AKB_MAX_CHILDREN)
         exempt_maand = min(eligible_children * max_kind_maand, max_maand)
-        exempt_per_periode = exempt_maand if periodes == 12 else exempt_maand * 12.0 / 26.0
+        exempt_per_periode = Decimal(str(exempt_maand or 0.0))
+        if periodes != 12:
+            exempt_per_periode = exempt_per_periode * Decimal('12') / Decimal('26')
 
         kb_exempt = min(total_kb, exempt_per_periode)
-        kb_belastbaar = max(0.0, total_kb - exempt_per_periode)
+        kb_belastbaar = max(Decimal('0'), total_kb - exempt_per_periode)
+
+        quant = calc.MONEY_QUANT if round_result else SR_INTERNAL_MONEY_QUANT
 
         return {
-            'belastbaar': calc.round_money(kb_belastbaar),
-            'vrijgesteld': calc.round_money(kb_exempt),
+            'belastbaar': float(kb_belastbaar.quantize(quant, rounding=ROUND_HALF_UP)),
+            'vrijgesteld': float(kb_exempt.quantize(quant, rounding=ROUND_HALF_UP)),
         }
 
-    def _sr_vgb_fiscaal_belastbaar(self, exchange_rate=None):
+    def _sr_vgb_fiscaal_belastbaar(self, exchange_rate=None, round_result=True):
         """
         Berekent het fiscaal belastbaar deel van Vrije Geneeskundige Behandeling (Art. 9 WLB).
 
@@ -835,7 +887,7 @@ class HrContract(models.Model):
 
         Prioriteit:
         1. Expliciete GENEESK-contractregel (categorie='fiscaal_grondslag') — gebruikt die waarde, gecapped.
-        2. Geen contractregel → geen VGB belastbaar voordeel in natura (0.0).
+        2. Geen contractregel — geen VGB-grondslag.
 
         :returns: Belastbaar VGB per periode (gecapped op SR_VGB_MAX_JAAR/periodes)
         """
@@ -845,11 +897,13 @@ class HrContract(models.Model):
             default=200.0, raise_if_not_found=False,
         ) or 200.0
         periodes = 26 if self.sr_salary_type == 'fn' else 12
-        vgb_max_periode = vgb_max_jaar / periodes
+        vgb_max_periode = Decimal(str(vgb_max_jaar or 0.0)) / Decimal(str(periodes or 1))
 
-        vgb_contract = self._sr_resolve_regels('fiscaal_grondslag', exchange_rate=exchange_rate)
+        vgb_contract = self._sr_resolve_regels('fiscaal_grondslag', exchange_rate=exchange_rate, round_result=False)
         if vgb_contract:
-            return calc.round_money(min(vgb_contract, vgb_max_periode))
+            quant = calc.MONEY_QUANT if round_result else SR_INTERNAL_MONEY_QUANT
+            capped_amount = min(Decimal(str(vgb_contract)), vgb_max_periode)
+            return float(capped_amount.quantize(quant, rounding=ROUND_HALF_UP))
 
         return 0.0
 

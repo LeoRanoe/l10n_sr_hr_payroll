@@ -41,8 +41,8 @@
                                     </group>
                                 </group>
                                 <div class="alert alert-secondary mt-3 mb-0" role="alert">
-                                    <strong>AOV franchise:</strong> deze waarde geldt alleen voor <strong>maandloon</strong>.
-                                    Bij <strong>FN / Fortnight</strong> wordt in de payroll-engine automatisch geen franchise toegepast.
+                                    <strong>AOV franchise:</strong> dit is een <strong>maandbedrag</strong>.
+                                    Bij <strong>FN / Fortnight</strong> rekent de payroll-engine deze franchise automatisch pro-rata om naar <strong>12 / 26</strong> per periode.
                                 </div>
                                 <div class="alert alert-light border mt-3 mb-0" role="alert">
                                     <strong>Heffingskorting:</strong> wordt als <strong>aparte netto-credit</strong> toegepast.

@@ -134,6 +134,13 @@ class TestArtikel14Berekening(common.TransactionCase):
         # De bron noemt HK elders, maar de formele LB-formule vermindert die niet.
         self.assertAlmostEqual(result['lb_per_periode'], result['lb_jaar'] / 12, places=2)
 
+    def test_vgb_zonder_contractregel_is_nul(self):
+        contract_month = self._create_contract(wage=15000.0, salary_type='monthly')
+        contract_fn = self._create_contract(wage=15000.0, salary_type='fn', employee=self.employee_b)
+
+        self.assertEqual(contract_month._sr_vgb_fiscaal_belastbaar(), 0.0)
+        self.assertEqual(contract_fn._sr_vgb_fiscaal_belastbaar(), 0.0)
+
     # ──────────────────────────────────────────────────────────────────────
     # Test 1: Maandloon onder de belastingvrije grens
     # Iemand die minder dan SRD 9.000/maand verdient → geen loonbelasting
@@ -501,7 +508,7 @@ class TestArtikel14AOV(common.TransactionCase):
     """
     Tests specifiek voor de AOV berekening:
     - Franchise SRD 400/maand (maandloon)
-    - Geen franchise voor fortnight loon
+    - Geprorateerde franchise voor fortnight loon
     - 4% tarief
     """
 
@@ -563,19 +570,18 @@ class TestArtikel14AOV(common.TransactionCase):
         self.assertAlmostEqual(aov, verwacht_aov, places=2,
                                msg='AOV maandloon met franchise klopt niet')
 
-    def test_aov_fortnight_franchise_geschaald(self):
+    def test_aov_fortnight_met_geprorateerde_franchise(self):
         """
         Fortnight loon SRD 5.000/fortnight (ingevoerd als maandloon × 26/12) →
-        Franchise = 400 × 12/26 ≈ 184,62/FN (proportioneel geschaald voor jaarequivalentie).
-        AOV grondslag = 5.000 − 184,62 = 4.815,38 → AOV ≈ 192,62
+        pro-rata franchise = 400 × 12 / 26.
+        AOV grondslag = 5.000 − 184,62 → AOV ≈ 192,62.
         """
         maandloon = round(5000.0 * 26 / 12, 2)  # geeft per-FN ≈ 5000
         payslip = self._make_payslip(wage=maandloon, salary_type='fn')
         aov = payslip.line_ids.filtered(lambda l: l.code == 'SR_AOV').total
-        franchise_fn = round(400.0 * 12 / 26, 2)  # 184.62
-        verwacht_aov = -round((5000.0 - franchise_fn) * 0.04, 2)
+        verwacht_aov = -round((5000.0 - (400.0 * 12 / 26)) * 0.04, 2)
         self.assertAlmostEqual(aov, verwacht_aov, delta=0.02,
-                               msg='AOV fortnight met geschaalde franchise klopt niet')
+                               msg='AOV fortnight met geprorateerde franchise klopt niet')
 
     def test_aov_maandloon_lager_dan_franchise(self):
         """
@@ -858,8 +864,8 @@ class TestArtikel14Breakdown(common.TransactionCase):
         bd = payslip._get_sr_artikel14_breakdown()
         self.assertEqual(bd['periodes'], 26)
         self.assertTrue(bd['is_fn'])
-        self.assertAlmostEqual(bd['franchise_periode'], round(400 * 12 / 26, 2), delta=0.01,
-                               msg='Fortnight AOV franchise = 400/maand omgerekend naar FN-periode')
+        self.assertAlmostEqual(bd['franchise_periode'], 184.62, places=2,
+             msg='Fortnight AOV franchise moet pro-rata uit maandfranchise worden berekend')
         self.assertEqual(bd['fn_period_label'], '2026FN10')
         self.assertEqual(bd['fn_period_indicator'], '202610')
 

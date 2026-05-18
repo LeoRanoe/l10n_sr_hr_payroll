@@ -44,6 +44,7 @@ Berekeningen:
         'data/hr_salary_rule_data.xml',
         'data/hr_payslip_input_type_data.xml',
         'data/hr_contract_sr_line_type_data.xml',
+        'data/hr_payslip_server_action_data.xml',
         'data/res_currency_srd_data.xml',
         'data/sr_public_holiday_data.xml',
         'views/hr_contract_views.xml',

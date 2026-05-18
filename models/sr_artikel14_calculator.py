@@ -443,10 +443,11 @@ def calculate_lb(
     lb_per_periode = max(ZERO, lb_voor_heffingskorting_per_periode - heffingskorting_per_periode_dec)
 
     # AOV — ook over gecorrigeerd bruto (Art. 10f aftrek)
-    # Franchise wordt proporitioneel geschaald: maandbedrag × 12 ÷ periodes
-    # Zo is jaarfranchise identiek voor maandloon (400×12) en fortnight (400×12/26×26).
+    # De franchise is een maandbedrag en wordt pro-rata omgerekend naar de uitbetalingsperiode.
     effective_bruto_per_periode = max(ZERO, bruto_per_periode_dec - aftrek_bv_per_periode_dec)
-    franchise_periode = _to_decimal(aov_franchise_maand) * Decimal('12') / periodes_dec
+    franchise_periode = ZERO
+    if aov_franchise_maand:
+        franchise_periode = (_to_decimal(aov_franchise_maand) * Decimal('12')) / periodes_dec
     aov_grondslag = max(ZERO, effective_bruto_per_periode - franchise_periode)
     aov_per_periode = aov_grondslag * aov_tarief
 
@@ -644,18 +645,19 @@ def generate_breakdown_html(result, wage, periodes, salary_type, kb_split=None,
 
     # ─── Sectie 4: AOV ─────────────────────────────
     rows.append(sep('⑤ AOV BIJDRAGE (4%)'))
-    fn_suffix = ' (× 12÷26)' if salary_type == 'fn' else ''
-    franchise_label = f'AOV franchise − {format_srd(r["franchise_periode"])}/periode{fn_suffix}'
     rows.append(row('Bruto belastbaar loon per periode', '', m(r['bruto_per_periode'])))
     if r.get('aftrek_bv_per_periode', 0.0) > 0:
         rows.append(row('Aftrek belastingvrij (Art. 10f)',
                         'verlaagt AOV-grondslag vóór franchise',
                         m(r['aftrek_bv_per_periode'], '-')))
     rows.append(row('Belastbaar loon vóór franchise', '', m(r['adjusted_bruto_per_periode']), '#f0f9ff'))
+    if salary_type == 'fn':
+        franchise_label = f'Pro-rata uit maandfranchise ({format_srd(r["franchise_periode"])}/periode)'
+    else:
+        franchise_label = f'AOV franchise − {format_srd(r["franchise_periode"])}/periode'
     rows.append(row('Franchise (Art. 4 AOV)', franchise_label, m(r['franchise_periode'], '-')))
-    rows.append(row('AOV grondslag',
-                    f'{format_srd(r["adjusted_bruto_per_periode"])} − {format_srd(r["franchise_periode"])}',
-                    m(r['aov_grondslag']), '#f0f9ff'))
+    aov_grondslag_formula = f'{format_srd(r["adjusted_bruto_per_periode"])} − {format_srd(r["franchise_periode"])}'
+    rows.append(row('AOV grondslag', aov_grondslag_formula, m(r['aov_grondslag']), '#f0f9ff'))
     rows.append(row('<strong>AOV inhouding per periode</strong>',
                     f'{_format_number(r["aov_tarief"] * 100, 0)}% × {format_srd(r["aov_grondslag"])}',
                     m(r['aov_per_periode']), '#fef9c3'))
