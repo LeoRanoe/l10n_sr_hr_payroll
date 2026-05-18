@@ -178,6 +178,7 @@ class TestArtikel14Berekening(common.TransactionCase):
         AOV per maand   : 19.855,60 × 4% = 794,22
         Nettoloon       : 20.255,60 - 1.275,13 - 794,22 = 18.186,25
         """
+        self.env['ir.config_parameter'].sudo().set_param('sr_payroll.heffingskorting', '750.0')
         contract = self._create_contract(wage=20255.60, salary_type='monthly')
         payslip = self._compute_payslip(
             contract,
@@ -562,17 +563,19 @@ class TestArtikel14AOV(common.TransactionCase):
         self.assertAlmostEqual(aov, verwacht_aov, places=2,
                                msg='AOV maandloon met franchise klopt niet')
 
-    def test_aov_fortnight_geen_franchise(self):
+    def test_aov_fortnight_franchise_geschaald(self):
         """
         Fortnight loon SRD 5.000/fortnight (ingevoerd als maandloon × 26/12) →
-        AOV grondslag = 5.000 (geen franchise), AOV = 5.000 × 4% = 200
+        Franchise = 400 × 12/26 ≈ 184,62/FN (proportioneel geschaald voor jaarequivalentie).
+        AOV grondslag = 5.000 − 184,62 = 4.815,38 → AOV ≈ 192,62
         """
         maandloon = round(5000.0 * 26 / 12, 2)  # geeft per-FN ≈ 5000
         payslip = self._make_payslip(wage=maandloon, salary_type='fn')
         aov = payslip.line_ids.filtered(lambda l: l.code == 'SR_AOV').total
-        verwacht_aov = -(5000.0 * 0.04)
-        self.assertAlmostEqual(aov, verwacht_aov, places=2,
-                               msg='AOV fortnight zonder franchise klopt niet')
+        franchise_fn = round(400.0 * 12 / 26, 2)  # 184.62
+        verwacht_aov = -round((5000.0 - franchise_fn) * 0.04, 2)
+        self.assertAlmostEqual(aov, verwacht_aov, delta=0.02,
+                               msg='AOV fortnight met geschaalde franchise klopt niet')
 
     def test_aov_maandloon_lager_dan_franchise(self):
         """
@@ -805,6 +808,7 @@ class TestArtikel14Breakdown(common.TransactionCase):
         Heffingskorting blijft zichtbaar voor audit, maar verlaagt de
         in te houden loonbelasting in plaats van netto apart te verhogen.
         """
+        self.env['ir.config_parameter'].sudo().set_param('sr_payroll.heffingskorting', '750.0')
         payslip = self._make_payslip(wage=25000.0)
 
         bd = payslip._get_sr_artikel14_breakdown()
@@ -854,8 +858,8 @@ class TestArtikel14Breakdown(common.TransactionCase):
         bd = payslip._get_sr_artikel14_breakdown()
         self.assertEqual(bd['periodes'], 26)
         self.assertTrue(bd['is_fn'])
-        self.assertEqual(bd['franchise_periode'], 0.0,
-                         'Fortnight heeft geen AOV franchise')
+        self.assertAlmostEqual(bd['franchise_periode'], round(400 * 12 / 26, 2), delta=0.01,
+                               msg='Fortnight AOV franchise = 400/maand omgerekend naar FN-periode')
         self.assertEqual(bd['fn_period_label'], '2026FN10')
         self.assertEqual(bd['fn_period_indicator'], '202610')
 
@@ -942,8 +946,9 @@ class TestArtikel14Breakdown(common.TransactionCase):
 
             breakdown = payslip._get_sr_artikel14_breakdown()
 
-            self.assertEqual(payslip._rule_parameter('SR_BELASTINGVRIJ_JAAR'), 108000.0)
-            self.assertEqual(breakdown['belastingvrij_jaar'], 108000.0)
+            # ir.config_parameter (130000) takes priority over hr.rule.parameter (108000).
+            self.assertEqual(payslip._rule_parameter('SR_BELASTINGVRIJ_JAAR'), 130000.0)
+            self.assertEqual(breakdown['belastingvrij_jaar'], 130000.0)
         finally:
             if jan_value:
                 if old_jan_value is None:

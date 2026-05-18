@@ -729,11 +729,11 @@ class HrContract(models.Model):
         Berekent het effectieve bedrag van een vaste loon regel in SRD.
 
         Handelt zowel vaste bedragen als percentages af.
-        Bij percentage: berekend over basisloon of bruto belastbaar (altijd in SRD).
+        Bij percentage: berekend over het loon per periode (FN: maandloon × 12/26) in SRD.
         Bij vast bedrag in vreemde valuta (USD/EUR): converteert naar SRD via exchange_rate.
         """
         if line.amount_type == 'percentage' and line.percentage:
-            wage_srd = self._sr_get_wage_in_srd(exchange_rate=exchange_rate)
+            wage_srd = self._sr_get_wage_per_period_srd(exchange_rate=exchange_rate)
             if line.percentage_base == 'bruto_belastbaar':
                 base = wage_srd + sum(
                     self._sr_resolve_line_amount(l, exchange_rate=exchange_rate) for l in self.sr_vaste_regels
@@ -746,14 +746,15 @@ class HrContract(models.Model):
             return calc.round_money(base * (line.percentage / 100.0))
 
         # Vast bedrag — converteer naar SRD als de lijn-valuta vreemd is
-        amount = calc.round_money(line.amount or 0.0)
+        amount = Decimal(str(line.amount or 0.0))
         line_currency = line.line_currency_id
         if line_currency and line_currency.name not in ('SRD', False, ''):
             rate = Decimal(str(exchange_rate if exchange_rate is not None else self._sr_get_current_exchange_rate()))
-            amount = float(
-                (Decimal(str(amount)) * rate).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
-            )
-        return calc.round_money(amount)
+            amount = amount * rate
+        # Alle vaste bedragen zijn maandelijkse bedragen — FN: schaal naar per-fortnight (× 12 ÷ 26)
+        if self.sr_salary_type == 'fn':
+            amount = amount * Decimal('12') / Decimal('26')
+        return calc.round_money(float(amount.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)))
 
     def _sr_resolve_regels(self, categorie, exchange_rate=None):
         """
@@ -834,7 +835,7 @@ class HrContract(models.Model):
 
         Prioriteit:
         1. Expliciete GENEESK-contractregel (categorie='fiscaal_grondslag') — gebruikt die waarde, gecapped.
-        2. Geen contractregel — automatisch 3% van basisloon (Art. 9 WLB standaardtarief), ook gecapped.
+        2. Geen contractregel → geen VGB belastbaar voordeel in natura (0.0).
 
         :returns: Belastbaar VGB per periode (gecapped op SR_VGB_MAX_JAAR/periodes)
         """
@@ -846,17 +847,11 @@ class HrContract(models.Model):
         periodes = 26 if self.sr_salary_type == 'fn' else 12
         vgb_max_periode = vgb_max_jaar / periodes
 
-        # Expliciete GENEESK contractregel heeft voorrang
         vgb_contract = self._sr_resolve_regels('fiscaal_grondslag', exchange_rate=exchange_rate)
         if vgb_contract:
             return calc.round_money(min(vgb_contract, vgb_max_periode))
 
-        # Geen contractregel: automatisch 3% van basisloon (Art. 9 WLB), max VGB_MAX/periodes
-        wage_srd = self._sr_get_wage_in_srd(exchange_rate=exchange_rate)
-        if not wage_srd:
-            return 0.0
-        vgb_auto = calc.round_money(wage_srd * 0.03)
-        return calc.round_money(min(vgb_auto, vgb_max_periode))
+        return 0.0
 
     def generate_work_entries(self, date_start, date_stop, force=False):
         """

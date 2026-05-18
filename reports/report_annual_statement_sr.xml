@@ -80,15 +80,15 @@
                             </tbody>
                         </table>
 
-                        <div style="background:#d9d9d9; padding:4px 6px; font-weight:700; margin-bottom:4px;">Pensioen</div>
+                        <div style="background:#d9d9d9; padding:4px 6px; font-weight:700; margin-bottom:4px;">Andere Inhoudingen</div>
                         <table style="width:100%; border-collapse:collapse; font-size:10.5pt; margin-bottom:16px;">
                             <tbody>
                                 <tr t-if="statement.get('pension_total', 0)">
-                                    <td style="padding:4px 6px;">PENSIOENFONDS</td>
+                                    <td style="padding:4px 6px;">ANDERE INHOUDINGEN</td>
                                     <td style="padding:4px 6px; text-align:right;"><t t-esc="'-{:,.2f}'.format(statement.get('pension_total', 0))"/></td>
                                 </tr>
                                 <tr t-if="not statement.get('pension_total', 0)">
-                                    <td colspan="2" style="padding:4px 6px; color:#666; font-style:italic;">Geen pensioenpremie ingehouden in dit jaar.</td>
+                                    <td colspan="2" style="padding:4px 6px; color:#666; font-style:italic;">Geen andere inhoudingen in dit jaar.</td>
                                 </tr>
                             </tbody>
                         </table>

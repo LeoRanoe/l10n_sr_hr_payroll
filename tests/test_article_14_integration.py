@@ -165,6 +165,7 @@ class TestIntegratieVolledigeCyclus(common.TransactionCase):
     # ──────────────────────────────────────────────────────────────────
     def test_netto_is_bruto_min_inhoudingen(self):
         """NET = GROSS + SR_LB + SR_AOV; SR_HK verlaagt SR_LB."""
+        self.env['ir.config_parameter'].sudo().set_param('sr_payroll.heffingskorting', '750.0')
         contract = self._maak_contract(wage=20000.0)
         payslip = self._maak_loonstrook(contract)
 
@@ -399,8 +400,8 @@ class TestIntegratieVolledigeCyclus(common.TransactionCase):
     # ──────────────────────────────────────────────────────────────────
     def test_fortnight_loonstrook_aangemaakt(self):
         """
-        Fortnight contract genereert een geldige loonstrook met
-        SR_LB en SR_AOV regels. Geen AOV franchise voor fortnight.
+        Fortnight contract genereert een geldige loonstrook met SR_LB en SR_AOV regels.
+        Franchise proportioneel geschaald: 400 × 12/26 ≈ 184,62/FN voor jaarequivalentie.
         """
         fn_per_periode = 8000.0  # gewenst SRD per fortnight
         maandloon = round(fn_per_periode * 26 / 12, 2)  # ingevoerd als maandloon
@@ -412,10 +413,10 @@ class TestIntegratieVolledigeCyclus(common.TransactionCase):
         )
 
         aov = self._haal_totaal(payslip, 'SR_AOV')
-        # AOV fortnight: geen franchise (context: "geen franchise per FN")
-        expected_aov = -(fn_per_periode * 0.04)
-        self.assertAlmostEqual(aov, expected_aov, places=2,
-                               msg='AOV fortnight (geen franchise) klopt niet')
+        franchise_fn = round(400.0 * 12 / 26, 2)  # 184.62
+        expected_aov = -round((fn_per_periode - franchise_fn) * 0.04, 2)
+        self.assertAlmostEqual(aov, expected_aov, delta=0.02,
+                               msg='AOV fortnight (geschaalde franchise) klopt niet')
         self.assertEqual(
             payslip._get_sr_artikel14_breakdown()['fn_period_label'], '2026FN9'
         )
@@ -554,11 +555,12 @@ class TestIntegratieContractPreview(common.TransactionCase):
     # ──────────────────────────────────────────────────────────────────
     def test_preview_belastbaar_jaar_berekening(self):
         """
-        Wage SRD 20.000/maand:
+        Wage SRD 20.000/maand, belastingvrij = 0:
         Bruto jaar = 240.000
         Forfaitaire = min(240.000 × 4%, 4.800) = 4.800
         Belastbaar = 240.000 − 0 − 4.800 = 235.200
         """
+        self.env['ir.config_parameter'].sudo().set_param('sr_payroll.belastingvrij_jaar', '0.0')
         contract = self._maak_contract(wage=20000.0)
         verwacht = 20000.0 * 12 - 0.0 - 4800.0  # = 235.200
         self.assertAlmostEqual(
@@ -650,18 +652,19 @@ class TestIntegratieContractPreview(common.TransactionCase):
             msg='sr_preview_aov_periode maandloon klopt niet',
         )
 
-    def test_preview_aov_fortnight_geen_franchise(self):
+    def test_preview_aov_fortnight_franchise_geschaald(self):
         """
-        Fortnight SRD 5.000/periode → AOV grondslag = 5.000 (geen franchise)
-        sr_preview_aov_periode = 5.000 × 4% = 200.
+        Fortnight SRD 5.000/periode → franchise = 400 × 12/26 ≈ 184,62.
+        AOV grondslag = 5.000 − 184,62 = 4.815,38 → sr_preview_aov_periode ≈ 192,62.
         Maandloon ingevoerd als 5000 × 26/12, systeem rekent terug naar 5000/FN.
         """
         maandloon = round(5000.0 * 26 / 12, 2)
         contract = self._maak_contract(wage=maandloon, salary_type='fn')
-        verwacht = 5000.0 * 0.04  # geen franchise
+        franchise_fn = round(400.0 * 12 / 26, 2)  # 184.62
+        verwacht = round((5000.0 - franchise_fn) * 0.04, 2)
         self.assertAlmostEqual(
-            contract.sr_preview_aov_periode, verwacht, places=2,
-            msg='sr_preview_aov_periode fortnight klopt niet',
+            contract.sr_preview_aov_periode, verwacht, delta=0.02,
+            msg='sr_preview_aov_periode fortnight (geschaalde franchise) klopt niet',
         )
 
     # ──────────────────────────────────────────────────────────────────

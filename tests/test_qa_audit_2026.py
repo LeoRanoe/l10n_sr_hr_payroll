@@ -314,10 +314,10 @@ class TestQAAudit2026(common.TransactionCase):
 
     def test_contract_salary_type_persists_and_hourly_wage_recomputes_live(self):
         usd = self.env.ref('base.USD')
-        old_rate = self.params.get_param('sr_payroll.exchange_rate_usd')
+        old_rate = self.company.sr_exchange_rate_usd
 
         try:
-            self.params.set_param('sr_payroll.exchange_rate_usd', 36.5)
+            self.company.write({'sr_exchange_rate_usd': 36.5})
             contract = self._create_contract(
                 self.employee_monthly,
                 wage=100.0,
@@ -334,21 +334,18 @@ class TestQAAudit2026(common.TransactionCase):
             salary_type = self.env.cr.fetchone()[0]
 
             self.assertEqual(salary_type, 'fn')
-            # FN gebruikt nu ook 173,33 als deler (maandloon ingevoerd): 100 × 36,5 / 173,33 ≈ 21,0577
+            # FN gebruikt ook 173,33 als deler: 100 × 36,5 / 173,33 ≈ 21,0577
             self.assertAlmostEqual(contract.sr_hourly_wage, 21.0577, places=4)
 
             contract.write({'sr_salary_type': 'monthly'})
             contract.invalidate_recordset(['sr_hourly_wage'])
             self.assertAlmostEqual(contract.sr_hourly_wage, 21.0577, places=4)
 
-            self.params.set_param('sr_payroll.exchange_rate_usd', 40.0)
+            self.company.write({'sr_exchange_rate_usd': 40.0})
             contract.invalidate_recordset(['sr_hourly_wage'])
             self.assertAlmostEqual(contract.sr_hourly_wage, 23.0769, places=4)
         finally:
-            if old_rate in (None, False, ''):
-                self.params.search([('key', '=', 'sr_payroll.exchange_rate_usd')], limit=1).unlink()
-            else:
-                self.params.set_param('sr_payroll.exchange_rate_usd', old_rate)
+            self.company.write({'sr_exchange_rate_usd': old_rate})
 
     def test_batch_compute_sheet_keeps_overtime_inputs_per_slip(self):
         batch_employee = self.env['hr.employee'].create({
@@ -838,7 +835,7 @@ class TestQAAudit2026(common.TransactionCase):
         contract = self._create_contract(
             self.employee_akb,
             wage=20000.0,
-            sr_aantal_kinderen=5,
+            sr_aantal_kinderen=4,
             sr_vaste_regels=[(0, 0, {
                 'name': 'Kinderbijslag QA',
                 'type_id': self.env.ref('l10n_sr_hr_payroll.sr_line_type_kinderbijslag').id,
@@ -850,7 +847,7 @@ class TestQAAudit2026(common.TransactionCase):
         split = contract._sr_kinderbijslag_split(max_kind_maand=250.0, max_maand=5000.0)
         payslip = self._create_payslip(contract, date(2026, 4, 1), date(2026, 4, 30))
 
-        self.assertEqual(contract.sr_aantal_kinderen, 5)
+        self.assertEqual(contract.sr_aantal_kinderen, 4)
         self.assertAlmostEqual(split['vrijgesteld'], 1000.0, places=2)
         self.assertAlmostEqual(split['belastbaar'], 250.0, places=2)
         self.assertAlmostEqual(self._line_total(payslip, 'SR_KB_VRIJ'), 1000.0, places=2)
@@ -885,9 +882,10 @@ class TestQAAudit2026(common.TransactionCase):
         self.assertEqual(monthly['aov_grondslag'], 3600.0)
         self.assertEqual(monthly['aov_per_periode'], 144.0)
 
-        self.assertEqual(fortnight['franchise_periode'], 0.0)
-        self.assertEqual(fortnight['aov_grondslag'], 4000.0)
-        self.assertEqual(fortnight['aov_per_periode'], 160.0)
+        # FN franchise = 400 × 12 ÷ 26 ≈ 184,62; grondslag = 4000 − 184,62 = 3815,38; AOV = 3815,38 × 4% = 152,62
+        self.assertAlmostEqual(fortnight['franchise_periode'], 184.62, places=2)
+        self.assertAlmostEqual(fortnight['aov_grondslag'], 3815.38, places=2)
+        self.assertAlmostEqual(fortnight['aov_per_periode'], 152.62, places=2)
 
     def test_active_sr_contract_requires_positive_wage(self):
         with self.assertRaises(ValidationError):
@@ -1065,6 +1063,7 @@ class TestQAAudit2026(common.TransactionCase):
             datetime(2026, 4, 7, 18, 0, 0),
             2.0,
         )
+        self.env['ir.config_parameter'].sudo().set_param('sr_payroll.heffingskorting', '750.0')
         payslip = self._create_payslip(contract, date(2026, 4, 1), date(2026, 4, 30))
         breakdown = payslip._get_sr_artikel14_breakdown()
 

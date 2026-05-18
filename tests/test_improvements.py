@@ -97,17 +97,17 @@ class TestImprovements(common.TransactionCase):
         })
         self.assertTrue(line.id)
 
-    def test_onchange_akb_warns_without_capping_child_count(self):
-        """De onchange mag waarschuwen maar de administratieve invoer niet forceren."""
+    def test_onchange_akb_warns_and_caps_child_count(self):
+        """De onchange waarschuwt én begrenst de invoer tot het fiscale maximum."""
         contract = self.env['hr.contract'].new({
             'sr_aantal_kinderen': 5,
         })
 
         warning = contract._onchange_sr_aantal_kinderen()
 
-        self.assertEqual(contract.sr_aantal_kinderen, 5)
+        self.assertEqual(contract.sr_aantal_kinderen, 4)
         self.assertEqual(warning['warning']['title'], 'AKB fiscaal gemaximeerd')
-        self.assertIn('administratief', warning['warning']['message'])
+        self.assertIn('maximaal 4', warning['warning']['message'])
 
     # ── Fase 5: sr_is_sr_struct boolean ─────────────────────────────
 

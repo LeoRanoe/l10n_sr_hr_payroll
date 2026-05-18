@@ -85,10 +85,10 @@
                                            string="Aantal Kinderen (Art. 10h)"
                                            help="Aantal kinderen voor kinderbijslag vrijstelling. Wettelijk gemaximeerd op 4 kinderen in de 2026 release."/>
                                     <field name="sr_kinderbijslag_bedrag"
-                                           string="Kinderbijslag per Periode"
+                                           string="Kinderbijslag (per Maand)"
                                            widget="monetary"
                                            options="{'currency_field': 'currency_id'}"
-                                           help="Vaste kinderbijslag per loonperiode. Wordt automatisch gesplitst in vrijgesteld (max SRD 250/kind) en belastbaar deel (Art. 10h WLB)."/>
+                                           help="Kinderbijslag per maand. Bij FN-contracten automatisch omgerekend naar per-fortnight (× 12 ÷ 26). Wordt gesplitst in vrijgesteld (max SRD 250/kind/maand) en belastbaar deel (Art. 10h WLB)."/>
                                 </group>
                                 <group>
                                     <div class="text-muted small pt-1">
@@ -117,7 +117,8 @@
 
                             <separator string="Overige Vaste Toelagen &amp; Inhoudingen"/>
                             <div class="text-muted small mb-2">
-                                Dit is de fiscale bron voor alle vaste toelagen en inhoudingen op het contract.
+                                Voer alle bedragen in als <strong>maandbedrag</strong>.
+                                Bij FN-contracten worden vaste bedragen automatisch omgerekend naar per-fortnight (× 12 ÷ 26).
                                 Kies per regel de categorie: <strong>Belastbaar</strong>, <strong>Belastingvrij</strong>,
                                 <strong>Aftrek Belastingvrij</strong> of <strong>Inhouding</strong>.
                                 Bij een gekozen <strong>Type</strong> bepaalt het type altijd de fiscale categorie.

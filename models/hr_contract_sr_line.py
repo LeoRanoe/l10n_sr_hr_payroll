@@ -103,9 +103,12 @@ class HrContractSrLine(models.Model):
         store=False,
     )
     amount = fields.Monetary(
-        string='Bedrag per Periode',
+        string='Bedrag (per Maand)',
         currency_field='currency_id',
-        help='Vaste bedrag dat elke loonperiode verwerkt wordt (bij "Vast bedrag" type).',
+        help=(
+            'Vaste maandbedrag voor deze toelage of inhouding.\n'
+            'Bij FN-contracten wordt dit automatisch omgerekend naar per-fortnight (× 12 ÷ 26).'
+        ),
     )
     amount_type = fields.Selection(
         selection=[

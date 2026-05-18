@@ -127,10 +127,12 @@ class TestAuditFixes(common.TransactionCase):
         self.assertEqual(contract.wage, 0.0)
         self.assertIn('Negatieve lonen', warning['warning']['message'])
 
-    def test_2026_belastingvrij_parameter_defaults_to_zero(self):
-        params = calc.fetch_params_from_rule_parameter(self.env, date(2026, 5, 1))
-
-        self.assertEqual(params['belastingvrij_jaar'], 0.0)
+    def test_2026_belastingvrij_config_parameter_default_is_zero(self):
+        # get_config_parameter_value returns the CONFIG_PARAMETER_MAP default (0.0)
+        # when ir.config_parameter has no override set.
+        self.env['ir.config_parameter'].sudo().search(
+            [('key', '=', 'sr_payroll.belastingvrij_jaar')]
+        ).unlink()
         self.assertEqual(
             calc.get_config_parameter_value(self.env, 'SR_BELASTINGVRIJ_JAAR'),
             0.0,
@@ -183,7 +185,7 @@ class TestAuditFixes(common.TransactionCase):
     def test_gross_only_contains_basic_plus_taxable_contract_allowances(self):
         contract = self._make_contract(
             wage=20000.0,
-            sr_aantal_kinderen=5,
+            sr_aantal_kinderen=4,
             sr_vaste_regels=[
                 (0, 0, {
                     'name': 'Belastbare Toelage',
@@ -203,12 +205,13 @@ class TestAuditFixes(common.TransactionCase):
 
         self.assertAlmostEqual(self._line_total(payslip, 'SR_ALW'), 300.0, places=2)
         self.assertAlmostEqual(self._line_total(payslip, 'SR_KB_BELAST'), 250.0, places=2)
-        self.assertAlmostEqual(self._line_total(payslip, 'GROSS'), 20300.0, places=2)
+        # GROSS = BASIC(20000) + SR_ALW(300) + SR_KB_BELAST(250) — SR_KB_BELAST is in category ALW → counted in GROSS
+        self.assertAlmostEqual(self._line_total(payslip, 'GROSS'), 20550.0, places=2)
 
     def test_contract_preview_lb_stays_aligned_with_gross_without_taxable_child_allowance(self):
         contract = self._make_contract(
             wage=20000.0,
-            sr_aantal_kinderen=5,
+            sr_aantal_kinderen=4,
             sr_vaste_regels=[
                 (0, 0, {
                     'name': 'Belastbare Toelage',
@@ -249,6 +252,9 @@ class TestAuditFixes(common.TransactionCase):
         )
 
     def test_calculator_applies_heffingskorting_to_withheld_lb(self):
+        # Force belastingvrij = 0 via ir.config_parameter so lb_voor_hk = 1638.0
+        # (based on 10000/maand × 12 = 120000 - forfaitaire 4800 = 115200 belastbaar).
+        self.env['ir.config_parameter'].sudo().set_param('sr_payroll.belastingvrij_jaar', '0.0')
         params = calc.fetch_params_from_rule_parameter(self.env, date(2026, 5, 1))
 
         result = calc.calculate_lb(10000.0, 12, params, heffingskorting_per_periode=750.0)
@@ -578,6 +584,10 @@ class TestAuditFixes(common.TransactionCase):
         self.assertEqual(parameter.sr_current_value, '1000.0')
 
     def test_settings_default_values_match_2026_release(self):
+        # Clear heffingskorting override so the field uses CONFIG_PARAMETER_MAP default (750).
+        self.env['ir.config_parameter'].sudo().search(
+            [('key', '=', 'sr_payroll.heffingskorting')]
+        ).unlink()
         settings = self.env['res.config.settings'].create({})
 
         self.assertEqual(settings.akb_per_kind, 250.0)

@@ -492,20 +492,60 @@ class TestSrVasteRegels(common.TransactionCase):
         """Bij fortnight loon moet sr_preview_belastbaar_jaar kloppen voor 26 periodes."""
         fn_per_periode = 5000.0
         maandloon = round(fn_per_periode * 26 / 12, 2)
+        # 200 is een maandelijks bedrag — per FN = 200 × 12/26 ≈ 92.31
         contract = self._create_contract(wage=maandloon, salary_type='fn', vaste_regels=[
             (0, 0, {'name': 'Olie', 'sr_categorie': 'belastbaar', 'amount': 200.0}),
         ])
-        # (fn_per_periode + 200) * 26 → minus vrijstellingen; moet positief zijn
+        # (fn_per_periode + 92.31) * 26 → minus vrijstellingen; moet positief zijn
         self.assertGreater(contract.sr_preview_belastbaar_jaar, 0.0)
 
     def test_fortnight_gemengde_regels(self):
-        """Fortnight contract met gemengde regels moet correcte preview geven."""
+        """Fortnight contract: vaste bedragen zijn maandelijks en worden × 12/26 geschaald naar per-fortnight."""
         fn_per_periode = 5000.0
         maandloon = round(fn_per_periode * 26 / 12, 2)
+        # Voer maandelijkse bedragen in — systeem schaalt automatisch naar per-fortnight (× 12/26)
+        belastbaar_maand = 300.0
+        vrijgesteld_maand = 150.0
         contract = self._create_contract(wage=maandloon, salary_type='fn', vaste_regels=[
-            (0, 0, {'name': 'Belastbaar', 'sr_categorie': 'belastbaar', 'amount': 300.0}),
-            (0, 0, {'name': 'Vrijgesteld', 'sr_categorie': 'vrijgesteld', 'amount': 150.0}),
+            (0, 0, {'name': 'Belastbaar', 'sr_categorie': 'belastbaar', 'amount': belastbaar_maand}),
+            (0, 0, {'name': 'Vrijgesteld', 'sr_categorie': 'vrijgesteld', 'amount': vrijgesteld_maand}),
         ])
-        # Bruto = fn_per_periode + 300 + 150 = 5450
-        verwacht_bruto = fn_per_periode + 300.0 + 150.0
+        # Bruto = fn_per_periode + (300 + 150) × 12/26
+        belastbaar_fn = round(belastbaar_maand * 12 / 26, 2)
+        vrijgesteld_fn = round(vrijgesteld_maand * 12 / 26, 2)
+        verwacht_bruto = fn_per_periode + belastbaar_fn + vrijgesteld_fn
         self.assertAlmostEqual(contract.sr_preview_bruto, verwacht_bruto, delta=0.05)
+
+    def test_fortnight_percentage_regel_over_fn_loon(self):
+        """Percentage-regels op FN-contract berekenen over het FN-loon (× 12/26), niet het maandloon."""
+        fn_per_periode = 6000.0
+        maandloon = round(fn_per_periode * 26 / 12, 2)
+        contract = self._create_contract(wage=maandloon, salary_type='fn', vaste_regels=[
+            (0, 0, {
+                'type_id': self.env.ref('l10n_sr_hr_payroll.sr_line_type_pensioen').id,
+                'amount_type': 'percentage',
+                'percentage': 6.0,
+                'percentage_base': 'basisloon',
+            }),
+        ])
+        rate = contract._sr_get_current_exchange_rate()
+        aftrek = contract._sr_resolve_regels('aftrek_belastingvrij', exchange_rate=rate)
+        # 6% van FN-loon (6000), NIET 6% van maandloon (13000)
+        verwacht = round(fn_per_periode * 0.06, 2)
+        self.assertAlmostEqual(aftrek, verwacht, delta=0.05,
+                               msg='Percentage-aftrek moet over FN-loon berekend worden, niet het maandloon')
+
+        # Verifieer ook op de loonstrook dat SR_AFTREK_BV correct schaal
+        payslip = self.env['hr.payslip'].create({
+            'name': 'FN Percentage Test',
+            'employee_id': contract.employee_id.id,
+            'contract_id': contract.id,
+            'struct_id': self.structure.id,
+            'date_from': date(2026, 5, 1),
+            'date_to': date(2026, 5, 14),
+            'company_id': self.company.id,
+        })
+        payslip.compute_sheet()
+        sr_aftrek_bv = self._line_total(payslip, 'SR_AFTREK_BV')
+        self.assertAlmostEqual(sr_aftrek_bv, -verwacht, delta=0.05,
+                               msg='SR_AFTREK_BV op loonstrook moet FN-geschaalde pensioenpremie zijn')
