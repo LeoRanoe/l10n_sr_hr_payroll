@@ -265,6 +265,20 @@ class HrContract(models.Model):
         compute='_compute_sr_preview',
         store=False,
     )
+    sr_preview_netto_jaar = fields.Monetary(
+        string='Verwacht Netto per Jaar',
+        currency_field='currency_id',
+        compute='_compute_sr_preview',
+        store=False,
+        help='Voor maandloon: geschat netto per maand × 12. Voor FN: verwacht jaartotaal inclusief de eventuele FN26-jaarafronding.',
+    )
+    sr_preview_fn26_correctie = fields.Monetary(
+        string='Verwachte FN26 Jaarafronding',
+        currency_field='currency_id',
+        compute='_compute_sr_preview',
+        store=False,
+        help='Kleine positieve of negatieve slotcorrectie die alleen op FN26 nodig kan zijn om 26 FN-betalingen exact te laten aansluiten op het maandjaartotaal.',
+    )
     sr_preview_breakdown_html = fields.Html(
         string='Berekeningsdetail',
         compute='_compute_sr_preview',
@@ -367,6 +381,57 @@ class HrContract(models.Model):
                 - inhoudingen
                 - aftrek_bv
             )
+            preview_netto_dec = Decimal(str(contract.sr_preview_netto or 0.0))
+            contract.sr_preview_netto_jaar = calc.round_money(preview_netto_dec * Decimal(str(periodes)))
+            contract.sr_preview_fn26_correctie = 0.0
+
+            if contract.sr_salary_type == 'fn':
+                scale = Decimal('26') / Decimal('12')
+                monthly_wage = Decimal(str(wage_per_period)) * scale
+                monthly_belastbaar_toelagen = Decimal(str(belastbaar_toelagen)) * scale
+                monthly_vrijgesteld_toelagen = Decimal(str(vrijgesteld_toelagen)) * scale
+                monthly_inhoudingen = Decimal(str(inhoudingen)) * scale
+                monthly_aftrek_bv = Decimal(str(aftrek_bv)) * scale
+                monthly_kb_belastbaar = Decimal(str(kb_belastbaar)) * scale
+                monthly_kb_vrijgesteld = Decimal(str(kb_vrijgesteld)) * scale
+                monthly_vgb_belastbaar = Decimal(str(vgb_belastbaar)) * scale
+                monthly_heffingskorting = Decimal(str(heffingskorting)) * scale
+
+                monthly_bruto_belastbaar = (
+                    monthly_wage
+                    + monthly_belastbaar_toelagen
+                    + monthly_kb_belastbaar
+                    + monthly_vgb_belastbaar
+                )
+                monthly_bruto_totaal = (
+                    monthly_wage
+                    + monthly_belastbaar_toelagen
+                    + monthly_kb_belastbaar
+                    + monthly_kb_vrijgesteld
+                    + monthly_vrijgesteld_toelagen
+                )
+                monthly_result = calc.calculate_lb(
+                    float(monthly_bruto_belastbaar),
+                    12,
+                    params,
+                    aftrek_bv_per_periode=float(monthly_aftrek_bv),
+                    heffingskorting_per_periode=float(monthly_heffingskorting),
+                )
+                monthly_net = calc.round_money(
+                    monthly_bruto_totaal
+                    - Decimal(str(monthly_result['lb_per_periode']))
+                    - Decimal(str(monthly_result['aov_per_periode']))
+                    - monthly_inhoudingen
+                    - monthly_aftrek_bv
+                )
+                annual_target = calc.round_money(Decimal(str(monthly_net)) * Decimal('12'))
+                annual_projection = calc.round_money(preview_netto_dec * Decimal('26'))
+
+                contract.sr_preview_netto_jaar = annual_target
+                contract.sr_preview_fn26_correctie = calc.round_money(
+                    Decimal(str(annual_target)) - Decimal(str(annual_projection))
+                )
+
             contract.sr_preview_breakdown_html = calc.generate_breakdown_html(
                 result=result,
                 wage=wage_per_period,

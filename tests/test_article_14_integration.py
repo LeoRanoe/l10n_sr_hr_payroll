@@ -24,6 +24,37 @@ def _fn_period_2026_9():
     return date(2026, 4, 23), date(2026, 5, 6)
 
 
+def _all_fn_periods_2026():
+    return [
+        (date(2026, 1, 1), date(2026, 1, 14)),
+        (date(2026, 1, 15), date(2026, 1, 28)),
+        (date(2026, 1, 29), date(2026, 2, 11)),
+        (date(2026, 2, 12), date(2026, 2, 25)),
+        (date(2026, 2, 26), date(2026, 3, 11)),
+        (date(2026, 3, 12), date(2026, 3, 25)),
+        (date(2026, 3, 26), date(2026, 4, 8)),
+        (date(2026, 4, 9), date(2026, 4, 22)),
+        (date(2026, 4, 23), date(2026, 5, 6)),
+        (date(2026, 5, 7), date(2026, 5, 20)),
+        (date(2026, 5, 21), date(2026, 6, 3)),
+        (date(2026, 6, 4), date(2026, 6, 17)),
+        (date(2026, 6, 18), date(2026, 7, 1)),
+        (date(2026, 7, 2), date(2026, 7, 15)),
+        (date(2026, 7, 16), date(2026, 7, 29)),
+        (date(2026, 7, 30), date(2026, 8, 12)),
+        (date(2026, 8, 13), date(2026, 8, 26)),
+        (date(2026, 8, 27), date(2026, 9, 9)),
+        (date(2026, 9, 10), date(2026, 9, 23)),
+        (date(2026, 9, 24), date(2026, 10, 7)),
+        (date(2026, 10, 8), date(2026, 10, 21)),
+        (date(2026, 10, 22), date(2026, 11, 4)),
+        (date(2026, 11, 5), date(2026, 11, 18)),
+        (date(2026, 11, 19), date(2026, 12, 2)),
+        (date(2026, 12, 3), date(2026, 12, 16)),
+        (date(2026, 12, 17), date(2026, 12, 31)),
+    ]
+
+
 @tagged('post_install', 'post_install_l10n', '-at_install')
 class TestIntegratieVolledigeCyclus(common.TransactionCase):
     """
@@ -562,6 +593,114 @@ class TestIntegratieVolledigeCyclus(common.TransactionCase):
         self.assertEqual(result['count'], 1)
         self.assertEqual(result['recomputed_ids'], [payslip.id])
         self.assertAlmostEqual(self._haal_totaal(payslip, 'SR_AOV'), -192.62, delta=0.02)
+
+    def test_fn_laatste_periode_corrigeert_jaartotaal_naar_maandloon(self):
+        monthly_contract = self.env['hr.contract'].create({
+            'name': 'Integratie Contract Jaarafronding Maand',
+            'employee_id': self.employee.id,
+            'company_id': self.company.id,
+            'structure_type_id': self.structure_type.id,
+            'wage': 15000.0,
+            'sr_salary_type': 'monthly',
+            'sr_aantal_kinderen': 2,
+            'sr_vaste_regels': [
+                (0, 0, {
+                    'name': 'Kleding Toelage',
+                    'type_id': self.env.ref('l10n_sr_hr_payroll.sr_line_type_kleding').id,
+                    'sr_categorie': 'belastbaar',
+                    'amount': 1000.0,
+                }),
+                (0, 0, {
+                    'name': 'Representatie Toelage',
+                    'type_id': self.env.ref('l10n_sr_hr_payroll.sr_line_type_representatie').id,
+                    'sr_categorie': 'belastbaar',
+                    'amount': 1500.0,
+                }),
+                (0, 0, {
+                    'name': 'Kinderbijslag',
+                    'type_id': self.env.ref('l10n_sr_hr_payroll.sr_line_type_kinderbijslag').id,
+                    'sr_categorie': 'vrijgesteld',
+                    'amount': 600.0,
+                }),
+                (0, 0, {
+                    'name': 'Pensioenpremie',
+                    'type_id': self.env.ref('l10n_sr_hr_payroll.sr_line_type_pensioen').id,
+                    'sr_categorie': 'aftrek_belastingvrij',
+                    'amount': 900.0,
+                }),
+                (0, 0, {
+                    'name': 'Ziektekostenpremie',
+                    'type_id': self.env.ref('l10n_sr_hr_payroll.sr_line_type_ziektekosten').id,
+                    'sr_categorie': 'inhouding',
+                    'amount': 1234.0,
+                }),
+            ],
+            'date_start': date(2026, 1, 1),
+            'state': 'open',
+        })
+        monthly_contract._compute_sr_preview()
+        expected_annual = round((monthly_contract.sr_preview_netto or 0.0) * 12, 2)
+
+        fn_contract = self.env['hr.contract'].create({
+            'name': 'Integratie Contract Jaarafronding FN',
+            'employee_id': self.employee_b.id,
+            'company_id': self.company.id,
+            'structure_type_id': self.structure_type.id,
+            'wage': 15000.0,
+            'sr_salary_type': 'fn',
+            'sr_aantal_kinderen': 2,
+            'sr_vaste_regels': [
+                (0, 0, {
+                    'name': 'Kleding Toelage',
+                    'type_id': self.env.ref('l10n_sr_hr_payroll.sr_line_type_kleding').id,
+                    'sr_categorie': 'belastbaar',
+                    'amount': 1000.0,
+                }),
+                (0, 0, {
+                    'name': 'Representatie Toelage',
+                    'type_id': self.env.ref('l10n_sr_hr_payroll.sr_line_type_representatie').id,
+                    'sr_categorie': 'belastbaar',
+                    'amount': 1500.0,
+                }),
+                (0, 0, {
+                    'name': 'Kinderbijslag',
+                    'type_id': self.env.ref('l10n_sr_hr_payroll.sr_line_type_kinderbijslag').id,
+                    'sr_categorie': 'vrijgesteld',
+                    'amount': 600.0,
+                }),
+                (0, 0, {
+                    'name': 'Pensioenpremie',
+                    'type_id': self.env.ref('l10n_sr_hr_payroll.sr_line_type_pensioen').id,
+                    'sr_categorie': 'aftrek_belastingvrij',
+                    'amount': 900.0,
+                }),
+                (0, 0, {
+                    'name': 'Ziektekostenpremie',
+                    'type_id': self.env.ref('l10n_sr_hr_payroll.sr_line_type_ziektekosten').id,
+                    'sr_categorie': 'inhouding',
+                    'amount': 1234.0,
+                }),
+            ],
+            'date_start': date(2026, 1, 1),
+            'state': 'open',
+        })
+        fn_contract._compute_sr_preview()
+
+        preview_annual_without_correction = round((fn_contract.sr_preview_netto or 0.0) * 26, 2)
+        expected_preview_correction = round(expected_annual - preview_annual_without_correction, 2)
+
+        self.assertAlmostEqual(fn_contract.sr_preview_netto_jaar, expected_annual, places=2)
+        self.assertAlmostEqual(fn_contract.sr_preview_fn26_correctie, expected_preview_correction, places=2)
+
+        annual_fn_total = 0.0
+        final_slip = False
+        for date_from, date_to in _all_fn_periods_2026():
+            final_slip = self._maak_loonstrook(fn_contract, date_from=date_from, date_to=date_to)
+            annual_fn_total += self._haal_totaal(final_slip, 'NET')
+
+        self.assertTrue(final_slip)
+        self.assertAlmostEqual(round(annual_fn_total, 2), expected_annual, places=2)
+        self.assertAlmostEqual(self._haal_totaal(final_slip, 'SR_FN_ROUND'), 0.02, places=2)
 
     # ──────────────────────────────────────────────────────────────────
     # Test 8: Breakdown dict consistent met SR_LB salarisregel (integratiecheck)

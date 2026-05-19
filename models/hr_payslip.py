@@ -1089,6 +1089,107 @@ class HrPayslip(models.Model):
             heffingskorting=heffingskorting,
         )['aov_per_periode']
 
+    def _sr_get_fn_annual_alignment_target(self):
+        """Geeft het maandloon-jaartotaal terug dat een full-year FN-contract moet benaderen."""
+        self.ensure_one()
+        contract = self.contract_id
+        if not contract or contract.sr_salary_type != 'fn':
+            return None
+        if not self.date_from or not self.date_to:
+            return None
+        if any(abs(line.amount or 0.0) > 0.000001 for line in self.input_line_ids):
+            return None
+
+        scale = Decimal('26') / Decimal('12')
+        exchange_rate = self.sr_exchange_rate or 1.0
+
+        wage = Decimal(str(
+            contract._sr_get_wage_per_period_srd(exchange_rate=exchange_rate, round_result=False)
+        )) * scale
+        belastbaar_toelagen = Decimal(str(
+            contract._sr_resolve_regels('belastbaar', exchange_rate=exchange_rate, round_result=False)
+        )) * scale
+        vrijgesteld_toelagen = Decimal(str(
+            contract._sr_resolve_other_vrijgestelde_regels(exchange_rate=exchange_rate, round_result=False)
+        )) * scale
+        inhoudingen = Decimal(str(
+            contract._sr_resolve_regels('inhouding', exchange_rate=exchange_rate, round_result=False)
+        )) * scale
+        aftrek_bv = Decimal(str(
+            contract._sr_resolve_regels('aftrek_belastingvrij', exchange_rate=exchange_rate, round_result=False)
+        )) * scale
+        kb_split = contract._sr_kinderbijslag_split(exchange_rate=exchange_rate, round_result=False)
+        kb_belastbaar = Decimal(str(kb_split['belastbaar'])) * scale
+        kb_vrijgesteld = Decimal(str(kb_split['vrijgesteld'])) * scale
+        vgb_belastbaar = Decimal(str(
+            contract._sr_vgb_fiscaal_belastbaar(exchange_rate=exchange_rate, round_result=False)
+        )) * scale
+        heffingskorting = Decimal(str(
+            contract._sr_get_heffingskorting_per_periode(
+                self._rule_parameter('SR_HEFFINGSKORTING'),
+                round_result=False,
+            )
+        )) * scale
+
+        bruto_belastbaar = wage + belastbaar_toelagen + kb_belastbaar + vgb_belastbaar
+        bruto_totaal = wage + belastbaar_toelagen + kb_belastbaar + kb_vrijgesteld + vrijgesteld_toelagen
+        monthly_result = calc.calculate_lb(
+            float(bruto_belastbaar),
+            12,
+            calc.fetch_params_from_payslip(self),
+            aftrek_bv_per_periode=float(aftrek_bv),
+            heffingskorting_per_periode=float(heffingskorting),
+        )
+        monthly_net = calc.round_money(
+            bruto_totaal
+            - Decimal(str(monthly_result['lb_per_periode']))
+            - Decimal(str(monthly_result['aov_per_periode']))
+            - inhoudingen
+            - aftrek_bv
+        )
+        return self._sr_money_quantize(Decimal(str(monthly_net)) * Decimal('12'))
+
+    def _sr_fn_annual_alignment_adjustment(self, current_net):
+        """Corrigeert de laatste FN-loonstrook zodat 26 FN-betalingen exact het maandjaartotaal volgen."""
+        self.ensure_one()
+        contract = self.contract_id
+        if not contract or contract.sr_salary_type != 'fn' or self._sr_get_periodes() != 26:
+            return 0.0
+
+        fn_period = self._sr_get_fn_period_2026()
+        if not fn_period or not str(fn_period.get('indicator', '')).endswith('26'):
+            return 0.0
+
+        target_annual = self._sr_get_fn_annual_alignment_target()
+        if target_annual is None:
+            return 0.0
+
+        year_start = dt_date(self.date_from.year, 1, 1)
+        previous_slips = self.search([
+            ('id', '!=', self.id),
+            ('contract_id', '=', contract.id),
+            ('state', '!=', 'cancel'),
+            ('date_from', '>=', year_start),
+            ('date_to', '<', self.date_from),
+        ], order='date_from, id')
+        if len(previous_slips) != 25:
+            return 0.0
+        if any(not slip.line_ids.filtered(lambda line: line.code == 'NET') for slip in previous_slips):
+            return 0.0
+
+        previous_total = sum((
+            Decimal(str(slip._sr_line_total('NET')))
+            for slip in previous_slips
+        ), Decimal('0'))
+        current_net_dec = self._sr_money_quantize(current_net)
+        adjustment = (target_annual - previous_total - current_net_dec).quantize(
+            _SR_MONEY_QUANT,
+            rounding=ROUND_HALF_UP,
+        )
+        if abs(adjustment) < Decimal('0.005'):
+            return 0.0
+        return float(adjustment)
+
     def _sr_bijz_gratificatie_cap(self, vrijstelling_max):
         """Berekent de slip-specifieke gratificatievrijstelling met pro-rata dienstjaar."""
         self.ensure_one()

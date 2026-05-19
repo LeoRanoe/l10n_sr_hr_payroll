@@ -160,6 +160,9 @@
                             <div class="alert alert-info small mb-3" role="status">
                                 <i class="fa fa-info-circle"/>&#160;Schatting op basis van vaste contractwaarden. Variabele invoer (overwerk, vakantie, bonus) is niet inbegrepen — definitieve bedragen staan op de loonstrook.
                             </div>
+                            <div class="alert alert-warning small mb-3" role="status" invisible="sr_salary_type != 'fn'">
+                                <i class="fa fa-balance-scale"/>&#160;Deze FN-preview toont een normale periode. Alleen op FN26 kan een kleine jaarafronding verschijnen zodat 26 FN-loonstroken exact aansluiten op 12 maandperiodes.
+                            </div>
                             <group>
                                 <group string="Bruto &amp; Belastbaar">
                                     <field name="sr_preview_bruto" readonly="1" widget="monetary" options="{'currency_field': 'currency_id'}" string="Bruto Loon"/>
@@ -170,6 +173,8 @@
                                     <field name="sr_preview_lb_periode" readonly="1" widget="monetary" options="{'currency_field': 'currency_id'}" string="Loonbelasting (Art. 14)"/>
                                     <field name="sr_preview_aov_periode" readonly="1" widget="monetary" options="{'currency_field': 'currency_id'}" string="AOV Inhouding (4%)"/>
                                     <field name="sr_preview_netto" readonly="1" widget="monetary" options="{'currency_field': 'currency_id'}" string="Geschat Nettoloon"/>
+                                    <field name="sr_preview_netto_jaar" readonly="1" widget="monetary" options="{'currency_field': 'currency_id'}" string="Verwacht Netto per Jaar"/>
+                                    <field name="sr_preview_fn26_correctie" readonly="1" widget="monetary" options="{'currency_field': 'currency_id'}" string="Verwachte FN26 Jaarafronding" invisible="sr_salary_type != 'fn'"/>
                                 </group>
                             </group>
                             <separator string="Artikel 14 Tariefschijven"/>

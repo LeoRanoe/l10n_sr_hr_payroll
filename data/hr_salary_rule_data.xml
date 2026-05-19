@@ -354,6 +354,24 @@ result = categories['BASIC'] + categories['ALW'] + categories['DED'] + categorie
             </field>
         </record>
 
+        <record id="sr_rule_fn_annual_rounding" model="hr.salary.rule">
+            <field name="struct_id" ref="l10n_sr_hr_payroll.sr_payroll_structure"/>
+            <field name="category_id" ref="l10n_sr_hr_payroll.sr_vrij_cat"/>
+            <field name="name">FN Jaarafronding</field>
+            <field name="code">SR_FN_ROUND</field>
+            <field name="sequence">249</field>
+            <field name="condition_select">python</field>
+            <field name="condition_python">
+current_net = categories['BASIC'] + categories['ALW'] + categories['DED'] + categories['SR_VRIJ'] - (result_rules['SR_HK']['total'] if 'SR_HK' in result_rules else 0.0)
+result = abs(payslip._sr_fn_annual_alignment_adjustment(current_net)) &gt; 0.000001
+            </field>
+            <field name="amount_select">code</field>
+            <field name="amount_python_compute">
+current_net = categories['BASIC'] + categories['ALW'] + categories['DED'] + categories['SR_VRIJ'] - (result_rules['SR_HK']['total'] if 'SR_HK' in result_rules else 0.0)
+result = payslip._sr_fn_annual_alignment_adjustment(current_net)
+            </field>
+        </record>
+
         <!-- ═══════════════════════════════════════════════════════════════
              FLEXIBELE PAYSLIP INPUTS — Belastbaar (seq 23)
              Aggregeert alle 'belastbaar' input types die op de loonstrook
