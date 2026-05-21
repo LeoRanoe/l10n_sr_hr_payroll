@@ -263,7 +263,7 @@
         id="menu_sr_config_root"
         name="Suriname"
         parent="hr_work_entry_contract_enterprise.menu_hr_payroll_configuration"
-        sequence="90"
+        sequence="10"
         groups="hr_payroll.group_hr_payroll_manager"/>
 
     <menuitem
@@ -294,5 +294,43 @@
         parent="menu_sr_config_root"
         action="action_sr_payslip_input_types"
         sequence="30"/>
+
+    <record id="hr_payroll.menu_hr_payroll_global_settings" model="ir.ui.menu">
+        <field name="name">Globale Payrollinstellingen</field>
+        <field name="parent_id" ref="menu_sr_technical_root"/>
+        <field name="sequence">20</field>
+        <field name="groups_id" eval="[(6, 0, [ref('base.group_system')])]"/>
+    </record>
+
+    <record id="hr_work_entry_contract_enterprise.menu_hr_work_entry_configuration" model="ir.ui.menu">
+        <field name="name">Werkboekingen &amp; roosters</field>
+        <field name="parent_id" ref="menu_sr_technical_root"/>
+        <field name="sequence">30</field>
+        <field name="groups_id" eval="[(6, 0, [ref('base.group_system')])]"/>
+    </record>
+
+    <record id="hr_payroll.menu_hr_salary_configuration" model="ir.ui.menu">
+        <field name="name">Loonstructuren &amp; regels</field>
+        <field name="parent_id" ref="menu_sr_technical_root"/>
+        <field name="sequence">40</field>
+        <field name="groups_id" eval="[(6, 0, [ref('base.group_system')])]"/>
+    </record>
+
+    <record id="hr_payroll.menu_hr_payroll_dashboard_configuration" model="ir.ui.menu">
+        <field name="name">Dashboard &amp; waarschuwingen</field>
+        <field name="parent_id" ref="menu_sr_technical_root"/>
+        <field name="sequence">50</field>
+        <field name="groups_id" eval="[(6, 0, [ref('base.group_system')])]"/>
+    </record>
+
+    <record id="hr_payroll.hr_menu_all_contracts" model="ir.ui.menu">
+        <field name="name">Alle contracten</field>
+        <field name="sequence">10</field>
+    </record>
+
+    <record id="hr_payroll.hr_menu_salary_attachments" model="ir.ui.menu">
+        <field name="name">Looninhoudingen</field>
+        <field name="sequence">20</field>
+    </record>
 
 </odoo>

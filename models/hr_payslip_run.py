@@ -46,7 +46,7 @@ class HrPayslipRun(models.Model):
         self.ensure_one()
         return {
             'type': 'ir.actions.act_window',
-            'name': 'Exporteer SR Fiscaal Overzicht',
+            'name': 'Exporteer Fiscaal Belastingoverzicht',
             'res_model': 'sr.payroll.tax.report.export.wizard',
             'view_mode': 'form',
             'views': [(False, 'form')],
@@ -64,7 +64,7 @@ class HrPayslipRun(models.Model):
         year = self.date_start.year if self.date_start else fields.Date.context_today(self).year
         return {
             'type': 'ir.actions.act_window',
-            'name': 'Verzamelloonstaat — Belastingdienst Suriname',
+            'name': 'Verzamelloonstaat (CSV)',
             'res_model': 'sr.payroll.verzamelloonstaat.wizard',
             'view_mode': 'form',
             'views': [(False, 'form')],
@@ -80,7 +80,7 @@ class HrPayslipRun(models.Model):
         self.ensure_one()
         return {
             'type': 'ir.actions.act_window',
-            'name': 'SR Fiscaal Overzicht',
+            'name': 'Fiscaal Belastingoverzicht',
             'res_model': 'hr.payroll.tax.report',
             'view_mode': 'list,pivot,form',
             'domain': [('payslip_run_id', '=', self.id)],

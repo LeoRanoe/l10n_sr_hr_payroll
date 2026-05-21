@@ -188,10 +188,10 @@
         </field>
     </record>
 
-    <!-- MENUITEM: Payroll ▸ Overzichten ▸ Fiscaal Overzicht -->
+    <!-- MENUITEM: Payroll ▸ Rapportages ▸ Fiscaal Belastingoverzicht -->
     <menuitem
         id="menu_sr_tax_report"
-        name="Fiscaal Overzicht"
+        name="Fiscaal Belastingoverzicht"
         parent="menu_sr_overzichten_root"
         action="action_sr_payroll_tax_report"
         sequence="10"
@@ -199,7 +199,7 @@
 
     <menuitem
         id="menu_sr_company_year_overview"
-        name="Bedrijfs Jaaroverzicht PDF"
+        name="Bedrijfs Jaaroverzicht (PDF)"
         parent="menu_sr_overzichten_root"
         action="action_sr_company_year_wizard"
         sequence="30"

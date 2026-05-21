@@ -34,7 +34,7 @@
                     help="Genereer de aangifte Loonbelasting en Premie AOV voor indiening bij de Belastingdienst Suriname (PDF)."/>
                 <button
                     name="action_open_sr_verzamelloonstaat_wizard"
-                    string="Verzamelloonstaat"
+                    string="Verzamelloonstaat (CSV)"
                     type="object"
                     class="btn-secondary"
                     icon="fa-file-export"

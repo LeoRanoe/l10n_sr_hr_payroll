@@ -5,7 +5,7 @@
         <field name="name">sr.payroll.tax.report.export.wizard.form</field>
         <field name="model">sr.payroll.tax.report.export.wizard</field>
         <field name="arch" type="xml">
-            <form string="SR Fiscaal Overzicht exporteren">
+            <form string="Fiscaal Belastingoverzicht exporteren">
                 <group>
                     <field name="company_id" options="{'no_create': True}"/>
                     <field name="date_from"/>
@@ -21,7 +21,7 @@
     </record>
 
     <record id="action_sr_payroll_tax_report_export_wizard" model="ir.actions.act_window">
-        <field name="name">Exporteer SR Fiscaal Overzicht</field>
+        <field name="name">Exporteer Fiscaal Belastingoverzicht</field>
         <field name="res_model">sr.payroll.tax.report.export.wizard</field>
         <field name="view_mode">form</field>
         <field name="target">new</field>

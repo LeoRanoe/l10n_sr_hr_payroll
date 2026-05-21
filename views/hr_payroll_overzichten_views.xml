@@ -3,30 +3,54 @@
 
     <!-- Act_window to open the annual statement wizard from menu -->
     <record id="action_sr_annual_statement_from_menu" model="ir.actions.act_window">
-        <field name="name">Jaarlijkse Loonopgave (Werknemer)</field>
+        <field name="name">Jaarlijkse Loonopgave</field>
         <field name="res_model">sr.payroll.annual.statement.wizard</field>
         <field name="view_mode">form</field>
         <field name="target">new</field>
     </record>
 
     <!-- ═══════════════════════════════════════════════════════════════
-         Overzichten — top-level menu naast Dashboard, Loonstroken, etc.
-         parent: hr_work_entry_contract_enterprise.menu_hr_payroll_root
-         sequence 80 plaatst het tussen Rapportages (70) en Configuratie (100)
+         Rapportages — enkele tab voor standaard payrollrapporten en SR exports.
+         De standaard Odoo-rapportagetab wordt verborgen om dubbeling te vermijden.
     ═══════════════════════════════════════════════════════════════ -->
     <menuitem
         id="menu_sr_overzichten_root"
-        name="Overzichten"
+        name="Rapportages"
         parent="hr_work_entry_contract_enterprise.menu_hr_payroll_root"
         sequence="80"
         groups="hr_payroll.group_hr_payroll_user,hr_payroll.group_hr_payroll_manager,l10n_sr_hr_payroll.group_sr_payroll_accountant_export,base.group_system"/>
+
+    <record id="hr_payroll.menu_hr_payroll_report" model="ir.ui.menu">
+        <field name="groups_id" eval="[(6, 0, [ref('base.group_no_one')])]"/>
+    </record>
+
+    <record id="hr_payroll.menu_report_payroll" model="ir.ui.menu">
+        <field name="name">Loonanalyse</field>
+        <field name="parent_id" ref="menu_sr_overzichten_root"/>
+        <field name="sequence">60</field>
+        <field name="groups_id" eval="[(6, 0, [ref('hr_payroll.group_hr_payroll_manager'), ref('base.group_system')])]"/>
+    </record>
+
+    <record id="hr_payroll.menu_hr_payroll_headcount_action" model="ir.ui.menu">
+        <field name="name">Personeelssterkte</field>
+        <field name="parent_id" ref="menu_sr_overzichten_root"/>
+        <field name="sequence">70</field>
+        <field name="groups_id" eval="[(6, 0, [ref('hr_payroll.group_hr_payroll_manager'), ref('base.group_system')])]"/>
+    </record>
+
+    <record id="hr_payroll.menu_hr_work_entry_report" model="ir.ui.menu">
+        <field name="name">Analyse werkboekingen</field>
+        <field name="parent_id" ref="menu_sr_overzichten_root"/>
+        <field name="sequence">80</field>
+        <field name="groups_id" eval="[(6, 0, [ref('hr_payroll.group_hr_payroll_manager'), ref('base.group_system')])]"/>
+    </record>
 
     <!-- Fiscaal Overzicht — seq 10, menu defined in hr_payroll_tax_report_views.xml -->
 
     <!-- Maandaangifte & Bedrijfs Periode Overzicht via periode-wizard -->
     <menuitem
         id="menu_sr_overzichten_periode"
-        name="Maandaangifte &amp; Periode Overzicht"
+        name="Maandaangifte &amp; Periodeoverzicht"
         parent="menu_sr_overzichten_root"
         action="action_sr_periode_wizard"
         sequence="20"
@@ -37,7 +61,7 @@
     <!-- Verzamelloonstaat CSV export -->
     <menuitem
         id="menu_sr_overzichten_verzamelloonstaat"
-        name="Verzamelloonstaat CSV"
+        name="Verzamelloonstaat (CSV)"
         parent="menu_sr_overzichten_root"
         action="action_sr_verzamelloonstaat_wizard"
         sequence="40"
