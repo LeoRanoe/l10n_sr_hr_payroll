@@ -77,10 +77,10 @@ class SrPayrollAnnualStatementWizard(models.TransientModel):
             breakdown = slip._get_sr_artikel14_breakdown()
             net_total += breakdown.get('netto', 0.0)
             tax_rows = [
-                ('art 14', 'Loonperiode', breakdown.get('lb_per_periode', 0.0), breakdown.get('aov_per_periode', 0.0)),
-                ('art 17', 'Bijzondere beloningen', breakdown.get('lb_bijz', 0.0), breakdown.get('aov_bijz', 0.0)),
-                ('art 17a', 'Uitkering ineens', breakdown.get('lb_17a', 0.0), breakdown.get('aov_17a', 0.0)),
-                ('art 17c', 'Overwerk', breakdown.get('lb_overwerk', 0.0), breakdown.get('aov_overwerk', 0.0)),
+                ('Art. 14', 'Regulier loon (loonperiode)', breakdown.get('lb_per_periode', 0.0), breakdown.get('aov_per_periode', 0.0)),
+                ('Art. 17', 'Bijzondere beloningen', breakdown.get('lb_bijz', 0.0), breakdown.get('aov_bijz', 0.0)),
+                ('Art. 17a', 'Uitkering ineens / jubileum', breakdown.get('lb_17a', 0.0), breakdown.get('aov_17a', 0.0)),
+                ('Art. 17c', 'Overwerk', breakdown.get('lb_overwerk', 0.0), breakdown.get('aov_overwerk', 0.0)),
             ]
 
             for article, description, loonbelasting, aov in tax_rows:

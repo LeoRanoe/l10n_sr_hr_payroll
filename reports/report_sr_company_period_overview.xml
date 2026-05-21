@@ -71,11 +71,26 @@
                                 <tr style="background-color: #dce8f5; font-weight: bold; text-align: right;">
                                     <td style="text-align: left; width: 20%; border: 1px solid #aaa; padding: 3px 4px;">Werknemer</td>
                                     <td style="width: 8%; border: 1px solid #aaa; padding: 3px 4px;">Bruto (SRD)</td>
-                                    <td style="width: 7%; border: 1px solid #aaa; padding: 3px 4px;">Bijz.Bel.</td>
-                                    <td style="width: 7%; border: 1px solid #aaa; padding: 3px 4px;">LB Art.14</td>
-                                    <td style="width: 7%; border: 1px solid #aaa; padding: 3px 4px;">LB Art.17</td>
-                                    <td style="width: 6%; border: 1px solid #aaa; padding: 3px 4px;">LB 17a</td>
-                                    <td style="width: 6%; border: 1px solid #aaa; padding: 3px 4px;">LB 17c</td>
+                                    <td style="width: 7%; border: 1px solid #aaa; padding: 3px 4px;">
+                                        <div>Bijz. beloningen</div>
+                                        <div style="font-size: 6.5pt; font-weight: normal;">bruto</div>
+                                    </td>
+                                    <td style="width: 7%; border: 1px solid #aaa; padding: 3px 4px;">
+                                        <div>LB regulier loon</div>
+                                        <div style="font-size: 6.5pt; font-weight: normal;">(Art. 14)</div>
+                                    </td>
+                                    <td style="width: 7%; border: 1px solid #aaa; padding: 3px 4px;">
+                                        <div>LB bijz. beloningen</div>
+                                        <div style="font-size: 6.5pt; font-weight: normal;">(Art. 17)</div>
+                                    </td>
+                                    <td style="width: 6%; border: 1px solid #aaa; padding: 3px 4px;">
+                                        <div>LB uitkering ineens</div>
+                                        <div style="font-size: 6.5pt; font-weight: normal;">(Art. 17a)</div>
+                                    </td>
+                                    <td style="width: 6%; border: 1px solid #aaa; padding: 3px 4px;">
+                                        <div>LB overwerk</div>
+                                        <div style="font-size: 6.5pt; font-weight: normal;">(Art. 17c)</div>
+                                    </td>
                                     <td style="width: 8%; border: 1px solid #aaa; padding: 3px 4px;">Totaal LB</td>
                                     <td style="width: 7%; border: 1px solid #aaa; padding: 3px 4px;">AOV</td>
                                     <td style="width: 6%; border: 1px solid #aaa; padding: 3px 4px;">Heff.k.</td>

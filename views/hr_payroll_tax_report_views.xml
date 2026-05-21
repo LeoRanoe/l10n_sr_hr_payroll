@@ -32,17 +32,17 @@
                 <field name="amount_overwerk_200_srd" sum="Totaal OWK 200%" optional="hide"/>
                 <field name="amount_akb_srd" sum="Totaal AKB" optional="hide"/>
                 <field name="amount_aov_srd" sum="Totaal AOV" optional="show"/>
-                <field name="amount_aov_art14_srd" sum="Totaal AOV Art.14" optional="hide"/>
-                <field name="amount_aov_bijz_srd" sum="Totaal AOV Art.17" optional="hide"/>
-                <field name="amount_aov_17a_srd" sum="Totaal AOV Art.17a" optional="hide"/>
-                <field name="amount_aov_overwerk_srd" sum="Totaal AOV Art.17c" optional="hide"/>
+                <field name="amount_aov_art14_srd" sum="Totaal AOV regulier loon" optional="hide"/>
+                <field name="amount_aov_bijz_srd" sum="Totaal AOV bijz. beloningen" optional="hide"/>
+                <field name="amount_aov_17a_srd" sum="Totaal AOV uitkering ineens" optional="hide"/>
+                <field name="amount_aov_overwerk_srd" sum="Totaal AOV overwerk" optional="hide"/>
                 <field name="amount_belastingvrij_periode_srd" sum="Totaal BVV" optional="hide"/>
                 <field name="amount_lb_srd" sum="Totaal LB" optional="show"/>
-                <field name="amount_lb_art14_srd" sum="Totaal LB Art.14" optional="hide"/>
-                <field name="amount_lb_bijz_srd" sum="Totaal LB Art.17" optional="hide"/>
-                <field name="amount_lb_17a_srd" sum="Totaal LB Art.17a" optional="hide"/>
-                <field name="amount_lb_overwerk_srd" sum="Totaal LB Art.17c" optional="hide"/>
-                <field name="amount_bijz_bruto_srd" sum="Totaal Bijz.Bel." optional="hide"/>
+                <field name="amount_lb_art14_srd" sum="Totaal LB regulier loon" optional="hide"/>
+                <field name="amount_lb_bijz_srd" sum="Totaal LB bijz. beloningen" optional="hide"/>
+                <field name="amount_lb_17a_srd" sum="Totaal LB uitkering ineens" optional="hide"/>
+                <field name="amount_lb_overwerk_srd" sum="Totaal LB overwerk" optional="hide"/>
+                <field name="amount_bijz_bruto_srd" sum="Totaal bruto bijz. beloningen" optional="hide"/>
                 <field name="amount_uitk_ineens_srd" sum="Totaal Uitk.Ineens" optional="hide"/>
                 <field name="amount_heffingskorting_srd" sum="Totaal Heffingskorting" optional="hide"/>
                 <field name="amount_pensioen_srd" sum="Totaal Pensioen" optional="hide"/>

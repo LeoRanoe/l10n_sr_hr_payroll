@@ -95,41 +95,41 @@ class HrPayrollTaxReport(models.Model):
 
     # ── Artikel-niveau LB uitsplitsing ────────────────────────────────────────
     amount_lb_art14_srd = fields.Float(
-        string='LB Art. 14 (SRD)', digits=(16, 2), readonly=True, aggregator='sum',
+        string='LB regulier loon (Art. 14)', digits=(16, 2), readonly=True, aggregator='sum',
         help='Loonbelasting regulier periodiek loon — Artikel 14 WLB',
     )
     amount_lb_bijz_srd = fields.Float(
-        string='LB Art. 17 (SRD)', digits=(16, 2), readonly=True, aggregator='sum',
+        string='LB bijzondere beloningen (Art. 17)', digits=(16, 2), readonly=True, aggregator='sum',
         help='Loonbelasting bijzondere beloningen — Artikel 17 WLB',
     )
     amount_lb_17a_srd = fields.Float(
-        string='LB Art. 17a (SRD)', digits=(16, 2), readonly=True, aggregator='sum',
+        string='LB uitkering ineens (Art. 17a)', digits=(16, 2), readonly=True, aggregator='sum',
         help='Loonbelasting uitkering ineens — Artikel 17a WLB',
     )
     amount_lb_overwerk_srd = fields.Float(
-        string='LB Art. 17c (SRD)', digits=(16, 2), readonly=True, aggregator='sum',
+        string='LB overwerk (Art. 17c)', digits=(16, 2), readonly=True, aggregator='sum',
         help='Loonbelasting overwerk — Artikel 17c WLB',
     )
     # ── Artikel-niveau AOV uitsplitsing ───────────────────────────────────────
     amount_aov_art14_srd = fields.Float(
-        string='AOV Art. 14 (SRD)', digits=(16, 2), readonly=True, aggregator='sum',
+        string='AOV regulier loon (Art. 14)', digits=(16, 2), readonly=True, aggregator='sum',
         help='AOV premie regulier periodiek loon',
     )
     amount_aov_bijz_srd = fields.Float(
-        string='AOV Art. 17 (SRD)', digits=(16, 2), readonly=True, aggregator='sum',
+        string='AOV bijzondere beloningen (Art. 17)', digits=(16, 2), readonly=True, aggregator='sum',
         help='AOV premie bijzondere beloningen',
     )
     amount_aov_17a_srd = fields.Float(
-        string='AOV Art. 17a (SRD)', digits=(16, 2), readonly=True, aggregator='sum',
+        string='AOV uitkering ineens (Art. 17a)', digits=(16, 2), readonly=True, aggregator='sum',
         help='AOV premie uitkering ineens',
     )
     amount_aov_overwerk_srd = fields.Float(
-        string='AOV Art. 17c (SRD)', digits=(16, 2), readonly=True, aggregator='sum',
+        string='AOV overwerk (Art. 17c)', digits=(16, 2), readonly=True, aggregator='sum',
         help='AOV premie overwerk',
     )
     # ── Extra bruto uitsplitsing ──────────────────────────────────────────────
     amount_bijz_bruto_srd = fields.Float(
-        string='Bijz. Beloningen Bruto (SRD)', digits=(16, 2), readonly=True, aggregator='sum',
+        string='Bruto bijzondere beloningen (Art. 17)', digits=(16, 2), readonly=True, aggregator='sum',
         help='Bruto bijzondere beloningen (vakantiegeld, gratificatie, overige bijz.)',
     )
     amount_uitk_ineens_srd = fields.Float(
