@@ -157,7 +157,7 @@ def get_sr_parameter_value(env, code, ref_date, default=None, raise_if_not_found
             except (TypeError, ValueError):
                 pass  # malformed override — fall through
 
-    value = env['hr.rule.parameter']._get_parameter_from_code(
+    value = env['hr.rule.parameter'].sudo()._get_parameter_from_code(
         code, ref_date, raise_if_not_found=False,
     )
     if not is_missing_parameter_value(value):
@@ -309,7 +309,7 @@ def fetch_params_from_rule_parameter(env, ref_date):
     :returns: dict met calculator-sleutels
     :raises: UserError als een parameter ontbreekt
     """
-    RuleParam = env['hr.rule.parameter']
+    RuleParam = env['hr.rule.parameter'].sudo()
     params = {}
     for code, key in PARAM_CODE_MAP.items():
         try:
@@ -345,7 +345,7 @@ def fetch_params_from_payslip(payslip):
         except (UserError, KeyError, TypeError, ValueError) as error:
             context_label = payslip.date_to.isoformat() if payslip.date_to else 'deze loonstrook'
             _raise_configuration_error(code, context_label, error)
-    code_names = payslip.env['hr.rule.parameter'].search([('code', 'like', 'SR_')]).mapped('code')
+    code_names = payslip.env['hr.rule.parameter'].sudo().search([('code', 'like', 'SR_')]).mapped('code')
     try:
         params['brackets'] = _collect_dynamic_brackets(
             code_names,
