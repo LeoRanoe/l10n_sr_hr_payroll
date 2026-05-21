@@ -7,6 +7,7 @@
         <field name="res_model">sr.payroll.annual.statement.wizard</field>
         <field name="view_mode">form</field>
         <field name="target">new</field>
+        <field name="groups_id" eval="[(6, 0, [ref('base.group_no_one')])]"/>
     </record>
 
     <!-- ═══════════════════════════════════════════════════════════════
@@ -19,7 +20,7 @@
         name="Overzichten"
         parent="hr_work_entry_contract_enterprise.menu_hr_payroll_root"
         sequence="80"
-        groups="hr_payroll.group_hr_payroll_user,hr_payroll.group_hr_payroll_manager,l10n_sr_hr_payroll.group_sr_payroll_accountant_export,base.group_system"/>
+        groups="base.group_no_one"/>
 
     <!-- Fiscaal Overzicht — seq 10, menu defined in hr_payroll_tax_report_views.xml -->
 
@@ -30,7 +31,7 @@
         parent="menu_sr_overzichten_root"
         action="action_sr_periode_wizard"
         sequence="20"
-        groups="hr_payroll.group_hr_payroll_user,hr_payroll.group_hr_payroll_manager,base.group_system"/>
+        groups="base.group_no_one"/>
 
     <!-- Bedrijfs Jaaroverzicht — seq 30, menu defined in hr_payroll_tax_report_views.xml -->
 
@@ -41,7 +42,7 @@
         parent="menu_sr_overzichten_root"
         action="action_sr_verzamelloonstaat_wizard"
         sequence="40"
-        groups="hr_payroll.group_hr_payroll_user,hr_payroll.group_hr_payroll_manager,l10n_sr_hr_payroll.group_sr_payroll_accountant_export,base.group_system"/>
+        groups="base.group_no_one"/>
 
     <!-- Jaarlijkse Loonopgave per werknemer -->
     <menuitem
@@ -50,6 +51,6 @@
         parent="menu_sr_overzichten_root"
         action="action_sr_annual_statement_from_menu"
         sequence="50"
-        groups="hr_payroll.group_hr_payroll_user,hr_payroll.group_hr_payroll_manager,base.group_system"/>
+        groups="base.group_no_one"/>
 
 </odoo>

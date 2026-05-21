@@ -9,6 +9,7 @@
     <record id="view_hr_payroll_tax_report_list" model="ir.ui.view">
         <field name="name">hr.payroll.tax.report.list</field>
         <field name="model">hr.payroll.tax.report</field>
+        <field name="active">False</field>
         <field name="arch" type="xml">
             <list string="SR Fiscaal Belastingoverzicht" create="false" edit="false" delete="false"
                   default_order="date_from desc,department_name,employee_name">
@@ -57,6 +58,7 @@
     <record id="view_hr_payroll_tax_report_form" model="ir.ui.view">
         <field name="name">hr.payroll.tax.report.form</field>
         <field name="model">hr.payroll.tax.report</field>
+        <field name="active">False</field>
         <field name="arch" type="xml">
             <form string="SR Fiscale Rapportregel" create="false" edit="false">
                 <sheet>
@@ -122,6 +124,7 @@
     <record id="view_hr_payroll_tax_report_search" model="ir.ui.view">
         <field name="name">hr.payroll.tax.report.search</field>
         <field name="model">hr.payroll.tax.report</field>
+        <field name="active">False</field>
         <field name="arch" type="xml">
             <search string="SR Fiscaal Belastingoverzicht">
                 <field name="employee_name" string="Werknemer"/>
@@ -156,6 +159,7 @@
     <record id="view_hr_payroll_tax_report_pivot" model="ir.ui.view">
         <field name="name">hr.payroll.tax.report.pivot</field>
         <field name="model">hr.payroll.tax.report</field>
+        <field name="active">False</field>
         <field name="arch" type="xml">
             <pivot string="SR Fiscaal Belastingoverzicht" disable_linking="True">
                 <field name="date_from" type="row" interval="month"/>
@@ -178,6 +182,7 @@
         <field name="res_model">hr.payroll.tax.report</field>
         <field name="view_mode">list,pivot,form</field>
         <field name="context">{'search_default_group_by_month': 1}</field>
+        <field name="groups_id" eval="[(6, 0, [ref('base.group_no_one')])]"/>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">
                 Geen fiscale rapportrecords gevonden.
@@ -195,7 +200,7 @@
         parent="menu_sr_overzichten_root"
         action="action_sr_payroll_tax_report"
         sequence="10"
-        groups="hr_payroll.group_hr_payroll_user,hr_payroll.group_hr_payroll_manager,l10n_sr_hr_payroll.group_sr_payroll_accountant_export,base.group_system"/>
+        groups="base.group_no_one"/>
 
     <menuitem
         id="menu_sr_company_year_overview"
@@ -203,6 +208,6 @@
         parent="menu_sr_overzichten_root"
         action="action_sr_company_year_wizard"
         sequence="30"
-        groups="hr_payroll.group_hr_payroll_user,hr_payroll.group_hr_payroll_manager,l10n_sr_hr_payroll.group_sr_payroll_accountant_export,base.group_system"/>
+        groups="base.group_no_one"/>
 
 </odoo>

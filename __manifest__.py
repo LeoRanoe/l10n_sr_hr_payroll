@@ -73,6 +73,7 @@ Berekeningen:
         'reports/report_sr_company_year_overview.xml',
         'reports/report_sr_fiscal_overview_pdf.xml',
         'reports/report_sr_maandaangifte.xml',
+        'data/sr_basisloon_cleanup_data.xml',
     ],
     'demo': [],
     'license': 'LGPL-3',

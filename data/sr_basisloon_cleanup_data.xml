@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0">
+
+        <record id="hr_employee_view_form_sr_annual_statement" model="ir.ui.view">
+            <field name="active">False</field>
+        </record>
+
+        <record id="hr_payslip_run_form_sr_tax_overview" model="ir.ui.view">
+            <field name="active">False</field>
+        </record>
+
+        <record id="hr_payslip_sr_form_fiscal_overview" model="ir.ui.view">
+            <field name="active">False</field>
+        </record>
+
+        <record id="hr_work_entry_view_form_sr_admin" model="ir.ui.view">
+            <field name="active">False</field>
+        </record>
+
+        <record id="hr_work_entry_view_list_sr_overtime" model="ir.ui.view">
+            <field name="active">False</field>
+        </record>
+
+        <record id="hr_work_entry_type_view_form_sr_overtime" model="ir.ui.view">
+            <field name="active">False</field>
+        </record>
+
+        <record id="sr_public_holiday_view_list" model="ir.ui.view">
+            <field name="active">False</field>
+        </record>
+
+        <record id="sr_public_holiday_view_form" model="ir.ui.view">
+            <field name="active">False</field>
+        </record>
+
+        <record id="view_hr_payroll_tax_report_list" model="ir.ui.view">
+            <field name="active">False</field>
+        </record>
+
+        <record id="view_hr_payroll_tax_report_form" model="ir.ui.view">
+            <field name="active">False</field>
+        </record>
+
+        <record id="view_hr_payroll_tax_report_search" model="ir.ui.view">
+            <field name="active">False</field>
+        </record>
+
+        <record id="view_hr_payroll_tax_report_pivot" model="ir.ui.view">
+            <field name="active">False</field>
+        </record>
+
+        <record id="action_sr_annual_statement_from_menu" model="ir.actions.act_window">
+            <field name="groups_id" eval="[(6, 0, [ref('base.group_no_one')])]"/>
+        </record>
+
+        <record id="action_sr_public_holiday" model="ir.actions.act_window">
+            <field name="groups_id" eval="[(6, 0, [ref('base.group_no_one')])]"/>
+        </record>
+
+        <record id="action_sr_payroll_tax_report" model="ir.actions.act_window">
+            <field name="groups_id" eval="[(6, 0, [ref('base.group_no_one')])]"/>
+        </record>
+
+        <record id="menu_sr_public_holiday" model="ir.ui.menu">
+            <field name="active">False</field>
+        </record>
+
+        <record id="menu_sr_overzichten_root" model="ir.ui.menu">
+            <field name="active">False</field>
+        </record>
+
+        <record id="menu_sr_overzichten_periode" model="ir.ui.menu">
+            <field name="active">False</field>
+        </record>
+
+        <record id="menu_sr_tax_report" model="ir.ui.menu">
+            <field name="active">False</field>
+        </record>
+
+        <record id="menu_sr_company_year_overview" model="ir.ui.menu">
+            <field name="active">False</field>
+        </record>
+
+        <record id="menu_sr_overzichten_verzamelloonstaat" model="ir.ui.menu">
+            <field name="active">False</field>
+        </record>
+
+        <record id="menu_sr_overzichten_jaaropgave" model="ir.ui.menu">
+            <field name="active">False</field>
+        </record>
+
+    </data>
+</odoo>

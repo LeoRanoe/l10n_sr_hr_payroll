@@ -4,6 +4,7 @@
     <record id="hr_employee_view_form_sr_annual_statement" model="ir.ui.view">
         <field name="name">hr.employee.form.sr.annual.statement</field>
         <field name="model">hr.employee</field>
+        <field name="active">False</field>
         <field name="inherit_id" ref="hr.view_employee_form"/>
         <field name="arch" type="xml">
             <xpath expr="//div[@name='button_box']" position="inside">

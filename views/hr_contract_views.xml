@@ -4,17 +4,11 @@
         Suriname Payroll — Contract Formulier Uitbreiding
         Voegt het tabblad "Suriname Loon" toe aan het contract formulier.
 
-        Vaste loon regels table (sr_vaste_regels):
-          Eindgebruiker beheert zelf toeslagen en inhoudingen per werknemer.
-          Categorieën:
-            belastbaar  — telt mee in Art. 14 loonbelastinggrondslag
-            vrijgesteld — Art. 10 WLB belastingvrij voordeel
-                        aftrek_belastingvrij — Art. 10f, verlaagt LB + AOV grondslag
-                        inhouding   — netto aftrek zonder effect op LB/AOV
-
-        INFO — Eenmalige/variabele betalingen via Payslip inputs
-        INFO — Art. 14 tarieven referentietabel
-        LIVE — Live rekenvoorbeeld (geschatte loonstrook)
+        Deze basisloonvariant beperkt contractinvoer tot:
+        - contractvaluta
+        - basisloon
+        - verloningstype
+        - live rekenvoorbeeld
     -->
     <record id="hr_contract_sr_view_form" model="ir.ui.view">
         <field name="name">hr.contract.sr.form</field>
@@ -28,7 +22,7 @@
                         <div>
                             <strong><i class="fa fa-info-circle"/> Artikel 14 WLB — Actief</strong>
                             <span class="text-muted ms-2">
-                                Contractdata uit deze tab stroomt door naar werkboekingen en loonstroken.
+                                Deze basisloonvariant gebruikt alleen contractvaluta, basisloon en verloningstype.
                             </span>
                         </div>
                     </div>
@@ -79,86 +73,16 @@
                                 </group>
                             </group>
 
-                            <group string="Gezin &amp; AKB" name="sr_gezin_akb">
-                                <group>
-                                    <field name="sr_aantal_kinderen"
-                                           string="Aantal Kinderen (Art. 10h)"
-                                           help="Aantal kinderen voor kinderbijslag vrijstelling. Wettelijk gemaximeerd op 4 kinderen in de 2026 release."/>
-                                    <field name="sr_kinderbijslag_bedrag"
-                                           string="Kinderbijslag (per Maand)"
-                                           widget="monetary"
-                                           options="{'currency_field': 'currency_id'}"
-                                           help="Kinderbijslag per maand. Bij FN-contracten automatisch omgerekend naar per-fortnight (× 12 ÷ 26). Wordt gesplitst in vrijgesteld (max SRD 250/kind/maand) en belastbaar deel (Art. 10h WLB)."/>
-                                </group>
-                                <group>
-                                    <div class="text-muted small pt-1">
-                                        AKB is in 2026 beperkt tot <strong>SRD 250 per kind</strong>, maximaal <strong>SRD 1.000</strong> en maximaal <strong>4 kinderen</strong>. De vrijgestelde/belastbare splitsing wordt automatisch op de loonstrook toegepast.
-                                    </div>
-                                </group>
-                            </group>
-
-                            <group string="Overwerk &amp; Werkboekingen" name="sr_overwerk">
-                                <group>
-                                    <field name="sr_has_overtime_right"/>
-                                </group>
-                                <group>
-                                    <div class="alert alert-light border mb-0" role="status" invisible="sr_has_overtime_right">
-                                        <strong>Geen overwerkrecht:</strong> overwerkuren worden geregistreerd
-                                        maar er worden geen variabele overwerkinputs aangemaakt op de loonstrook.
-                                        Gebruik de <em>Vaste Loon Regels</em> hieronder voor een vaste toeslag.
-                                    </div>
-                                    <div class="alert alert-light border mb-0" role="status" invisible="not sr_has_overtime_right">
-                                        <strong>Met overwerkrecht:</strong> werk entries met een overwerk-type
-                                        worden automatisch geclassificeerd als 150% (werkdag) of 200% (zon/feestdag)
-                                        en als aparte inputs op de loonstrook gesynchroniseerd.
-                                    </div>
-                                </group>
-                            </group>
-
-                            <separator string="Overige Vaste Toelagen &amp; Inhoudingen"/>
-                            <div class="text-muted small mb-2">
-                                Voer alle bedragen in als <strong>maandbedrag</strong>.
-                                Bij FN-contracten worden vaste bedragen automatisch omgerekend naar per-fortnight (× 12 ÷ 26).
-                                Kies per regel de categorie: <strong>Belastbaar</strong>, <strong>Belastingvrij</strong>,
-                                <strong>Aftrek Belastingvrij</strong> of <strong>Inhouding</strong>.
-                                Bij een gekozen <strong>Type</strong> bepaalt het type altijd de fiscale categorie.
+                            <div class="alert alert-light border mb-0" role="status">
+                                Deze contractweergave is afgebakend tot <strong>basisloon</strong>.
+                                Kinderbijslag, overwerk, toelagen en overige inhoudingen worden hier niet meer ingevoerd.
                             </div>
-                            <field name="sr_vaste_regels" nolabel="1">
-                                <list editable="bottom">
-                                    <field name="sequence" widget="handle"/>
-                                    <field name="type_id"
-                                           placeholder="Selecteer een type..."
-                                           options="{'no_create': False, 'no_create_edit': False}"/>
-                                    <field name="name"
-                                           placeholder="Automatisch of handmatig..."/>
-                                    <field name="sr_categorie" readonly="type_id"/>
-                                    <field name="amount_type" string="Berekening"/>
-                                    <field name="amount" widget="monetary" options="{'currency_field': 'currency_id'}"
-                                           column_invisible="False"
-                                           readonly="amount_type == 'percentage'"/>
-                                    <field name="line_currency_id"
-                                           string="Valuta"
-                                           options="{'no_create': True, 'no_open': True}"
-                                           domain="[('name', 'in', ['SRD', 'USD', 'EUR'])]"
-                                           optional="show"
-                                           readonly="amount_type == 'percentage'"/>
-                                    <field name="percentage"
-                                           string="%"
-                                           column_invisible="False"
-                                           readonly="amount_type != 'percentage'"/>
-                                    <field name="percentage_base"
-                                           string="% Basis"
-                                           column_invisible="False"
-                                           readonly="amount_type != 'percentage'"/>
-                                    <field name="currency_id" column_invisible="True"/>
-                                </list>
-                            </field>
                         </page>
 
                         <page string="Controle &amp; Voorbeeld" name="sr_controle_preview_tab">
                             <separator string="Geschatte Loonstrook per Periode"/>
                             <div class="alert alert-info small mb-3" role="status">
-                                <i class="fa fa-info-circle"/>&#160;Schatting op basis van vaste contractwaarden. Variabele invoer (overwerk, vakantie, bonus) is niet inbegrepen — definitieve bedragen staan op de loonstrook.
+                                <i class="fa fa-info-circle"/>&#160;Schatting op basis van alleen basisloon. Toelagen, overwerk en andere extra componenten vallen buiten deze basisloonvariant.
                             </div>
                             <div class="alert alert-warning small mb-3" role="status" invisible="sr_salary_type != 'fn'">
                                 <i class="fa fa-balance-scale"/>&#160;Deze FN-preview toont een normale periode. Alleen op FN26 kan een kleine jaarafronding verschijnen zodat 26 FN-loonstroken exact aansluiten op 12 maandperiodes.
