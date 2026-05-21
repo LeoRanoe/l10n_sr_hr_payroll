@@ -12,7 +12,7 @@
         <field name="name">hr.payslip.sr.list</field>
         <field name="model">hr.payslip</field>
         <field name="arch" type="xml">
-            <list string="Loonstroken Suriname" sample="1" duplicate="0">
+            <list string="Loonstroken SR" sample="1" duplicate="0">
                 <field name="company_id" column_invisible="True"/>
                 <field name="currency_id" column_invisible="True"/>
                 <field name="number" decoration-bf="1" readonly="state not in ['draft', 'verify']"/>
@@ -124,7 +124,7 @@
 
     <!-- Actievenster: gefilterd op SR-loonstructuur -->
     <record id="action_sr_payslip_dashboard" model="ir.actions.act_window">
-        <field name="name">Loonstroken Suriname</field>
+        <field name="name">Loonstroken SR</field>
         <field name="res_model">hr.payslip</field>
         <field name="view_mode">list,kanban,pivot,form</field>
         <field name="view_id" ref="view_hr_payslip_sr_list"/>
@@ -132,8 +132,8 @@
         <field name="domain" eval="[('struct_id', '=', ref('l10n_sr_hr_payroll.sr_payroll_structure'))]"/>
         <field name="context" eval="{'default_struct_id': ref('l10n_sr_hr_payroll.sr_payroll_structure'), 'search_default_filter_current_period': 1}"/>
         <field name="help" type="html">
-            <p class="o_view_nocontent_smiling_face">Nog geen Surinaamse loonstroken gevonden.</p>
-            <h3>Loonstroken Suriname — Wet Loonbelasting</h3>
+            <p class="o_view_nocontent_smiling_face">Nog geen SR-loonstroken gevonden.</p>
+            <h3>Loonstroken SR — Wet Loonbelasting</h3>
             <p>
                 Dit is een <strong>gefilterd overzicht</strong> van alle loonstroken die verwerkt zijn
                 met de structuur <em>Suriname — Normaal Loon (Artikel 14 WLB)</em>.
@@ -234,7 +234,7 @@
         <field name="inherit_id" ref="hr_payroll.view_hr_payslip_form"/>
         <field name="arch" type="xml">
             <xpath expr="//page[@name='salary_computation']" position="after">
-                <page string="Fiscaal overzicht (SR)" name="sr_fiscal_overview" invisible="not sr_is_sr_struct">
+                <page string="Fiscaal overzicht" name="sr_fiscal_overview" invisible="not sr_is_sr_struct">
                     <div class="alert alert-info small mb-3" role="status">
                         Deze samenvatting toont opgeslagen loonstrookwaarden uit de database. Herbereken de loonstrook na contract- of inputwijzigingen om de snapshot te verversen.
                     </div>

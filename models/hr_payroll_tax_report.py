@@ -1,5 +1,5 @@
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
-"""SR Fiscaal Belastingoverzicht als live PostgreSQL view."""
+"""Fiscaal Belastingoverzicht als live PostgreSQL view."""
 
 from odoo import _, api, fields, models, tools
 from odoo.exceptions import UserError
@@ -7,7 +7,7 @@ from odoo.exceptions import UserError
 
 class HrPayrollTaxReport(models.Model):
     _name = 'hr.payroll.tax.report'
-    _description = 'SR Fiscaal Belastingoverzicht'
+    _description = 'Fiscaal Belastingoverzicht'
     _auto = False
     _order = 'date_from desc, department_name, employee_name'
     _rec_name = 'employee_name'
