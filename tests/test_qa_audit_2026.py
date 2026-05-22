@@ -800,6 +800,65 @@ class TestQAAudit2026(common.TransactionCase):
             places=2,
         )
 
+    def test_cross_midnight_weekend_overtime_splits_between_regular_and_sunday_hours(self):
+        contract = self._create_contract(
+            self.employee_monthly,
+            wage=17333.3333,
+            sr_has_overtime_right=True,
+        )
+        overtime_entry = self._create_work_entry(
+            contract,
+            self.overtime_work_type,
+            datetime(2026, 4, 4, 23, 0, 0),
+            4.0,
+        )
+
+        payslip = self._create_payslip(contract, date(2026, 4, 1), date(2026, 4, 30))
+        hourly_rate = payslip._sr_get_hourly_rate()
+
+        self.assertAlmostEqual(overtime_entry.sr_overtime_150, 1.0, places=2)
+        self.assertAlmostEqual(overtime_entry.sr_overtime_200, 3.0, places=2)
+        self.assertAlmostEqual(
+            self._input_amount(payslip, 'l10n_sr_hr_payroll.sr_input_overwerk_150'),
+            1.0 * hourly_rate * 1.5,
+            places=2,
+        )
+        self.assertAlmostEqual(
+            self._input_amount(payslip, 'l10n_sr_hr_payroll.sr_input_overwerk_200'),
+            3.0 * hourly_rate * 2.0,
+            places=2,
+        )
+        self.assertAlmostEqual(payslip.sr_total_worked_days, 2.0, places=2)
+
+    def test_cross_midnight_holiday_overtime_splits_between_regular_and_holiday_hours(self):
+        contract = self._create_contract(
+            self.employee_monthly,
+            wage=17333.3333,
+            sr_has_overtime_right=True,
+        )
+        overtime_entry = self._create_work_entry(
+            contract,
+            self.overtime_work_type,
+            datetime(2026, 6, 5, 23, 0, 0),
+            4.0,
+        )
+
+        payslip = self._create_payslip(contract, date(2026, 6, 1), date(2026, 6, 30))
+        hourly_rate = payslip._sr_get_hourly_rate()
+
+        self.assertAlmostEqual(overtime_entry.sr_overtime_150, 1.0, places=2)
+        self.assertAlmostEqual(overtime_entry.sr_overtime_200, 3.0, places=2)
+        self.assertAlmostEqual(
+            self._input_amount(payslip, 'l10n_sr_hr_payroll.sr_input_overwerk_150'),
+            1.0 * hourly_rate * 1.5,
+            places=2,
+        )
+        self.assertAlmostEqual(
+            self._input_amount(payslip, 'l10n_sr_hr_payroll.sr_input_overwerk_200'),
+            3.0 * hourly_rate * 2.0,
+            places=2,
+        )
+
     def test_no_overtime_right_blocks_generated_taxable_overtime_amount(self):
         contract = self._create_contract(
             self.employee_manager,

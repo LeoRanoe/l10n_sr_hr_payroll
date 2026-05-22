@@ -1,5 +1,7 @@
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
+from datetime import datetime, time, timedelta
+
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError, ValidationError
 from odoo.tools import float_round
@@ -47,6 +49,7 @@ class HrWorkEntry(models.Model):
             ('none', 'Volgens rooster'),
             ('overtime_150', 'Overwerk 150%'),
             ('overtime_200', 'Overwerk 200%'),
+            ('mixed', 'Gemengd 150% / 200%'),
             ('unpaid', 'Extra uren niet uitbetalen'),
             ('manual', 'Handmatige override'),
         ],
@@ -137,12 +140,26 @@ class HrWorkEntry(models.Model):
             elif not entry.contract_id.sr_has_overtime_right:
                 treatment = 'unpaid'
                 note = _('%.2f extra uur buiten rooster; contract zonder overwerkrecht.') % extra_hours
-            elif entry._sr_is_200_percent_day(holiday_dates):
-                treatment = 'overtime_200'
-                note = _('%.2f extra uur geclassificeerd als 200%% (zondag/feestdag).') % extra_hours
             else:
-                treatment = 'overtime_150'
-                note = _('%.2f extra uur geclassificeerd als 150%% (werkdag).') % extra_hours
+                overtime_150, overtime_200 = entry._sr_split_overtime_hours_by_day_type(
+                    entry.date_start,
+                    entry.date_stop,
+                    extra_hours,
+                    holiday_dates=holiday_dates,
+                )
+                if float_is_zero(overtime_150, precision_digits=2):
+                    treatment = 'overtime_200'
+                    note = _('%.2f extra uur geclassificeerd als 200%% (zondag/feestdag).') % overtime_200
+                elif float_is_zero(overtime_200, precision_digits=2):
+                    treatment = 'overtime_150'
+                    note = _('%.2f extra uur geclassificeerd als 150%% (werkdag).') % overtime_150
+                else:
+                    treatment = 'mixed'
+                    note = _('%.2f extra uur gesplitst: %.2f uur aan 150%% en %.2f uur aan 200%%.') % (
+                        extra_hours,
+                        overtime_150,
+                        overtime_200,
+                    )
 
             entry.sr_planned_hours = float_round(planned_hours, precision_digits=2)
             entry.sr_extra_hours = float_round(extra_hours, precision_digits=2)
@@ -183,7 +200,6 @@ class HrWorkEntry(models.Model):
             raise UserError(_("Only System Administrators can reset validated work entries to draft."))
         if self.state != 'validated':
             raise UserError(_("Only validated work entries can be reset to draft."))
-        # Bypass the validated-state ORM blockers using sudo
         self.sudo().write({'state': 'draft', 'active': True})
 
     @api.ondelete(at_uninstall=False)
@@ -284,32 +300,91 @@ class HrWorkEntry(models.Model):
             vals.setdefault('sr_overtime_200', 0.0)
             return vals
 
-        holiday_dates = set()
-        entry_date = date_start.date()
-        holidays = self.env['sr.public.holiday'].search([
-            ('date', '=', entry_date),
-            ('active', '=', True),
-        ])
-        if holidays:
-            holiday_dates = {holiday.date for holiday in holidays}
-
-        if entry_date.weekday() == 6 or entry_date in holiday_dates:
-            vals.setdefault('sr_overtime_200', float_round(overtime_hours, precision_digits=2))
-            vals.setdefault('sr_overtime_150', 0.0)
-        else:
-            vals.setdefault('sr_overtime_150', float_round(overtime_hours, precision_digits=2))
-            vals.setdefault('sr_overtime_200', 0.0)
+        range_stop = (date_stop - timedelta(microseconds=1)).date() if date_stop > date_start else date_start.date()
+        holiday_dates = self._sr_get_holiday_dates_in_range(date_start.date(), range_stop)
+        overtime_150, overtime_200 = self._sr_split_overtime_hours_by_day_type(
+            date_start,
+            date_stop,
+            overtime_hours,
+            holiday_dates=holiday_dates,
+        )
+        vals.setdefault('sr_overtime_150', overtime_150)
+        vals.setdefault('sr_overtime_200', overtime_200)
         return vals
 
-    def _sr_get_holiday_dates(self):
-        dates = {entry.date_start.date() for entry in self if entry.date_start}
-        if not dates:
+    @api.model
+    def _sr_get_holiday_dates_in_range(self, date_from, date_to):
+        if not date_from or not date_to or date_to < date_from:
             return set()
         holidays = self.env['sr.public.holiday'].search([
-            ('date', 'in', list(dates)),
+            ('date', '>=', date_from),
+            ('date', '<=', date_to),
             ('active', '=', True),
         ])
         return {holiday.date for holiday in holidays}
+
+    def _sr_get_holiday_dates(self):
+        start_dates = [entry.date_start.date() for entry in self if entry.date_start]
+        if not start_dates:
+            return set()
+        end_dates = []
+        for entry in self:
+            if entry.date_stop and entry.date_start and entry.date_stop > entry.date_start:
+                end_dates.append((entry.date_stop - timedelta(microseconds=1)).date())
+            elif entry.date_start:
+                end_dates.append(entry.date_start.date())
+        return self._sr_get_holiday_dates_in_range(min(start_dates), max(end_dates or start_dates))
+
+    @api.model
+    def _sr_iter_day_segments(self, date_start, date_stop):
+        if not date_start or not date_stop or date_stop <= date_start:
+            return
+        current_start = date_start
+        while current_start < date_stop:
+            next_day_start = datetime.combine(current_start.date() + timedelta(days=1), time.min)
+            segment_stop = min(next_day_start, date_stop)
+            yield current_start.date(), current_start, segment_stop
+            current_start = segment_stop
+
+    @api.model
+    def _sr_split_overtime_hours_by_day_type(self, date_start, date_stop, overtime_hours, holiday_dates=None):
+        overtime_hours = max(overtime_hours or 0.0, 0.0)
+        if not date_start or not date_stop or date_stop <= date_start or float_is_zero(overtime_hours, precision_digits=2):
+            return 0.0, 0.0
+
+        if holiday_dates is None:
+            range_stop = (date_stop - timedelta(microseconds=1)).date()
+            holiday_dates = self._sr_get_holiday_dates_in_range(date_start.date(), range_stop)
+
+        remaining_hours = overtime_hours
+        overtime_150 = 0.0
+        overtime_200 = 0.0
+
+        # Attribute overtime to the tail of the shift so cross-midnight excess
+        # hours land on the calendar day where they were actually worked.
+        for segment_date, segment_start, segment_stop in reversed(list(self._sr_iter_day_segments(date_start, date_stop))):
+            if float_is_zero(remaining_hours, precision_digits=6):
+                break
+            segment_hours = max((segment_stop - segment_start).total_seconds() / 3600.0, 0.0)
+            if float_is_zero(segment_hours, precision_digits=6):
+                continue
+            allocated_hours = min(segment_hours, remaining_hours)
+            if segment_date.weekday() == 6 or segment_date in holiday_dates:
+                overtime_200 += allocated_hours
+            else:
+                overtime_150 += allocated_hours
+            remaining_hours -= allocated_hours
+
+        if float_compare(remaining_hours, 0.0, precision_digits=6) > 0:
+            if date_start.date().weekday() == 6 or date_start.date() in holiday_dates:
+                overtime_200 += remaining_hours
+            else:
+                overtime_150 += remaining_hours
+
+        return (
+            float_round(overtime_150, precision_digits=2),
+            float_round(overtime_200, precision_digits=2),
+        )
 
     def _sr_get_actual_duration_hours(self):
         self.ensure_one()
@@ -407,13 +482,10 @@ class HrWorkEntry(models.Model):
 
     def _sr_classify_overtime(self):
         """
-        Classificeer overwerkbuckets op basis van dag-type:
-          - Zondag of Surinaamse feestdag  → sr_overtime_200 = duration
-          - Overige werkdagen (Ma–Za)      → sr_overtime_150 = duration
-          - Geen overtijdtype              → beide buckets op 0,0
+        Classificeer overwerkbuckets per kalendersegment van de dienst.
 
         Regels met sr_manual_override=True worden overgeslagen.
-        De classificatie gebruikt _write() om write()-recursie te vermijden.
+        De classificatie gebruikt write() met een skip-context om recursie te vermijden.
         """
         if not self:
             return
@@ -446,10 +518,14 @@ class HrWorkEntry(models.Model):
                 entry.with_context(sr_skip_overtime_reclassify=True).write(target_vals)
                 continue
 
-            if entry._sr_is_200_percent_day(holiday_dates):
-                target_vals['sr_overtime_200'] = float_round(overtime_hours, precision_digits=2)
-            else:
-                target_vals['sr_overtime_150'] = float_round(overtime_hours, precision_digits=2)
+            overtime_150, overtime_200 = entry._sr_split_overtime_hours_by_day_type(
+                entry.date_start,
+                entry.date_stop,
+                overtime_hours,
+                holiday_dates=holiday_dates,
+            )
+            target_vals['sr_overtime_150'] = overtime_150
+            target_vals['sr_overtime_200'] = overtime_200
 
             if (
                 float_compare(entry.sr_overtime_150, target_vals['sr_overtime_150'], precision_digits=2) == 0

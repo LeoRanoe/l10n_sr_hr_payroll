@@ -564,6 +564,7 @@ class HrPayslip(models.Model):
     def _sr_build_work_entry_snapshot(self, work_entries=None):
         self.ensure_one()
         work_entries = work_entries if work_entries is not None else self._sr_get_period_work_entries()
+        period_start, period_stop = self._sr_get_period_bounds()
         summary = {
             'regular_hours': 0.0,
             'overtime_hours_150': 0.0,
@@ -594,10 +595,32 @@ class HrPayslip(models.Model):
             summary['total_worked_hours'] += actual_hours
 
             if actual_hours > 0.005 and entry.date_start:
-                worked_days.add(entry.date_start.date())
+                worked_days |= self._sr_get_worked_dates_for_entry(
+                    entry,
+                    period_start=period_start,
+                    period_stop=period_stop,
+                )
 
         summary['total_worked_days'] = float(len(worked_days))
         return summary
+
+    def _sr_get_worked_dates_for_entry(self, entry, period_start=None, period_stop=None):
+        effective_start = entry.date_start
+        effective_stop = entry.date_stop
+        if period_start and effective_start:
+            effective_start = max(effective_start, period_start)
+        if period_stop and effective_stop:
+            effective_stop = min(effective_stop, period_stop)
+        if not effective_start or not effective_stop or effective_stop <= effective_start:
+            return set()
+
+        worked_dates = set()
+        current_start = effective_start
+        while current_start < effective_stop:
+            worked_dates.add(current_start.date())
+            next_day_start = datetime.combine(current_start.date() + timedelta(days=1), time.min)
+            current_start = min(next_day_start, effective_stop)
+        return worked_dates
 
     def _sr_store_work_entry_snapshot(self, work_entries=None):
         self.ensure_one()
