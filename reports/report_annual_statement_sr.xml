@@ -17,250 +17,226 @@
             <t t-foreach="docs" t-as="doc">
                 <t t-set="statement" t-value="doc._get_sr_annual_statement_data()"/>
                 <t t-call="web.external_layout">
-                    <div class="page" style="font-family: Arial, sans-serif; font-size: 10pt; color: #1a1a1a;">
+                    <div class="page">
 
-                        <!-- ══════════════════════════════════════════════════
-                             FORMULIER HEADER — Officieel stijl Suriname
-                        ══════════════════════════════════════════════════ -->
-                        <div style="border: 2px solid #003366; margin-bottom: 14px;">
-                            <!-- Titelbalk -->
-                            <div style="background-color: #003366; color: white; text-align: center; padding: 8px 12px;">
-                                <div style="font-size: 15pt; font-weight: bold; letter-spacing: 0.03em;">
-                                    LOONOPGAVE <t t-esc="statement.get('year')"/>
-                                </div>
-                                <div style="font-size: 8pt; margin-top: 3px; letter-spacing: 0.07em;">
-                                    Wet Loonbelasting Suriname | Jaarlijkse opgave voor de werknemer
-                                </div>
-                            </div>
+                        <!-- ── Koptitel ─────────────────────────────────────── -->
+                        <h2 style="margin-bottom:2px;">
+                            LOONOPGAVE
+                            <small class="text-muted" style="font-size:60%;">
+                                &#160;<t t-esc="statement.get('year')"/>
+                            </small>
+                        </h2>
+                        <p class="text-muted" style="font-size:9pt; margin-top:0; margin-bottom:12px;">
+                            Wet Loonbelasting Suriname&#160;·&#160;Jaarlijkse opgave voor de werknemer
+                        </p>
 
-                            <!-- Werknemer- en bedrijfsgegevens in twee kolommen -->
-                            <table style="width: 100%; border-collapse: collapse;">
+                        <!-- ── Werknemer + werkgever info ────────────────────── -->
+                        <table class="table table-sm table-borderless" id="annual_header_table">
+                            <thead class="o_black_border">
                                 <tr>
-                                    <!-- Werknemersgegevens links -->
-                                    <td style="width: 55%; padding: 8px 12px; vertical-align: top; border-right: 1px solid #003366;">
-                                        <div style="font-size: 7pt; text-transform: uppercase; color: #003366; font-weight: bold; margin-bottom: 6px; letter-spacing: 0.06em;">
-                                            Gegevens Werknemer
-                                        </div>
-                                        <table style="width: 100%; border-collapse: collapse; font-size: 9.5pt;">
-                                            <tr>
-                                                <td style="width: 35%; padding: 2px 0; color: #555;">Achternaam</td>
-                                                <td style="padding: 2px 0;">:&#160;&#160;<strong><t t-esc="statement.get('surname')"/></strong></td>
-                                            </tr>
-                                            <tr>
-                                                <td style="padding: 2px 0; color: #555;">Voornamen</td>
-                                                <td style="padding: 2px 0;">:&#160;&#160;<t t-esc="statement.get('given_names')"/></td>
-                                            </tr>
-                                            <tr>
-                                                <td style="padding: 2px 0; color: #555;">Adres</td>
-                                                <td style="padding: 2px 0;">:&#160;&#160;<t t-esc="statement.get('address') or '—'"/></td>
-                                            </tr>
-                                            <tr>
-                                                <td style="padding: 2px 0; color: #555;">District</td>
-                                                <td style="padding: 2px 0;">:&#160;&#160;<t t-esc="statement.get('district') or '—'"/></td>
-                                            </tr>
-                                            <tr>
-                                                <td style="padding: 2px 0; color: #555;">Geboortedatum</td>
-                                                <td style="padding: 2px 0;">:&#160;&#160;
-                                                    <t t-esc="statement.get('birth_date').strftime('%d-%b-%Y') if statement.get('birth_date') else '—'"/>
-                                                </td>
-                                            </tr>
-                                            <tr>
-                                                <td style="padding: 2px 0; color: #555;">CRIB-nummer</td>
-                                                <td style="padding: 2px 0;">:&#160;&#160;
-                                                    <strong style="font-family: monospace;">
-                                                        <t t-esc="statement.get('employee_identification_id') or '—'"/>
-                                                    </strong>
-                                                </td>
-                                            </tr>
-                                            <tr>
-                                                <td style="padding: 2px 0; color: #555;">Functie</td>
-                                                <td style="padding: 2px 0;">:&#160;&#160;<t t-esc="statement.get('job_title') or '—'"/></td>
-                                            </tr>
-                                        </table>
-                                    </td>
-
-                                    <!-- Werkgevergegevens rechts -->
-                                    <td style="width: 45%; padding: 8px 12px; vertical-align: top;">
-                                        <div style="font-size: 7pt; text-transform: uppercase; color: #003366; font-weight: bold; margin-bottom: 6px; letter-spacing: 0.06em;">
-                                            Gegevens Inhoudingsplichtige (Werkgever)
-                                        </div>
-                                        <table style="width: 100%; border-collapse: collapse; font-size: 9.5pt;">
-                                            <tr>
-                                                <td style="width: 38%; padding: 2px 0; color: #555;">Bedrijfsnaam</td>
-                                                <td style="padding: 2px 0;">:&#160;&#160;<strong><t t-esc="statement.get('company_name')"/></strong></td>
-                                            </tr>
-                                            <tr t-if="statement.get('company_vat') and statement.get('company_vat') != '-'">
-                                                <td style="padding: 2px 0; color: #555;">FIN-nummer</td>
-                                                <td style="padding: 2px 0;">:&#160;&#160;<t t-esc="statement.get('company_vat')"/></td>
-                                            </tr>
-                                            <tr>
-                                                <td style="padding: 2px 0; color: #555;">Adres</td>
-                                                <td style="padding: 2px 0;">:&#160;&#160;<t t-esc="statement.get('company_address') or '—'"/></td>
-                                            </tr>
-                                            <tr>
-                                                <td style="padding: 2px 0; color: #555;">Telefoon</td>
-                                                <td style="padding: 2px 0;">:&#160;&#160;<t t-esc="statement.get('company_phone') or '—'"/></td>
-                                            </tr>
-                                        </table>
-                                    </td>
-                                </tr>
-                            </table>
-                        </div>
-
-                        <!-- ══════════════════════════════════════════════════
-                             SECTIE 1 — LOONGEGEVENS
-                        ══════════════════════════════════════════════════ -->
-                        <div style="background-color: #003366; color: white; padding: 4px 8px; font-weight: bold; font-size: 8pt; letter-spacing: 0.05em; margin-bottom: 1px;">
-                            1. LOONGEGEVENS
-                        </div>
-                        <table style="width: 100%; border-collapse: collapse; font-size: 9.5pt; margin-bottom: 14px;">
-                            <thead>
-                                <tr style="background-color: #d9e4f0;">
-                                    <th style="text-align: left; padding: 4px 8px; border: 1px solid #b0c4de; width: 52%;">Omschrijving</th>
-                                    <th style="text-align: right; padding: 4px 8px; border: 1px solid #b0c4de; width: 24%;">Bruto bedrag (SRD)</th>
-                                    <th style="text-align: right; padding: 4px 8px; border: 1px solid #b0c4de; width: 24%;">Belast bedrag (SRD)</th>
+                                    <th>Gegevens Werknemer</th>
+                                    <th>Gegevens Inhoudingsplichtige (Werkgever)</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr t-foreach="statement.get('income_rows', [])" t-as="row">
-                                    <td style="padding: 4px 8px; border: 1px solid #d4dce8;"><t t-esc="row.get('description')"/></td>
-                                    <td style="padding: 4px 8px; border: 1px solid #d4dce8; text-align: right; font-family: monospace;">
-                                        <t t-esc="'{:,.2f}'.format(row.get('gross_amount', 0))"/>
+                                <tr>
+                                    <td>
+                                        <div>
+                                            <strong class="me-2">Achternaam:</strong>
+                                            <span t-esc="statement.get('surname')"/>
+                                        </div>
+                                        <div>
+                                            <strong class="me-2">Voornamen:</strong>
+                                            <span t-esc="statement.get('given_names')"/>
+                                        </div>
+                                        <div>
+                                            <strong class="me-2">Adres:</strong>
+                                            <span t-esc="statement.get('address') or '—'"/>
+                                        </div>
+                                        <div t-if="statement.get('district')">
+                                            <strong class="me-2">District:</strong>
+                                            <span t-esc="statement.get('district')"/>
+                                        </div>
+                                        <div>
+                                            <strong class="me-2">Geboortedatum:</strong>
+                                            <span t-esc="statement.get('birth_date').strftime('%d-%b-%Y') if statement.get('birth_date') else '—'"/>
+                                        </div>
+                                        <div>
+                                            <strong class="me-2">CRIB-nummer:</strong>
+                                            <span class="fw-bold"
+                                                  t-esc="statement.get('employee_identification_id') or '—'"/>
+                                        </div>
+                                        <div t-if="statement.get('job_title')">
+                                            <strong class="me-2">Functie:</strong>
+                                            <span t-esc="statement.get('job_title')"/>
+                                        </div>
                                     </td>
-                                    <td style="padding: 4px 8px; border: 1px solid #d4dce8; text-align: right; font-family: monospace;">
-                                        <t t-esc="'{:,.2f}'.format(row.get('taxable_amount', 0))"/>
-                                    </td>
-                                </tr>
-                                <tr style="background-color: #edf2f9; font-weight: bold;">
-                                    <td style="padding: 5px 8px; border: 1px solid #b0c4de;">Subtotaal</td>
-                                    <td style="padding: 5px 8px; border: 1px solid #b0c4de; text-align: right; font-family: monospace;">
-                                        <t t-esc="'{:,.2f}'.format(statement.get('income_gross_total', 0))"/>
-                                    </td>
-                                    <td style="padding: 5px 8px; border: 1px solid #b0c4de; text-align: right; font-family: monospace;">
-                                        <t t-esc="'{:,.2f}'.format(statement.get('income_taxable_total', 0))"/>
+                                    <td>
+                                        <div>
+                                            <strong class="me-2">Bedrijfsnaam:</strong>
+                                            <span t-esc="statement.get('company_name')"/>
+                                        </div>
+                                        <div t-if="statement.get('company_vat') and statement.get('company_vat') != '-'">
+                                            <strong class="me-2">FIN-nummer:</strong>
+                                            <span t-esc="statement.get('company_vat')"/>
+                                        </div>
+                                        <div t-if="statement.get('company_address')">
+                                            <strong class="me-2">Adres:</strong>
+                                            <span t-esc="statement.get('company_address')"/>
+                                        </div>
+                                        <div t-if="statement.get('company_phone')">
+                                            <strong class="me-2">Telefoon:</strong>
+                                            <span t-esc="statement.get('company_phone')"/>
+                                        </div>
                                     </td>
                                 </tr>
                             </tbody>
                         </table>
 
-                        <!-- ══════════════════════════════════════════════════
-                             SECTIE 2 — ANDERE INHOUDINGEN
-                        ══════════════════════════════════════════════════ -->
-                        <div style="background-color: #003366; color: white; padding: 4px 8px; font-weight: bold; font-size: 8pt; letter-spacing: 0.05em; margin-bottom: 1px;">
-                            2. ANDERE INHOUDINGEN
-                        </div>
-                        <table style="width: 100%; border-collapse: collapse; font-size: 9.5pt; margin-bottom: 14px;">
+                        <!-- ── 1. Loongegevens ───────────────────────────────── -->
+                        <table class="table table-sm" id="annual_income_table">
+                            <thead class="o_black_border">
+                                <tr>
+                                    <th colspan="3">1. Loongegevens</th>
+                                </tr>
+                                <tr>
+                                    <th style="width:52%;">Omschrijving</th>
+                                    <th class="text-end" style="width:24%;">Bruto bedrag (SRD)</th>
+                                    <th class="text-end" style="width:24%;">Belast bedrag (SRD)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr t-foreach="statement.get('income_rows', [])" t-as="row">
+                                    <td><t t-esc="row.get('description')"/></td>
+                                    <td class="text-end">
+                                        <t t-esc="'{:,.2f}'.format(row.get('gross_amount', 0))"/>
+                                    </td>
+                                    <td class="text-end">
+                                        <t t-esc="'{:,.2f}'.format(row.get('taxable_amount', 0))"/>
+                                    </td>
+                                </tr>
+                            </tbody>
+                            <tfoot>
+                                <tr class="o_total o_border_bottom fw-bold" style="color:#875A7B;">
+                                    <td>Subtotaal</td>
+                                    <td class="text-end">
+                                        <t t-esc="'{:,.2f}'.format(statement.get('income_gross_total', 0))"/>
+                                    </td>
+                                    <td class="text-end">
+                                        <t t-esc="'{:,.2f}'.format(statement.get('income_taxable_total', 0))"/>
+                                    </td>
+                                </tr>
+                            </tfoot>
+                        </table>
+
+                        <!-- ── 2. Andere inhoudingen ─────────────────────────── -->
+                        <table class="table table-sm" id="annual_deductions_table">
+                            <thead class="o_black_border">
+                                <tr><th colspan="2">2. Andere Inhoudingen</th></tr>
+                            </thead>
                             <tbody>
                                 <tr t-if="statement.get('pension_total', 0)">
-                                    <td style="padding: 4px 8px; border: 1px solid #d4dce8; width: 76%;">Pensioenpremie (totaal inhoudingen)</td>
-                                    <td style="padding: 4px 8px; border: 1px solid #d4dce8; text-align: right; font-family: monospace; color: #b00;">
-                                        -<t t-esc="'{:,.2f}'.format(statement.get('pension_total', 0))"/>
+                                    <td style="width:76%;">Pensioenpremie (totaal inhoudingen)</td>
+                                    <td class="text-end" style="color:#875A7B;">
+                                        −<t t-esc="'{:,.2f}'.format(statement.get('pension_total', 0))"/>
                                     </td>
                                 </tr>
                                 <tr t-if="not statement.get('pension_total', 0)">
-                                    <td colspan="2" style="padding: 4px 8px; border: 1px solid #d4dce8; color: #888; font-style: italic;">
+                                    <td colspan="2" class="text-muted fst-italic">
                                         Geen andere inhoudingen geregistreerd in <t t-esc="statement.get('year')"/>.
                                     </td>
                                 </tr>
                             </tbody>
                         </table>
 
-                        <!-- ══════════════════════════════════════════════════
-                             SECTIE 3 — BELASTINGEN EN PREMIES
-                        ══════════════════════════════════════════════════ -->
-                        <div style="background-color: #003366; color: white; padding: 4px 8px; font-weight: bold; font-size: 8pt; letter-spacing: 0.05em; margin-bottom: 1px;">
-                            3. INGEHOUDEN BELASTINGEN EN PREMIES
-                        </div>
-                        <table style="width: 100%; border-collapse: collapse; font-size: 9.5pt; margin-bottom: 6px;">
-                            <thead>
-                                <tr style="background-color: #d9e4f0;">
-                                    <th style="text-align: left; padding: 4px 8px; border: 1px solid #b0c4de; width: 10%;">Artikel</th>
-                                    <th style="text-align: left; padding: 4px 8px; border: 1px solid #b0c4de; width: 30%;">Omschrijving</th>
-                                    <th style="text-align: left; padding: 4px 8px; border: 1px solid #b0c4de; width: 13%;">Van</th>
-                                    <th style="text-align: left; padding: 4px 8px; border: 1px solid #b0c4de; width: 13%;">Tot</th>
-                                    <th style="text-align: right; padding: 4px 8px; border: 1px solid #b0c4de; width: 17%;">Loonbelasting (SRD)</th>
-                                    <th style="text-align: right; padding: 4px 8px; border: 1px solid #b0c4de; width: 17%;">AOV Premie (SRD)</th>
+                        <!-- ── 3. Ingehouden belastingen en premies ────────────── -->
+                        <table class="table table-sm" id="annual_tax_table">
+                            <thead class="o_black_border">
+                                <tr>
+                                    <th colspan="6">3. Ingehouden Belastingen en Premies</th>
+                                </tr>
+                                <tr>
+                                    <th style="width:10%;">Artikel</th>
+                                    <th style="width:30%;">Omschrijving</th>
+                                    <th style="width:13%;">Van</th>
+                                    <th style="width:13%;">Tot</th>
+                                    <th class="text-end" style="width:17%;">Loonbelasting (SRD)</th>
+                                    <th class="text-end" style="width:17%;">AOV Premie (SRD)</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <tr t-foreach="statement.get('article14_rows', [])" t-as="row">
-                                    <td style="padding: 4px 8px; border: 1px solid #d4dce8; font-weight: bold; color: #003366;">
+                                    <td class="fw-bold" style="color:#875A7B;">
                                         <t t-esc="row.get('article')"/>
                                     </td>
-                                    <td style="padding: 4px 8px; border: 1px solid #d4dce8;"><t t-esc="row.get('description')"/></td>
-                                    <td style="padding: 4px 8px; border: 1px solid #d4dce8; font-size: 8.5pt;">
+                                    <td><t t-esc="row.get('description')"/></td>
+                                    <td>
                                         <t t-esc="row.get('date_from').strftime('%d-%m-%Y') if row.get('date_from') else '—'"/>
                                     </td>
-                                    <td style="padding: 4px 8px; border: 1px solid #d4dce8; font-size: 8.5pt;">
+                                    <td>
                                         <t t-esc="row.get('date_to').strftime('%d-%m-%Y') if row.get('date_to') else '—'"/>
                                     </td>
-                                    <td style="padding: 4px 8px; border: 1px solid #d4dce8; text-align: right; font-family: monospace;">
+                                    <td class="text-end">
                                         <t t-esc="'{:,.2f}'.format(row.get('loonbelasting', 0))"/>
                                     </td>
-                                    <td style="padding: 4px 8px; border: 1px solid #d4dce8; text-align: right; font-family: monospace;">
+                                    <td class="text-end">
                                         <t t-esc="'{:,.2f}'.format(row.get('aov', 0))"/>
                                     </td>
                                 </tr>
-                                <tr style="background-color: #edf2f9; font-weight: bold; font-size: 9.5pt;">
-                                    <td colspan="4" style="padding: 5px 8px; border: 1px solid #b0c4de; text-align: right;">
-                                        Totaal ingehouden
-                                    </td>
-                                    <td style="padding: 5px 8px; border: 1px solid #b0c4de; text-align: right; font-family: monospace; color: #b00;">
+                            </tbody>
+                            <tfoot>
+                                <tr class="o_total o_border_bottom fw-bold" style="color:#875A7B;">
+                                    <td colspan="4" class="text-end">Totaal ingehouden</td>
+                                    <td class="text-end">
                                         <t t-esc="'{:,.2f}'.format(statement.get('lb_total', 0))"/>
                                     </td>
-                                    <td style="padding: 5px 8px; border: 1px solid #b0c4de; text-align: right; font-family: monospace; color: #b00;">
+                                    <td class="text-end">
                                         <t t-esc="'{:,.2f}'.format(statement.get('aov_total', 0))"/>
                                     </td>
                                 </tr>
-                            </tbody>
+                            </tfoot>
                         </table>
 
-                        <!-- ══════════════════════════════════════════════════
-                             SECTIE 4 — BELASTINGKORTING
-                        ══════════════════════════════════════════════════ -->
-                        <div style="background-color: #003366; color: white; padding: 4px 8px; font-weight: bold; font-size: 8pt; letter-spacing: 0.05em; margin-bottom: 1px;">
-                            4. BELASTINGKORTING (HEFFINGSKORTING)
-                        </div>
-                        <table style="width: 100%; border-collapse: collapse; font-size: 9.5pt; margin-bottom: 18px;">
-                            <thead>
-                                <tr style="background-color: #d9e4f0;">
-                                    <th style="text-align: left; padding: 4px 8px; border: 1px solid #b0c4de; width: 76%;">Omschrijving</th>
-                                    <th style="text-align: right; padding: 4px 8px; border: 1px solid #b0c4de; width: 24%;">Bedrag (SRD)</th>
+                        <!-- ── 4. Belastingkorting (heffingskorting) ────────────── -->
+                        <table class="table table-sm" id="annual_taxcredit_table">
+                            <thead class="o_black_border">
+                                <tr>
+                                    <th colspan="2">4. Belastingkorting (Heffingskorting)</th>
+                                </tr>
+                                <tr>
+                                    <th style="width:76%;">Omschrijving</th>
+                                    <th class="text-end" style="width:24%;">Bedrag (SRD)</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <tr t-if="not statement.get('tax_credit_rows')">
-                                    <td colspan="2" style="padding: 4px 8px; border: 1px solid #d4dce8; color: #888; font-style: italic;">
+                                    <td colspan="2" class="text-muted fst-italic">
                                         Geen belastingkortingen geregistreerd in <t t-esc="statement.get('year')"/>.
                                     </td>
                                 </tr>
                                 <tr t-foreach="statement.get('tax_credit_rows', [])" t-as="row">
-                                    <td style="padding: 4px 8px; border: 1px solid #d4dce8;"><t t-esc="row.get('description')"/></td>
-                                    <td style="padding: 4px 8px; border: 1px solid #d4dce8; text-align: right; font-family: monospace;">
+                                    <td><t t-esc="row.get('description')"/></td>
+                                    <td class="text-end">
                                         <t t-esc="'{:,.2f}'.format(row.get('amount', 0))"/>
                                     </td>
                                 </tr>
                             </tbody>
                         </table>
 
-                        <!-- ══════════════════════════════════════════════════
-                             ONDERTEKENINGSBLOK
-                        ══════════════════════════════════════════════════ -->
-                        <div style="margin-top: 6px; padding: 6px 8px; border: 1px solid #c8d6e5; background: #f7fafc; font-size: 8.5pt; color: #333;">
-                            <em>
-                                De werkgever verklaart dat de hierboven vermelde gegevens juist en volledig zijn conform
-                                de Wet Loonbelasting Suriname.
-                            </em>
-                        </div>
-
-                        <table style="width: 100%; border-collapse: collapse; font-size: 9.5pt; margin-top: 28px;">
+                        <!-- ── Verklaring + ondertekeningsblok ──────────────── -->
+                        <div class="oe_structure" style="margin-top:8px;"/>
+                        <p class="text-muted fst-italic" style="font-size:8.5pt; margin-top:8px;">
+                            De werkgever verklaart dat de hierboven vermelde gegevens juist en volledig
+                            zijn conform de Wet Loonbelasting Suriname.
+                        </p>
+                        <table style="width:100%; margin-top:24px; font-size:9.5pt;">
                             <tr>
-                                <td style="width: 46%; border-top: 1px solid #555; padding-top: 5px; text-align: center;">
+                                <td style="width:46%; border-top:1px solid #555; padding-top:5px; text-align:center;">
                                     ________________________<br/>
                                     Hoofd Salarisadministratie
                                 </td>
-                                <td style="width: 8%;"/>
-                                <td style="width: 46%; border-top: 1px solid #555; padding-top: 5px; text-align: center;">
+                                <td style="width:8%;"/>
+                                <td style="width:46%; border-top:1px solid #555; padding-top:5px; text-align:center;">
                                     ________________________<br/>
                                     Directeur / Manager
                                 </td>

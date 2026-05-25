@@ -5,12 +5,19 @@ from odoo.exceptions import ValidationError
 
 _SR_SUPPORTED_CURRENCIES = frozenset({'SRD', 'USD', 'EUR'})
 
+_SR_PAYSLIP_TEMPLATES = [
+    ('odoo_standard', 'Odoo Standaard'),
+    ('employee_simple', 'Klassiek (donkerblauw)'),
+    ('compact', 'Compact Netto-overzicht'),
+    ('artikel14_detail', 'Artikel 14 Detail'),
+]
+
 
 class ResCompany(models.Model):
     _inherit = 'res.company'
 
     def init(self):
-        """Migratie: initialiseer standaard contractvaluta en shortcut-weergave voor bestaande bedrijven."""
+        """Migratie: initialiseer standaard contractvaluta, shortcut-weergave en loonstrook template voor bestaande bedrijven."""
         self.env.cr.execute("""
             UPDATE res_company c
             SET    sr_default_contract_currency_id = cur.id
@@ -23,6 +30,23 @@ class ResCompany(models.Model):
             SET    sr_show_contract_shortcuts = FALSE
             WHERE  sr_show_contract_shortcuts IS NULL
         """)
+        self.env.cr.execute("""
+            UPDATE res_company
+            SET    sr_payslip_template = 'odoo_standard'
+            WHERE  sr_payslip_template IS NULL
+        """)
+
+    sr_payslip_template = fields.Selection(
+        selection=_SR_PAYSLIP_TEMPLATES,
+        string='Standaard loonstrook template',
+        default='odoo_standard',
+        help=(
+            'Welke templatestijl nieuwe loonstroken standaard gebruiken voor dit bedrijf. '
+            '"Odoo Standaard" gebruikt Bootstrap-opmaak conform Odoo huisstijl met Surinaamse inhoud. '
+            '"Klassiek" gebruikt de traditionele donkerblauwe SR-huisstijl. '
+            'Per loonstrook kan de keuze nog worden overschreven.'
+        ),
+    )
 
     sr_default_contract_currency_id = fields.Many2one(
         'res.currency',

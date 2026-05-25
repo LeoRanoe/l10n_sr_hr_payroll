@@ -753,6 +753,270 @@
 
 
     <!-- ═══════════════════════════════════════════════════════════════════
+         LAYOUT 5: Odoo Standaard  (report_payslip_sr_employee_odoo_standard)
+         Odoo Bootstrap-stijl met Surinaamse inhoud en wettelijke velden.
+         Gebruikt .table .table-sm .table-borderless + .o_black_border headers.
+         Kleur #875A7B (Odoo paars) voor totalen en nadruk — geen custom CSS.
+    ═══════════════════════════════════════════════════════════════════ -->
+    <template id="report_payslip_sr_employee_odoo_standard">
+        <t t-call="web.external_layout">
+            <div class="page">
+
+                <!-- ── Koptitel ─────────────────────────────────────────── -->
+                <h2 style="margin-bottom:2px;">
+                    LOONSTROOK
+                    <small class="text-muted" style="font-size:60%;">
+                        &#160;·&#160;<t t-esc="bd.get('period_title') or ''"/>
+                        &#160;·&#160;Nr.&#160;<t t-esc="doc.number or doc.name or '—'"/>
+                    </small>
+                </h2>
+                <p class="text-muted" style="font-size:9pt; margin-top:0; margin-bottom:12px;">
+                    <t t-esc="doc.company_id.name or ''"/>
+                    &#160;·&#160;Wet Loonbelasting Suriname
+                    <t t-if="bd.get('is_fn')">&#160;·&#160;Fortnight (26x/jaar)</t>
+                    <t t-else="">&#160;·&#160;Maandloon (12x/jaar)</t>
+                </p>
+
+                <!-- ── Werknemers- &amp; contractgegevens ──────────────── -->
+                <table class="table table-sm table-borderless" id="sr_infos_table">
+                    <thead class="o_black_border">
+                        <tr>
+                            <th>Werknemersinformatie</th>
+                            <th>Contract &amp; Loopbaan</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td id="sr_employee_infos">
+                                <div>
+                                    <strong class="me-2">Naam:</strong>
+                                    <span t-esc="doc.employee_id.name or '—'"/>
+                                </div>
+                                <div>
+                                    <strong class="me-2">Personeelsnr.:</strong>
+                                    <span t-esc="bd.get('employee_reference') or '—'"/>
+                                </div>
+                                <div>
+                                    <strong class="me-2">CRIB-nummer:</strong>
+                                    <span t-esc="doc.employee_id.identification_id or '—'"/>
+                                </div>
+                                <div t-if="doc.employee_id.job_id">
+                                    <strong class="me-2">Functie:</strong>
+                                    <span t-esc="doc.employee_id.job_id.name"/>
+                                </div>
+                                <div t-if="doc.employee_id.department_id">
+                                    <strong class="me-2">Afdeling:</strong>
+                                    <span t-esc="doc.employee_id.department_id.name"/>
+                                </div>
+                                <div>
+                                    <strong class="me-2">Bankrekening:</strong>
+                                    <span t-esc="bd.get('bank_account_number') or '—'"/>
+                                    <t t-if="bd.get('bank_name')">
+                                        <span class="text-muted">&#160;(<t t-esc="bd.get('bank_name')"/>)</span>
+                                    </t>
+                                </div>
+                                <div>
+                                    <strong class="me-2">FIN Werkgever:</strong>
+                                    <span t-if="doc.company_id.vat" t-esc="doc.company_id.vat"/>
+                                    <span t-else="" style="color:#875A7B;" class="fw-bold">Niet ingevuld</span>
+                                </div>
+                            </td>
+                            <td id="sr_other_infos">
+                                <div>
+                                    <strong class="me-2">Loonstructuur:</strong>
+                                    <span t-esc="doc.struct_id.name or '—'"/>
+                                </div>
+                                <div>
+                                    <strong class="me-2">Periode:</strong>
+                                    <span t-esc="doc.date_from.strftime('%d-%m-%Y') if doc.date_from else '—'"/>
+                                    &#160;–&#160;
+                                    <span t-esc="doc.date_to.strftime('%d-%m-%Y') if doc.date_to else '—'"/>
+                                </div>
+                                <div>
+                                    <strong class="me-2">In dienst:</strong>
+                                    <span t-esc="bd.get('employment_start_date').strftime('%d-%b-%Y') if bd.get('employment_start_date') else '—'"/>
+                                </div>
+                                <div>
+                                    <strong class="me-2">Uurloon (SRD):</strong>
+                                    <span style="color:#875A7B;" class="fw-bold"
+                                          t-esc="'{:,.4f}'.format(bd.get('hourly_wage', 0))"/>
+                                </div>
+                                <div t-if="bd.get('fn_period_label')">
+                                    <strong class="me-2">FN Periode:</strong>
+                                    <span t-esc="bd.get('fn_period_label')"/>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <!-- ── Inkomsten en Inhoudingen naast elkaar ────────────── -->
+                <table style="width:100%; border-collapse:collapse; margin-bottom:0;">
+                    <tr>
+                        <!-- INKOMSTEN links -->
+                        <td style="width:50%; vertical-align:top; padding-right:6px;">
+                            <table class="table table-sm table-borderless" id="sr_earnings_table">
+                                <thead class="o_black_border">
+                                    <tr>
+                                        <th>Inkomsten</th>
+                                        <th class="text-end">Qty</th>
+                                        <th class="text-end">Bedrag</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="sr_earnings_lines">
+                                    <t t-foreach="bd.get('payslip_line_rows', [])" t-as="row">
+                                        <t t-if="row.get('debit', 0) > 0">
+                                            <tr>
+                                                <td>
+                                                    <span t-esc="row.get('name')"/>
+                                                    <t t-if="row.get('categorie_label')">
+                                                        <br/><small class="text-muted">
+                                                            <t t-esc="row.get('categorie_label')"/>
+                                                        </small>
+                                                    </t>
+                                                </td>
+                                                <td class="text-end">
+                                                    <span t-esc="row.get('quantity_display') or ''"/>
+                                                </td>
+                                                <td class="text-end">
+                                                    <span t-esc="'{:,.2f}'.format(row.get('debit', 0))"/>
+                                                </td>
+                                            </tr>
+                                        </t>
+                                    </t>
+                                </tbody>
+                                <tfoot>
+                                    <tr>
+                                        <td colspan="2"
+                                            class="text-end o_total o_border_bottom fw-bold"
+                                            style="color:#875A7B;">Totaal Inkomsten</td>
+                                        <td class="text-end o_total o_border_bottom fw-bold"
+                                            style="color:#875A7B;">
+                                            <span t-esc="'{:,.2f}'.format(bd.get('display_debit_total', 0))"/>
+                                        </td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </td>
+
+                        <!-- INHOUDINGEN rechts -->
+                        <td style="width:50%; vertical-align:top; padding-left:6px;">
+                            <table class="table table-sm table-borderless" id="sr_deductions_table">
+                                <thead class="o_black_border">
+                                    <tr>
+                                        <th>Inhoudingen</th>
+                                        <th class="text-end">Qty</th>
+                                        <th class="text-end">Bedrag</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="sr_deductions_lines">
+                                    <t t-foreach="bd.get('payslip_line_rows', [])" t-as="row">
+                                        <t t-if="row.get('credit', 0) > 0">
+                                            <tr>
+                                                <td>
+                                                    <span t-esc="row.get('name')"/>
+                                                    <t t-if="row.get('categorie_label')">
+                                                        <br/><small class="text-muted">
+                                                            <t t-esc="row.get('categorie_label')"/>
+                                                        </small>
+                                                    </t>
+                                                </td>
+                                                <td class="text-end">
+                                                    <span t-esc="row.get('quantity_display') or ''"/>
+                                                </td>
+                                                <td class="text-end"
+                                                    t-att-style="'color:#875A7B;' if row.get('credit', 0) > 0 else ''">
+                                                    <span t-esc="'{:,.2f}'.format(row.get('credit', 0))"/>
+                                                </td>
+                                            </tr>
+                                        </t>
+                                    </t>
+                                </tbody>
+                                <tfoot>
+                                    <tr>
+                                        <td colspan="2"
+                                            class="text-end o_total o_border_bottom fw-bold"
+                                            style="color:#875A7B;">Totaal Inhoudingen</td>
+                                        <td class="text-end o_total o_border_bottom fw-bold"
+                                            style="color:#875A7B;">
+                                            <span t-esc="'{:,.2f}'.format(bd.get('display_credit_total', 0))"/>
+                                        </td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+
+                <!-- ── Netto uit te betalen ──────────────────────────────── -->
+                <div id="sr_to_pay" style="margin-top:8px;">
+                    <p>
+                        Netto uit te betalen op
+                        <b><span t-esc="bd.get('bank_account_number') or '— (geen bankrekening ingesteld)'"/></b>
+                        van <i><span t-esc="doc.employee_id.name or ''"/></i>:
+                        <span style="color:#875A7B;" class="fw-bold"
+                              t-esc="'SRD {:,.2f}'.format(bd.get('display_net_total', 0))"/>
+                    </p>
+                </div>
+
+                <!-- ── Werkdagen ─────────────────────────────────────────── -->
+                <t t-if="bd.get('worked_days_rows')">
+                    <table class="table table-sm table-borderless" id="sr_worked_days_table">
+                        <thead class="o_black_border">
+                            <tr>
+                                <th>Werkdagen</th>
+                                <th class="text-end">Dagen</th>
+                                <th class="text-end">Uren</th>
+                                <th class="text-end">Bedrag</th>
+                            </tr>
+                        </thead>
+                        <tbody id="sr_worked_days_lines">
+                            <t t-foreach="bd.get('worked_days_rows', [])" t-as="row">
+                                <tr>
+                                    <td><span t-esc="row.get('name')"/></td>
+                                    <td class="text-end">
+                                        <span t-esc="'{:,.1f}'.format(row.get('days', 0)) if row.get('days') else ''"/>
+                                    </td>
+                                    <td class="text-end">
+                                        <span t-esc="'{:,.1f}'.format(row.get('hours', 0)) if row.get('hours') else ''"/>
+                                    </td>
+                                    <td class="text-end">
+                                        <span t-esc="'{:,.2f}'.format(row.get('amount', 0)) if row.get('amount') else ''"/>
+                                    </td>
+                                </tr>
+                            </t>
+                        </tbody>
+                    </table>
+                </t>
+
+                <!-- ── Uren specificatie ─────────────────────────────────── -->
+                <t t-if="bd.get('hours_summary_lines')">
+                    <table class="table table-sm table-borderless" id="sr_hours_table">
+                        <thead class="o_black_border">
+                            <tr>
+                                <th>Uren Specificatie</th>
+                                <th class="text-end">Uren</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <t t-foreach="bd.get('hours_summary_lines', [])" t-as="line">
+                                <tr>
+                                    <td><span t-esc="line.get('label')"/></td>
+                                    <td class="text-end">
+                                        <span t-esc="'{:,.2f}'.format(line.get('hours', 0))"/>
+                                    </td>
+                                </tr>
+                            </t>
+                        </tbody>
+                    </table>
+                </t>
+
+            </div>
+        </t>
+    </template>
+
+
+    <!-- ═══════════════════════════════════════════════════════════════════
          LAYOUT 4: Volledig gedetailleerd (report_payslip_sr_detailed)
          Toont de volledige stap-voor-stap Artikel 14 berekening.
          Behouden als transparante berekening voor werknemer/accountant.

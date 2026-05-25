@@ -16,14 +16,16 @@ _sr_calc_thread_local = threading.local()
 _SR_MONEY_QUANT = Decimal('0.01')
 _SR_INTERNAL_MONEY_QUANT = Decimal('0.000001')
 _SR_HOURLY_RATE_QUANT = Decimal('0.000001')
-_SR_PAYSLIP_LAYOUT_DEFAULT = 'employee_simple'
+_SR_PAYSLIP_LAYOUT_DEFAULT = 'odoo_standard'
 _SR_PAYSLIP_LAYOUT_CONFIG_KEY = 'sr_payroll.sr_default_payslip_layout'
 _SR_PAYSLIP_LAYOUT_LEGACY_CONFIG_KEY = 'sr_payroll.default_payslip_layout'
 _SR_DISPLAY_MODE_CONFIG_KEY = 'sr_payroll.netto_display_mode'
 _SR_DISPLAY_MODE_DEFAULT = 'srd'
 _SR_PAYSLIP_LAYOUTS = [
-    ('employee_simple', 'Klassiek Debet / Credit'),
+    ('odoo_standard', 'Odoo Standaard'),
+    ('employee_simple', 'Klassiek (donkerblauw)'),
     ('compact', 'Compact Netto-overzicht'),
+    ('artikel14_detail', 'Artikel 14 Detail'),
 ]
 
 SR_FN_2026_PERIODS = (
@@ -225,6 +227,10 @@ class HrPayslip(models.Model):
 
     @api.model
     def _default_sr_payslip_layout(self):
+        valid_values = {key for key, _label in _SR_PAYSLIP_LAYOUTS}
+        company = self.env.company
+        if hasattr(company, 'sr_payslip_template') and company.sr_payslip_template in valid_values:
+            return company.sr_payslip_template
         params = self.env['ir.config_parameter'].sudo()
         value = params.get_param(_SR_PAYSLIP_LAYOUT_CONFIG_KEY)
         if value in (None, False, ''):
@@ -232,15 +238,17 @@ class HrPayslip(models.Model):
                 _SR_PAYSLIP_LAYOUT_LEGACY_CONFIG_KEY,
                 default=_SR_PAYSLIP_LAYOUT_DEFAULT,
             )
-        valid_values = {key for key, _label in _SR_PAYSLIP_LAYOUTS}
         return value if value in valid_values else _SR_PAYSLIP_LAYOUT_DEFAULT
 
     def _sr_get_effective_payslip_layout(self):
         self.ensure_one()
         valid_values = {key for key, _label in _SR_PAYSLIP_LAYOUTS}
-        layout = self.sr_payslip_layout or _SR_PAYSLIP_LAYOUT_DEFAULT
-        if layout in valid_values:
+        layout = self.sr_payslip_layout
+        if layout and layout in valid_values:
             return layout
+        company = self.company_id or self.env.company
+        if hasattr(company, 'sr_payslip_template') and company.sr_payslip_template in valid_values:
+            return company.sr_payslip_template
         return _SR_PAYSLIP_LAYOUT_DEFAULT
 
     @api.depends('struct_id')

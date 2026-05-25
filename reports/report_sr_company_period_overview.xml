@@ -36,231 +36,147 @@
             <t t-foreach="docs" t-as="o">
                 <t t-set="rd" t-value="o._sr_get_company_period_overview_data()"/>
                 <t t-call="web.external_layout">
-                    <div class="page" style="font-family: Arial, sans-serif; font-size: 8pt; color: #1a1a1a;">
+                    <div class="page">
 
-                        <!-- ── Officieel formulier header ──────────────────── -->
-                        <div style="border: 2px solid #003366; margin-bottom: 10px;">
-                            <div style="background-color: #003366; color: white; text-align: center; padding: 6px 10px;">
-                                <div style="font-size: 12pt; font-weight: bold; letter-spacing: 0.03em;">
-                                    BEDRIJFS BELASTINGOVERZICHT — PERIODE
-                                </div>
-                                <div style="font-size: 7.5pt; margin-top: 2px; letter-spacing: 0.07em;">
-                                    Overzicht ingehouden loonbelasting en premies per werknemer
-                                </div>
-                            </div>
-                            <table style="width: 100%; border-collapse: collapse;">
+                        <!-- ── Koptitel ─────────────────────────────────────── -->
+                        <h2 style="margin-bottom:2px;">BEDRIJFS BELASTINGOVERZICHT — PERIODE</h2>
+                        <p class="text-muted" style="font-size:9pt; margin-top:0; margin-bottom:8px;">
+                            Overzicht ingehouden loonbelasting en premies per werknemer
+                        </p>
+
+                        <!-- ── Overzicht-info ────────────────────────────────── -->
+                        <table class="table table-sm table-borderless" style="width:60%;">
+                            <tbody>
                                 <tr>
-                                    <td style="width: 60%; padding: 6px 10px; vertical-align: top; border-right: 1px solid #003366;">
-                                        <table style="width: 100%; border-collapse: collapse; font-size: 8pt;">
-                                            <tr>
-                                                <td style="width: 35%; padding: 2px 0; color: #555;">Loonrun</td>
-                                                <td style="padding: 2px 0;">:&#160;&#160;<strong><t t-esc="rd['run_name']"/></strong></td>
-                                            </tr>
-                                            <tr>
-                                                <td style="padding: 2px 0; color: #555;">Periode</td>
-                                                <td style="padding: 2px 0;">:&#160;&#160;
-                                                    <strong><t t-esc="str(rd['date_from'])"/></strong>
-                                                    &#160;t/m&#160;
-                                                    <strong><t t-esc="str(rd['date_to'])"/></strong>
-                                                </td>
-                                            </tr>
-                                            <tr>
-                                                <td style="padding: 2px 0; color: #555;">Totaal werknemers</td>
-                                                <td style="padding: 2px 0;">:&#160;&#160;<strong><t t-esc="rd['employee_count']"/></strong></td>
-                                            </tr>
-                                        </table>
-                                    </td>
-                                    <td style="width: 40%; padding: 6px 10px; vertical-align: top;">
-                                        <table style="width: 100%; border-collapse: collapse; font-size: 8pt;">
-                                            <tr>
-                                                <td style="width: 45%; padding: 2px 0; color: #555;">Gegenereerd op</td>
-                                                <td style="padding: 2px 0;">:&#160;&#160;<t t-esc="str(rd['generated_on'])"/></td>
-                                            </tr>
-                                        </table>
+                                    <td class="fw-bold" style="width:30%;">Loonrun</td>
+                                    <td t-esc="rd['run_name']"/>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold">Periode</td>
+                                    <td>
+                                        <span t-esc="str(rd['date_from'])"/>&#160;t/m&#160;<span t-esc="str(rd['date_to'])"/>
                                     </td>
                                 </tr>
-                            </table>
-                        </div>
+                                <tr>
+                                    <td class="fw-bold">Werknemers</td>
+                                    <td t-esc="rd['employee_count']"/>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold">Gegenereerd op</td>
+                                    <td t-esc="str(rd['generated_on'])"/>
+                                </tr>
+                            </tbody>
+                        </table>
 
                         <!-- ── Afdeling-tabellen ──────────────────────────── -->
                         <t t-foreach="rd['dept_groups']" t-as="dept">
-                            <table style="width: 100%; border-collapse: collapse; margin-bottom: 8px; font-size: 7.5pt; page-break-inside: auto;">
-                                <!-- Afdeling-header -->
-                                <tr style="background-color: #004b8d; color: white;">
-                                    <td colspan="12" style="padding: 4px 8px; font-weight: bold; font-size: 8pt; letter-spacing: 0.03em;">
-                                        AFDELING:&#160;<t t-esc="dept['dept_name']"/>
-                                        &#160;&#160;·&#160;&#160;
-                                        <t t-esc="len(dept['employees'])"/> werknemers
-                                    </td>
-                                </tr>
-                                <!-- Kolomkoppen -->
-                                <thead style="display: table-header-group;">
-                                <tr style="background-color: #d9e4f0; font-weight: bold; text-align: right; font-size: 7pt;">
-                                    <td style="text-align: left; width: 20%; border: 1px solid #b0c4de; padding: 3px 5px;">Werknemer</td>
-                                    <td style="width: 8%; border: 1px solid #b0c4de; padding: 3px 4px;">Bruto (SRD)</td>
-                                    <td style="width: 7%; border: 1px solid #b0c4de; padding: 3px 4px;">
-                                        Bijz. beloningen<br/><span style="font-weight: normal; font-size: 6pt; color: #555;">bruto</span>
-                                    </td>
-                                    <td style="width: 7%; border: 1px solid #b0c4de; padding: 3px 4px;">
-                                        LB Art. 14<br/><span style="font-weight: normal; font-size: 6pt; color: #555;">regulier</span>
-                                    </td>
-                                    <td style="width: 7%; border: 1px solid #b0c4de; padding: 3px 4px;">
-                                        LB Art. 17<br/><span style="font-weight: normal; font-size: 6pt; color: #555;">bijz. beloningen</span>
-                                    </td>
-                                    <td style="width: 6%; border: 1px solid #b0c4de; padding: 3px 4px;">
-                                        LB Art. 17a<br/><span style="font-weight: normal; font-size: 6pt; color: #555;">uitk. ineens</span>
-                                    </td>
-                                    <td style="width: 6%; border: 1px solid #b0c4de; padding: 3px 4px;">
-                                        LB Art. 17c<br/><span style="font-weight: normal; font-size: 6pt; color: #555;">overwerk</span>
-                                    </td>
-                                    <td style="width: 8%; border: 1px solid #b0c4de; padding: 3px 4px; background-color: #c8d8ee;">Totaal LB</td>
-                                    <td style="width: 7%; border: 1px solid #b0c4de; padding: 3px 4px;">Premie AOV</td>
-                                    <td style="width: 6%; border: 1px solid #b0c4de; padding: 3px 4px;">Heff.korting</td>
-                                    <td style="width: 6%; border: 1px solid #b0c4de; padding: 3px 4px;">Pensioen</td>
-                                    <td style="width: 8%; border: 1px solid #b0c4de; padding: 3px 4px; background-color: #c8d8ee;">Netto (SRD)</td>
-                                </tr>
-                                </thead>
-                                <!-- Werknemersrijen -->
-                                <tbody>
-                                <t t-foreach="dept['employees']" t-as="emp">
-                                    <tr style="text-align: right;"
-                                        t-att-style="'background-color: %s;' % ('#f4f7fb' if emp_index % 2 == 0 else '#ffffff')">
-                                        <td style="text-align: left; border: 1px solid #d0d8e4; padding: 2px 5px; font-weight: 500;">
-                                            <t t-esc="emp.get('employee_name', '—')"/>
-                                        </td>
-                                        <td style="border: 1px solid #d0d8e4; padding: 2px 4px; font-family: monospace;">
-                                            <t t-esc="'{:,.2f}'.format(emp.get('amount_bruto_srd', 0.0))"/>
-                                        </td>
-                                        <td style="border: 1px solid #d0d8e4; padding: 2px 4px; font-family: monospace;">
-                                            <t t-esc="'{:,.2f}'.format(emp.get('amount_bijz_bruto_srd', 0.0)) if emp.get('amount_bijz_bruto_srd') else ''"/>
-                                        </td>
-                                        <td style="border: 1px solid #d0d8e4; padding: 2px 4px; font-family: monospace;">
-                                            <t t-esc="'{:,.2f}'.format(emp.get('amount_lb_art14_srd', 0.0)) if emp.get('amount_lb_art14_srd') else ''"/>
-                                        </td>
-                                        <td style="border: 1px solid #d0d8e4; padding: 2px 4px; font-family: monospace;">
-                                            <t t-esc="'{:,.2f}'.format(emp.get('amount_lb_bijz_srd', 0.0)) if emp.get('amount_lb_bijz_srd') else ''"/>
-                                        </td>
-                                        <td style="border: 1px solid #d0d8e4; padding: 2px 4px; font-family: monospace;">
-                                            <t t-esc="'{:,.2f}'.format(emp.get('amount_lb_17a_srd', 0.0)) if emp.get('amount_lb_17a_srd') else ''"/>
-                                        </td>
-                                        <td style="border: 1px solid #d0d8e4; padding: 2px 4px; font-family: monospace;">
-                                            <t t-esc="'{:,.2f}'.format(emp.get('amount_lb_overwerk_srd', 0.0)) if emp.get('amount_lb_overwerk_srd') else ''"/>
-                                        </td>
-                                        <td style="border: 1px solid #d0d8e4; padding: 2px 4px; font-weight: bold; background-color: #edf2f9; font-family: monospace;">
-                                            <t t-esc="'{:,.2f}'.format(emp.get('amount_lb_srd', 0.0))"/>
-                                        </td>
-                                        <td style="border: 1px solid #d0d8e4; padding: 2px 4px; font-family: monospace;">
-                                            <t t-esc="'{:,.2f}'.format(emp.get('amount_aov_srd', 0.0)) if emp.get('amount_aov_srd') else ''"/>
-                                        </td>
-                                        <td style="border: 1px solid #d0d8e4; padding: 2px 4px; font-family: monospace;">
-                                            <t t-esc="'{:,.2f}'.format(emp.get('amount_heffingskorting_srd', 0.0)) if emp.get('amount_heffingskorting_srd') else ''"/>
-                                        </td>
-                                        <td style="border: 1px solid #d0d8e4; padding: 2px 4px; font-family: monospace;">
-                                            <t t-esc="'{:,.2f}'.format(emp.get('amount_pensioen_srd', 0.0)) if emp.get('amount_pensioen_srd') else ''"/>
-                                        </td>
-                                        <td style="border: 1px solid #d0d8e4; padding: 2px 4px; font-weight: bold; background-color: #edf2f9; color: #003366; font-family: monospace;">
-                                            <t t-esc="'{:,.2f}'.format(emp.get('amount_netto_srd', 0.0))"/>
+                            <table class="table table-sm" style="font-size:7pt; margin-bottom:10px;">
+                                <thead class="o_black_border">
+                                    <tr>
+                                        <td colspan="12" class="fw-bold">
+                                            Afdeling: <t t-esc="dept['dept_name']"/>
+                                            &#160;·&#160;<t t-esc="len(dept['employees'])"/> werknemers
                                         </td>
                                     </tr>
-                                </t>
+                                    <tr>
+                                        <th style="width:20%;">Werknemer</th>
+                                        <th class="text-end" style="width:8%;">Bruto (SRD)</th>
+                                        <th class="text-end" style="width:7%;">
+                                            Bijz. bel.<br/><small>bruto</small>
+                                        </th>
+                                        <th class="text-end" style="width:7%;">
+                                            LB Art.14<br/><small>regulier</small>
+                                        </th>
+                                        <th class="text-end" style="width:7%;">
+                                            LB Art.17<br/><small>bijz.</small>
+                                        </th>
+                                        <th class="text-end" style="width:6%;">
+                                            LB Art.17a<br/><small>uitk.</small>
+                                        </th>
+                                        <th class="text-end" style="width:6%;">
+                                            LB Art.17c<br/><small>overwerk</small>
+                                        </th>
+                                        <th class="text-end o_total o_border_bottom"
+                                            style="width:8%; color:#875A7B;">Totaal LB</th>
+                                        <th class="text-end" style="width:7%;">AOV</th>
+                                        <th class="text-end" style="width:6%;">Heff.k.</th>
+                                        <th class="text-end" style="width:6%;">Pensioen</th>
+                                        <th class="text-end o_total o_border_bottom"
+                                            style="width:8%; color:#875A7B;">Netto (SRD)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <t t-foreach="dept['employees']" t-as="emp">
+                                        <tr>
+                                            <td t-esc="emp.get('employee_name', '—')"/>
+                                            <td class="text-end" t-esc="'{:,.2f}'.format(emp.get('amount_bruto_srd', 0.0))"/>
+                                            <td class="text-end" t-esc="'{:,.2f}'.format(emp.get('amount_bijz_bruto_srd', 0.0)) if emp.get('amount_bijz_bruto_srd') else ''"/>
+                                            <td class="text-end" t-esc="'{:,.2f}'.format(emp.get('amount_lb_art14_srd', 0.0)) if emp.get('amount_lb_art14_srd') else ''"/>
+                                            <td class="text-end" t-esc="'{:,.2f}'.format(emp.get('amount_lb_bijz_srd', 0.0)) if emp.get('amount_lb_bijz_srd') else ''"/>
+                                            <td class="text-end" t-esc="'{:,.2f}'.format(emp.get('amount_lb_17a_srd', 0.0)) if emp.get('amount_lb_17a_srd') else ''"/>
+                                            <td class="text-end" t-esc="'{:,.2f}'.format(emp.get('amount_lb_overwerk_srd', 0.0)) if emp.get('amount_lb_overwerk_srd') else ''"/>
+                                            <td class="text-end fw-bold" style="color:#875A7B;"
+                                                t-esc="'{:,.2f}'.format(emp.get('amount_lb_srd', 0.0))"/>
+                                            <td class="text-end" t-esc="'{:,.2f}'.format(emp.get('amount_aov_srd', 0.0)) if emp.get('amount_aov_srd') else ''"/>
+                                            <td class="text-end" t-esc="'{:,.2f}'.format(emp.get('amount_heffingskorting_srd', 0.0)) if emp.get('amount_heffingskorting_srd') else ''"/>
+                                            <td class="text-end" t-esc="'{:,.2f}'.format(emp.get('amount_pensioen_srd', 0.0)) if emp.get('amount_pensioen_srd') else ''"/>
+                                            <td class="text-end fw-bold" style="color:#875A7B;"
+                                                t-esc="'{:,.2f}'.format(emp.get('amount_netto_srd', 0.0))"/>
+                                        </tr>
+                                    </t>
                                 </tbody>
-                                <!-- Afdelingssubtotaal -->
                                 <tfoot>
-                                <tr style="background-color: #004b8d; color: white; font-weight: bold; text-align: right; font-size: 7.5pt;">
-                                    <td style="text-align: left; border: 1px solid #003366; padding: 3px 5px;">
-                                        Subtotaal&#160;<t t-esc="dept['dept_name']"/>
-                                    </td>
-                                    <td style="border: 1px solid #003366; padding: 3px 4px; font-family: monospace;">
-                                        <t t-esc="'{:,.2f}'.format(dept['totals'].get('amount_bruto_srd', 0.0))"/>
-                                    </td>
-                                    <td style="border: 1px solid #003366; padding: 3px 4px; font-family: monospace;">
-                                        <t t-esc="'{:,.2f}'.format(dept['totals'].get('amount_bijz_bruto_srd', 0.0))"/>
-                                    </td>
-                                    <td style="border: 1px solid #003366; padding: 3px 4px; font-family: monospace;">
-                                        <t t-esc="'{:,.2f}'.format(dept['totals'].get('amount_lb_art14_srd', 0.0))"/>
-                                    </td>
-                                    <td style="border: 1px solid #003366; padding: 3px 4px; font-family: monospace;">
-                                        <t t-esc="'{:,.2f}'.format(dept['totals'].get('amount_lb_bijz_srd', 0.0))"/>
-                                    </td>
-                                    <td style="border: 1px solid #003366; padding: 3px 4px; font-family: monospace;">
-                                        <t t-esc="'{:,.2f}'.format(dept['totals'].get('amount_lb_17a_srd', 0.0))"/>
-                                    </td>
-                                    <td style="border: 1px solid #003366; padding: 3px 4px; font-family: monospace;">
-                                        <t t-esc="'{:,.2f}'.format(dept['totals'].get('amount_lb_overwerk_srd', 0.0))"/>
-                                    </td>
-                                    <td style="border: 1px solid #003366; padding: 3px 4px; font-family: monospace;">
-                                        <t t-esc="'{:,.2f}'.format(dept['totals'].get('amount_lb_srd', 0.0))"/>
-                                    </td>
-                                    <td style="border: 1px solid #003366; padding: 3px 4px; font-family: monospace;">
-                                        <t t-esc="'{:,.2f}'.format(dept['totals'].get('amount_aov_srd', 0.0))"/>
-                                    </td>
-                                    <td style="border: 1px solid #003366; padding: 3px 4px; font-family: monospace;">
-                                        <t t-esc="'{:,.2f}'.format(dept['totals'].get('amount_heffingskorting_srd', 0.0))"/>
-                                    </td>
-                                    <td style="border: 1px solid #003366; padding: 3px 4px; font-family: monospace;">
-                                        <t t-esc="'{:,.2f}'.format(dept['totals'].get('amount_pensioen_srd', 0.0))"/>
-                                    </td>
-                                    <td style="border: 1px solid #003366; padding: 3px 4px; font-family: monospace;">
-                                        <t t-esc="'{:,.2f}'.format(dept['totals'].get('amount_netto_srd', 0.0))"/>
-                                    </td>
-                                </tr>
+                                    <tr class="o_total o_border_bottom fw-bold" style="color:#875A7B;">
+                                        <td>Subtotaal <t t-esc="dept['dept_name']"/></td>
+                                        <td class="text-end" t-esc="'{:,.2f}'.format(dept['totals'].get('amount_bruto_srd', 0.0))"/>
+                                        <td class="text-end" t-esc="'{:,.2f}'.format(dept['totals'].get('amount_bijz_bruto_srd', 0.0))"/>
+                                        <td class="text-end" t-esc="'{:,.2f}'.format(dept['totals'].get('amount_lb_art14_srd', 0.0))"/>
+                                        <td class="text-end" t-esc="'{:,.2f}'.format(dept['totals'].get('amount_lb_bijz_srd', 0.0))"/>
+                                        <td class="text-end" t-esc="'{:,.2f}'.format(dept['totals'].get('amount_lb_17a_srd', 0.0))"/>
+                                        <td class="text-end" t-esc="'{:,.2f}'.format(dept['totals'].get('amount_lb_overwerk_srd', 0.0))"/>
+                                        <td class="text-end" t-esc="'{:,.2f}'.format(dept['totals'].get('amount_lb_srd', 0.0))"/>
+                                        <td class="text-end" t-esc="'{:,.2f}'.format(dept['totals'].get('amount_aov_srd', 0.0))"/>
+                                        <td class="text-end" t-esc="'{:,.2f}'.format(dept['totals'].get('amount_heffingskorting_srd', 0.0))"/>
+                                        <td class="text-end" t-esc="'{:,.2f}'.format(dept['totals'].get('amount_pensioen_srd', 0.0))"/>
+                                        <td class="text-end" t-esc="'{:,.2f}'.format(dept['totals'].get('amount_netto_srd', 0.0))"/>
+                                    </tr>
                                 </tfoot>
                             </table>
                         </t>
 
                         <!-- ── Totaal Bedrijf ──────────────────────────────── -->
-                        <table style="width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 8pt; border: 2px solid #003366;">
-                            <tr style="background-color: #003366; color: white; font-weight: bold; text-align: right;">
-                                <td style="text-align: left; width: 20%; border: 1px solid #002244; padding: 5px 8px; font-size: 8.5pt;">
-                                    TOTAAL BEDRIJF&#160;(<t t-esc="rd['employee_count']"/> werknemers)
-                                </td>
-                                <td style="width: 8%; border: 1px solid #002244; padding: 5px 4px; font-family: monospace;">
-                                    <t t-esc="'{:,.2f}'.format(rd['grand_totals'].get('amount_bruto_srd', 0.0))"/>
-                                </td>
-                                <td style="width: 7%; border: 1px solid #002244; padding: 5px 4px; font-family: monospace;">
-                                    <t t-esc="'{:,.2f}'.format(rd['grand_totals'].get('amount_bijz_bruto_srd', 0.0))"/>
-                                </td>
-                                <td style="width: 7%; border: 1px solid #002244; padding: 5px 4px; font-family: monospace;">
-                                    <t t-esc="'{:,.2f}'.format(rd['grand_totals'].get('amount_lb_art14_srd', 0.0))"/>
-                                </td>
-                                <td style="width: 7%; border: 1px solid #002244; padding: 5px 4px; font-family: monospace;">
-                                    <t t-esc="'{:,.2f}'.format(rd['grand_totals'].get('amount_lb_bijz_srd', 0.0))"/>
-                                </td>
-                                <td style="width: 6%; border: 1px solid #002244; padding: 5px 4px; font-family: monospace;">
-                                    <t t-esc="'{:,.2f}'.format(rd['grand_totals'].get('amount_lb_17a_srd', 0.0))"/>
-                                </td>
-                                <td style="width: 6%; border: 1px solid #002244; padding: 5px 4px; font-family: monospace;">
-                                    <t t-esc="'{:,.2f}'.format(rd['grand_totals'].get('amount_lb_overwerk_srd', 0.0))"/>
-                                </td>
-                                <td style="width: 8%; border: 1px solid #002244; padding: 5px 4px; background-color: #002244; font-family: monospace;">
-                                    <t t-esc="'{:,.2f}'.format(rd['grand_totals'].get('amount_lb_srd', 0.0))"/>
-                                </td>
-                                <td style="width: 7%; border: 1px solid #002244; padding: 5px 4px; font-family: monospace;">
-                                    <t t-esc="'{:,.2f}'.format(rd['grand_totals'].get('amount_aov_srd', 0.0))"/>
-                                </td>
-                                <td style="width: 6%; border: 1px solid #002244; padding: 5px 4px; font-family: monospace;">
-                                    <t t-esc="'{:,.2f}'.format(rd['grand_totals'].get('amount_heffingskorting_srd', 0.0))"/>
-                                </td>
-                                <td style="width: 6%; border: 1px solid #002244; padding: 5px 4px; font-family: monospace;">
-                                    <t t-esc="'{:,.2f}'.format(rd['grand_totals'].get('amount_pensioen_srd', 0.0))"/>
-                                </td>
-                                <td style="width: 8%; border: 1px solid #002244; padding: 5px 4px; background-color: #002244; font-family: monospace;">
-                                    <t t-esc="'{:,.2f}'.format(rd['grand_totals'].get('amount_netto_srd', 0.0))"/>
-                                </td>
-                            </tr>
+                        <table class="table table-sm" style="font-size:8pt;">
+                            <tfoot>
+                                <tr class="o_total o_border_bottom fw-bold" style="color:#875A7B; font-size:8.5pt;">
+                                    <td style="width:20%;">
+                                        Totaal Bedrijf (<t t-esc="rd['employee_count']"/> werknemers)
+                                    </td>
+                                    <td class="text-end" style="width:8%;" t-esc="'{:,.2f}'.format(rd['grand_totals'].get('amount_bruto_srd', 0.0))"/>
+                                    <td class="text-end" style="width:7%;" t-esc="'{:,.2f}'.format(rd['grand_totals'].get('amount_bijz_bruto_srd', 0.0))"/>
+                                    <td class="text-end" style="width:7%;" t-esc="'{:,.2f}'.format(rd['grand_totals'].get('amount_lb_art14_srd', 0.0))"/>
+                                    <td class="text-end" style="width:7%;" t-esc="'{:,.2f}'.format(rd['grand_totals'].get('amount_lb_bijz_srd', 0.0))"/>
+                                    <td class="text-end" style="width:6%;" t-esc="'{:,.2f}'.format(rd['grand_totals'].get('amount_lb_17a_srd', 0.0))"/>
+                                    <td class="text-end" style="width:6%;" t-esc="'{:,.2f}'.format(rd['grand_totals'].get('amount_lb_overwerk_srd', 0.0))"/>
+                                    <td class="text-end" style="width:8%;" t-esc="'{:,.2f}'.format(rd['grand_totals'].get('amount_lb_srd', 0.0))"/>
+                                    <td class="text-end" style="width:7%;" t-esc="'{:,.2f}'.format(rd['grand_totals'].get('amount_aov_srd', 0.0))"/>
+                                    <td class="text-end" style="width:6%;" t-esc="'{:,.2f}'.format(rd['grand_totals'].get('amount_heffingskorting_srd', 0.0))"/>
+                                    <td class="text-end" style="width:6%;" t-esc="'{:,.2f}'.format(rd['grand_totals'].get('amount_pensioen_srd', 0.0))"/>
+                                    <td class="text-end" style="width:8%;" t-esc="'{:,.2f}'.format(rd['grand_totals'].get('amount_netto_srd', 0.0))"/>
+                                </tr>
+                            </tfoot>
                         </table>
 
                         <!-- ── Ondertekeningsblok ─────────────────────────── -->
-                        <div style="margin-top: 22px; font-size: 8pt; color: #333;">
-                            <p style="margin: 0;">Aldus opgemaakt te Paramaribo, op datum: ___________________________</p>
-                        </div>
-                        <table style="width: 64%; margin-top: 18px; font-size: 8.5pt;">
+                        <p class="text-muted" style="margin-top:20px; font-size:8pt;">
+                            Aldus opgemaakt te Paramaribo, op datum: ___________________________
+                        </p>
+                        <table style="width:64%; margin-top:16px; font-size:8.5pt;">
                             <tr>
-                                <td style="width: 46%; border-top: 1px solid #555; padding-top: 5px; text-align: center;">
+                                <td style="width:46%; border-top:1px solid #555; padding-top:5px; text-align:center;">
                                     Directeur / Manager
                                 </td>
-                                <td style="width: 8%;"/>
-                                <td style="width: 46%; border-top: 1px solid #555; padding-top: 5px; text-align: center;">
+                                <td style="width:8%;"/>
+                                <td style="width:46%; border-top:1px solid #555; padding-top:5px; text-align:center;">
                                     Hoofd Administratie
                                 </td>
                             </tr>
