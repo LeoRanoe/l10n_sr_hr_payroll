@@ -250,16 +250,6 @@
                             </tr>
                         </table>
 
-                        <div style="margin-top: 8px; padding: 5px 8px; border: 1px solid #c8d6e5; background: #f7fafc; font-size: 7pt; line-height: 1.45; color: #444;">
-                            <strong style="color: #003366;">Toelichting fiscale kolommen:</strong>&#160;
-                            Art. 14 = inhouding over regulier loon |
-                            Art. 17 = bijzondere beloningen (bonus, vakantiegeld) |
-                            Art. 17a = uitkering ineens of jubileum |
-                            Art. 17c = overwerkloon |
-                            AOV = premie Algemene Ouderdomsvoorziening |
-                            Heff.korting = heffingskorting.
-                        </div>
-
                         <!-- ── Ondertekeningsblok ─────────────────────────── -->
                         <div style="margin-top: 22px; font-size: 8pt; color: #333;">
                             <p style="margin: 0;">Aldus opgemaakt te Paramaribo, op datum: ___________________________</p>
