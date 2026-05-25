@@ -91,21 +91,29 @@
                             </page>
                             <page string="Loonstroken">
                                 <group>
-                                    <group string="Standaard weergave">
-                                        <field name="sr_default_payslip_layout"/>
+                                    <group string="Template voor dit bedrijf">
+                                        <field name="sr_payslip_template" widget="radio"/>
                                     </group>
                                     <group string="Toelichting">
                                         <div class="text-muted">
-                                            Nieuwe SR-loonstroken nemen deze layout standaard over.
-                                            Payroll kan de keuze nog per loonstrook aanpassen in het loonstrookformulier.
+                                            Kies welke templatestijl nieuwe loonstroken standaard gebruiken voor dit bedrijf.
+                                            Per loonstrook kan de keuze nog worden overschreven in het loonstrookformulier.
                                         </div>
                                     </group>
                                 </group>
-                                <div class="alert alert-secondary mt-3 mb-0" role="alert">
-                                    <strong>Klassiek Debet / Credit</strong> toont een vertrouwde salarisstrook met personeelskop en regels voor debet, credit en netto.<br/>
-                                    <strong>Compact Netto-overzicht</strong> toont alleen de hoofdinkomsten, inhoudingen en het uit te betalen nettoloon.<br/>
-                                    Belastingoverzichten en jaaropgaven worden los geëxporteerd vanuit payroll, niet meer via deze medewerkerslayout.
+                                <div class="alert alert-info mt-3 mb-0" role="alert">
+                                    <strong>Odoo Standaard</strong> gebruikt Bootstrap-opmaak conform Odoo huisstijl met Surinaamse wettelijke inhoud (CRIB, FIN, LB, AOV).<br/>
+                                    <strong>Klassiek (donkerblauw)</strong> gebruikt de traditionele SR-huisstijl met professionele donkerblauwe koptekst.<br/>
+                                    <strong>Compact</strong> toont alleen categorie-totalen zonder individuele regeldetails.<br/>
+                                    <strong>Artikel 14 Detail</strong> toont de volledige stap-voor-stap Wet Loonbelasting berekening.
                                 </div>
+                                <group string="Globale standaard (fallback)" class="mt-3"
+                                       groups="base.group_system">
+                                    <field name="sr_default_payslip_layout"/>
+                                    <div class="text-muted">
+                                        Gebruikt als een bedrijf geen eigen templatekeuze heeft ingesteld.
+                                    </div>
+                                </group>
                             </page>
                             <page string="Valuta &amp; Wisselkoers">
                                 <group>

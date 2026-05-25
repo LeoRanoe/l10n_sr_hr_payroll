@@ -5,7 +5,7 @@
         <field name="name">sr.payroll.verzamelloonstaat.wizard.form</field>
         <field name="model">sr.payroll.verzamelloonstaat.wizard</field>
         <field name="arch" type="xml">
-            <form string="Verzamelloonstaat Exporteren — Belastingdienst Suriname">
+            <form string="Verzamelloonstaat exporteren (CSV)">
                 <div class="alert alert-info" role="alert" style="margin-bottom:12px;">
                     <strong>Verzamelloonstaat</strong> — Jaarlijkse aangifte bij de Belastingdienst Suriname.<br/>
                     Upload de gegenereerde CSV via <em>portaal.belastingdienst.sr → Aangifte → Verzamelloonstaat</em>.<br/>
@@ -39,7 +39,7 @@
 
     <!-- Actie om de wizard te openen vanuit het menu -->
     <record id="action_sr_verzamelloonstaat_wizard" model="ir.actions.act_window">
-        <field name="name">Verzamelloonstaat (Belastingdienst)</field>
+        <field name="name">Verzamelloonstaat (CSV)</field>
         <field name="res_model">sr.payroll.verzamelloonstaat.wizard</field>
         <field name="view_mode">form</field>
         <field name="target">new</field>

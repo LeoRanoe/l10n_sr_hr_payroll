@@ -11,7 +11,7 @@
                 <field name="sr_has_sr_payslips" invisible="1"/>
                 <button
                     name="action_print_sr_tax_overview"
-                    string="PDF Belastingoverzicht"
+                    string="Fiscaal overzicht (PDF)"
                     type="object"
                     class="btn-secondary"
                     icon="fa-file-pdf"
@@ -19,7 +19,7 @@
                     help="Exporteer per loonrun een belastingoverzicht in PDF voor alle afgeronde SR-loonstroken."/>
                 <button
                     name="action_print_sr_company_period_overview"
-                    string="PDF Bedrijfsoverzicht Periode"
+                    string="Periodeoverzicht (PDF)"
                     type="object"
                     class="btn-secondary"
                     icon="fa-building"
@@ -27,7 +27,7 @@
                     help="Exporteer het totale bedrijfsbelastingoverzicht van deze loonperiode als PDF, gegroepeerd per afdeling."/>
                 <button
                     name="action_print_sr_maandaangifte"
-                    string="Maandaangifte LB+AOV"
+                    string="Maandaangifte LB + AOV"
                     type="object"
                     class="btn-primary"
                     icon="fa-landmark"
@@ -35,7 +35,7 @@
                     help="Genereer de aangifte Loonbelasting en Premie AOV voor indiening bij de Belastingdienst Suriname (PDF)."/>
                 <button
                     name="action_open_sr_verzamelloonstaat_wizard"
-                    string="Verzamelloonstaat"
+                    string="Verzamelloonstaat (CSV)"
                     type="object"
                     class="btn-secondary"
                     icon="fa-file-export"

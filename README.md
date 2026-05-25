@@ -46,6 +46,14 @@ De migratiestappen voor bestaande klanten staan in:
 
 `MIGRATION_GUIDE_2025_TO_2026.md`
 
+De beperkte documentatie van de gegevensstructuur tot en met basisloon staat in:
+
+`GEGEVENSSTRUCTUUR_SR_PAYROLL.md`
+
+De formele rapportversie met dezelfde afbakening staat in:
+
+`RAPPORT_GEGEVENSSTRUCTUUR_SR_PAYROLL.md`
+
 De reguliere Art. 14 schijven zijn uitbreidbaar via codes zoals:
 
 - `SR_SCHIJF_1_GRENS`, `SR_SCHIJF_2_GRENS`, ...

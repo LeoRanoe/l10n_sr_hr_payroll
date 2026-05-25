@@ -3,7 +3,7 @@
     Suriname Payroll — Help & Documentatie Pagina
     ================================================
     Centrale helppagina voor eindgebruikers.
-    Toegankelijk via: Payroll → Suriname → Help & Documentatie
+    Toegankelijk via: Payroll → Loonstroken → Help & Documentatie
 -->
 <odoo>
 
@@ -18,27 +18,27 @@
     </record>
 
     <!-- ═══════════════════════════════════════════════════════════════
-         MENU — Payroll → Suriname → Help & Documentatie
+         MENU — Payroll → Loonstroken → Help & Documentatie
          ═══════════════════════════════════════════════════════════════ -->
 
     <menuitem
         id="menu_sr_help"
-        name="ℹ Help &amp; Documentatie"
-        parent="menu_sr_payroll_root"
+        name="Help &amp; Documentatie"
+        parent="hr_payroll.menu_hr_payroll_payslips"
         action="action_sr_help_page"
-        sequence="99"
+        sequence="90"
         groups="hr_payroll.group_hr_payroll_user"/>
 
     <!-- ═══════════════════════════════════════════════════════════════
-         MENU — Payroll → Configuratie → Suriname → Help & Documentatie
+         DUBBELE CONFIGURATIE-SHORTCUT VERBERGEN OM HET MENU COMPACT TE HOUDEN
          ═══════════════════════════════════════════════════════════════ -->
 
     <menuitem
         id="menu_sr_config_help"
-        name="ℹ Help &amp; Documentatie"
+        name="Help &amp; Documentatie"
         parent="menu_sr_config_root"
         action="action_sr_help_page"
         sequence="99"
-        groups="hr_payroll.group_hr_payroll_manager"/>
+        groups="base.group_no_one"/>
 
 </odoo>

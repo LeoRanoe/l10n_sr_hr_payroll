@@ -764,7 +764,7 @@
                     <i class="fa fa-arrow-left"/> Terug naar Payroll
                 </a>
                 <div class="sr-topbar__meta">
-                    <span><i class="fa fa-map-signs"/> Payroll → Suriname → Help &amp; Documentatie</span>
+                    <span><i class="fa fa-map-signs"/> Payroll → Loonstroken → Help &amp; Documentatie</span>
                     <span><i class="fa fa-database"/> Actuele parameterweergave uit de database</span>
                 </div>
             </div>
@@ -941,11 +941,11 @@
 
                     <div class="sr-side-card sr-side-card--accent">
                         <p class="sr-kicker">Belangrijke menu's</p>
-                        <p><strong>Loonstroken verwerken</strong><br/>Payroll → Suriname → Loonstroken SR</p>
+                        <p><strong>Loonstroken verwerken</strong><br/>Payroll → Loonstroken → Loonstroken SR</p>
                         <p><strong>Contract controleren</strong><br/>Contract → Suriname Payroll → Fiscale Data</p>
                         <p><strong>Berekening previwen</strong><br/>Contract → Suriname Payroll → Controle &amp; Preview</p>
-                        <p><strong>Fiscaal overzicht</strong><br/>Payroll → Overzichten → Fiscaal Belastingoverzicht</p>
-                        <p><strong>Jaaropgave</strong><br/>Payroll → Overzichten → Jaarlijkse Loonopgave</p>
+                        <p><strong>Fiscaal overzicht</strong><br/>Payroll → Rapportages → Fiscaal Belastingoverzicht</p>
+                        <p><strong>Jaaropgave</strong><br/>Payroll → Rapportages → Jaarlijkse Loonopgave</p>
                         <p class="mb-0"><strong>Tarieven &amp; instellingen</strong><br/>Payroll → Configuratie → Suriname → SR Payroll Instellingen</p>
                     </div>
                 </aside>
@@ -965,7 +965,7 @@
                                     <div class="sr-icon"><i class="fa fa-calculator"/></div>
                                     <h3>Ik verwerk lonen</h3>
                                     <p>
-                                        Ga naar <strong>Payroll → Suriname → Loonstroken SR</strong>.<br/>
+                                        Ga naar <strong>Payroll → Loonstroken → Loonstroken SR</strong>.<br/>
                                         Maak een nieuwe loonstrook, vul eventuele eenmalige posten in via <strong>Andere invoer</strong>,
                                         klik op <strong>Bereken Loonstrook</strong> en controleer het resultaat voordat u bevestigt.
                                     </p>
@@ -1001,7 +1001,7 @@
                                     <tbody>
                                         <tr>
                                             <td>Loonstrook verwerken</td>
-                                            <td>Payroll → Suriname → Loonstroken SR</td>
+                                            <td>Payroll → Loonstroken → Loonstroken SR</td>
                                             <td>Loonstroken aanmaken, berekenen en bevestigen.</td>
                                         </tr>
                                         <tr>
@@ -1021,22 +1021,22 @@
                                         </tr>
                                         <tr>
                                             <td>Fiscaal overzicht exporteren</td>
-                                            <td>Payroll → Overzichten → Fiscaal Belastingoverzicht</td>
+                                            <td>Payroll → Rapportages → Fiscaal Belastingoverzicht</td>
                                             <td>Belasting, AOV en netto per werknemer per periode filteren en exporteren.</td>
                                         </tr>
                                         <tr>
                                             <td>Maandaangifte ophalen</td>
-                                            <td>Payroll → Overzichten → Maandaangifte &amp; Periode Overzicht</td>
+                                            <td>Payroll → Rapportages → Maandaangifte &amp; Periodeoverzicht</td>
                                             <td>Totalen per periode exporteren voor belastingaangifte.</td>
                                         </tr>
                                         <tr>
                                             <td>Jaaropgave werknemer</td>
-                                            <td>Payroll → Overzichten → Jaarlijkse Loonopgave</td>
+                                            <td>Payroll → Rapportages → Jaarlijkse Loonopgave</td>
                                             <td>Jaaropgave per medewerker voor een gekozen jaar.</td>
                                         </tr>
                                         <tr>
                                             <td>Verzamelloonstaat exporteren</td>
-                                            <td>Payroll → Overzichten → Verzamelloonstaat CSV</td>
+                                            <td>Payroll → Rapportages → Verzamelloonstaat (CSV)</td>
                                             <td>Totalen per bedrijf exporteren als CSV voor accountant.</td>
                                         </tr>
                                     </tbody>
@@ -1064,7 +1064,7 @@
                                 <article class="sr-flow-card">
                                     <span class="sr-step">1</span>
                                     <h3>Open Loonstroken SR</h3>
-                                    <p>Ga naar <strong>Payroll → Suriname → Loonstroken SR</strong> en klik op <strong>Nieuw</strong>.</p>
+                                    <p>Ga naar <strong>Payroll → Loonstroken → Loonstroken SR</strong> en klik op <strong>Nieuw</strong>.</p>
                                 </article>
                                 <article class="sr-flow-card">
                                     <span class="sr-step">2</span>
@@ -1439,7 +1439,7 @@
                             <div class="sr-section__eyebrow">07. Rapporten &amp; Overzichten</div>
                             <h2>Belastingoverzichten, aangiftes en jaaropgaven exporteren</h2>
                             <p class="sr-section__intro">
-                                Alle rapportages zijn bereikbaar via <strong>Payroll → Overzichten</strong>. Hieronder staat wat elk rapport doet en hoe u het opent.
+                                Alle rapportages zijn bereikbaar via <strong>Payroll → Rapportages</strong>. Hieronder staat wat elk rapport doet en hoe u het opent.
                             </p>
                         </div>
                         <div class="sr-section__body">
@@ -1448,7 +1448,7 @@
                                     <div class="sr-icon"><i class="fa fa-table"/></div>
                                     <h3>Fiscaal Belastingoverzicht</h3>
                                     <p>
-                                        <strong>Menu:</strong> Payroll → Overzichten → Fiscaal Belastingoverzicht<br/>
+                                        <strong>Menu:</strong> Payroll → Rapportages → Fiscaal Belastingoverzicht<br/>
                                         Toont per werknemer per periode: bruto, LB, AOV, overwerk, kinderbijslag en netto.
                                         U kunt filteren op periode, afdeling, valuta en bedrijf.
                                         Gebruik de knop <strong>Exporteer PDF Overzicht</strong> om de selectie als PDF te downloaden.
@@ -1458,7 +1458,7 @@
                                     <div class="sr-icon"><i class="fa fa-calendar"/></div>
                                     <h3>Maandaangifte &amp; Periode Overzicht</h3>
                                     <p>
-                                        <strong>Menu:</strong> Payroll → Overzichten → Maandaangifte &amp; Periode Overzicht<br/>
+                                        <strong>Menu:</strong> Payroll → Rapportages → Maandaangifte &amp; Periodeoverzicht<br/>
                                         Geeft totalen per periode voor de belastingaangifte. Kies het gewenste tijdvak in de wizard
                                         en exporteer het overzicht als PDF of CSV.
                                     </p>
@@ -1467,7 +1467,7 @@
                                     <div class="sr-icon"><i class="fa fa-building"/></div>
                                     <h3>Bedrijfs Jaaroverzicht</h3>
                                     <p>
-                                        <strong>Menu:</strong> Payroll → Overzichten → Bedrijfs Jaaroverzicht<br/>
+                                        <strong>Menu:</strong> Payroll → Rapportages → Bedrijfs Jaaroverzicht (PDF)<br/>
                                         Totalen op bedrijfsniveau voor een volledig boekjaar. Handig voor de jaarlijkse accountantscontrole
                                         of afstemming met de belastingdienst.
                                     </p>
@@ -1476,16 +1476,16 @@
                                     <div class="sr-icon"><i class="fa fa-user"/></div>
                                     <h3>Jaarlijkse Loonopgave</h3>
                                     <p>
-                                        <strong>Menu:</strong> Payroll → Overzichten → Jaarlijkse Loonopgave<br/>
+                                        <strong>Menu:</strong> Payroll → Rapportages → Jaarlijkse Loonopgave<br/>
                                         Genereert de loonopgave per individuele werknemer voor een gekozen jaar.
                                         Selecteer de werknemer en het jaar in de wizard en exporteer de opgave als PDF.
                                     </p>
                                 </article>
                                 <article class="sr-info-card">
                                     <div class="sr-icon"><i class="fa fa-download"/></div>
-                                    <h3>Verzamelloonstaat CSV</h3>
+                                    <h3>Verzamelloonstaat (CSV)</h3>
                                     <p>
-                                        <strong>Menu:</strong> Payroll → Overzichten → Verzamelloonstaat CSV<br/>
+                                        <strong>Menu:</strong> Payroll → Rapportages → Verzamelloonstaat (CSV)<br/>
                                         Exporteert alle salarisgegevens van het geselecteerde bedrijf en boekjaar naar een CSV-bestand.
                                         Geschikt als aanlevering voor de externe accountant of loonadministrateur.
                                     </p>
@@ -1523,7 +1523,7 @@
                                             <td>PDF</td>
                                         </tr>
                                         <tr>
-                                            <td>Verzamelloonstaat CSV</td>
+                                            <td>Verzamelloonstaat (CSV)</td>
                                             <td>Alle salarisregels van het boekjaar in machineleesbaar formaat.</td>
                                             <td>CSV</td>
                                         </tr>
@@ -1846,7 +1846,7 @@
                                     <div class="sr-icon"><i class="fa fa-plus"/></div>
                                     <h3>Werkboeking handmatig aanmaken</h3>
                                     <ul class="sr-checklist">
-                                        <li>Ga naar <strong>Payroll → Werkboekingen</strong> of open de verlofkalender van de werknemer.</li>
+                                        <li>Ga naar <strong>Payroll → Werkboekingen → Alle werkboekingen</strong> of open de verlofkalender van de werknemer.</li>
                                         <li>Maak een nieuwe boeking aan voor de werknemer met het juiste <strong>Werkboekingstype</strong>.</li>
                                         <li>Kies voor overwerk het type <strong>SR Overwerk (Werkdag 150%)</strong> of <strong>SR Overwerk (Zondag/Feestdag 200%)</strong>.</li>
                                         <li>Vul de start- en eindtijd in. De module berekent de uren automatisch.</li>
@@ -1988,7 +1988,7 @@
                                 </article>
                                 <article class="sr-faq-card">
                                     <h3><i class="fa fa-question-circle text-info"/> Hoe exporteer ik de gegevens voor de accountant?</h3>
-                                    <p>Gebruik <strong>Payroll → Overzichten → Verzamelloonstaat CSV</strong> voor een CSV-export. Voor een gegroepeerd PDF gebruikt u <strong>Fiscaal Belastingoverzicht</strong> en klikt u op <strong>Exporteer PDF Overzicht</strong>.</p>
+                                    <p>Gebruik <strong>Payroll → Rapportages → Verzamelloonstaat (CSV)</strong> voor een CSV-export. Voor een gegroepeerd PDF gebruikt u <strong>Fiscaal Belastingoverzicht</strong> en klikt u op <strong>Exporteer PDF Overzicht</strong>.</p>
                                 </article>
                                 <article class="sr-faq-card">
                                     <h3><i class="fa fa-question-circle text-info"/> Wanneer schakel ik support in?</h3>
@@ -2012,9 +2012,9 @@
                         <p>
                             <strong>Module:</strong> l10n_sr_hr_payroll — Suriname Salarisverwerking voor Odoo 18<br/>
                             <strong>Wetgeving:</strong> Wet Loonbelasting Suriname, Art. 10h, 10i, 10j, 13, 14, 17, 17a, 17c<br/>
-                            <strong>Loonstroken verwerken:</strong> Payroll → Suriname → Loonstroken SR<br/>
+                            <strong>Loonstroken verwerken:</strong> Payroll → Loonstroken → Loonstroken SR<br/>
                             <strong>Contract beheren:</strong> Contract → Suriname Payroll → Fiscale Data<br/>
-                            <strong>Overzichten &amp; rapporten:</strong> Payroll → Overzichten<br/>
+                            <strong>Overzichten &amp; rapporten:</strong> Payroll → Rapportages<br/>
                             <strong>Tarieven &amp; instellingen:</strong> Payroll → Configuratie → Suriname → SR Payroll Instellingen<br/>
                             <strong>Parameters zichtbaar op deze pagina:</strong> actuele waarden rechtstreeks uit de payrollconfiguratie van vandaag.
                         </p>

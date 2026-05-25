@@ -16,14 +16,16 @@ _sr_calc_thread_local = threading.local()
 _SR_MONEY_QUANT = Decimal('0.01')
 _SR_INTERNAL_MONEY_QUANT = Decimal('0.000001')
 _SR_HOURLY_RATE_QUANT = Decimal('0.000001')
-_SR_PAYSLIP_LAYOUT_DEFAULT = 'employee_simple'
+_SR_PAYSLIP_LAYOUT_DEFAULT = 'odoo_standard'
 _SR_PAYSLIP_LAYOUT_CONFIG_KEY = 'sr_payroll.sr_default_payslip_layout'
 _SR_PAYSLIP_LAYOUT_LEGACY_CONFIG_KEY = 'sr_payroll.default_payslip_layout'
 _SR_DISPLAY_MODE_CONFIG_KEY = 'sr_payroll.netto_display_mode'
 _SR_DISPLAY_MODE_DEFAULT = 'srd'
 _SR_PAYSLIP_LAYOUTS = [
-    ('employee_simple', 'Klassiek Debet / Credit'),
+    ('odoo_standard', 'Odoo Standaard'),
+    ('employee_simple', 'Klassiek (donkerblauw)'),
     ('compact', 'Compact Netto-overzicht'),
+    ('artikel14_detail', 'Artikel 14 Detail'),
 ]
 
 SR_FN_2026_PERIODS = (
@@ -225,6 +227,10 @@ class HrPayslip(models.Model):
 
     @api.model
     def _default_sr_payslip_layout(self):
+        valid_values = {key for key, _label in _SR_PAYSLIP_LAYOUTS}
+        company = self.env.company
+        if hasattr(company, 'sr_payslip_template') and company.sr_payslip_template in valid_values:
+            return company.sr_payslip_template
         params = self.env['ir.config_parameter'].sudo()
         value = params.get_param(_SR_PAYSLIP_LAYOUT_CONFIG_KEY)
         if value in (None, False, ''):
@@ -232,15 +238,17 @@ class HrPayslip(models.Model):
                 _SR_PAYSLIP_LAYOUT_LEGACY_CONFIG_KEY,
                 default=_SR_PAYSLIP_LAYOUT_DEFAULT,
             )
-        valid_values = {key for key, _label in _SR_PAYSLIP_LAYOUTS}
         return value if value in valid_values else _SR_PAYSLIP_LAYOUT_DEFAULT
 
     def _sr_get_effective_payslip_layout(self):
         self.ensure_one()
         valid_values = {key for key, _label in _SR_PAYSLIP_LAYOUTS}
-        layout = self.sr_payslip_layout or _SR_PAYSLIP_LAYOUT_DEFAULT
-        if layout in valid_values:
+        layout = self.sr_payslip_layout
+        if layout and layout in valid_values:
             return layout
+        company = self.company_id or self.env.company
+        if hasattr(company, 'sr_payslip_template') and company.sr_payslip_template in valid_values:
+            return company.sr_payslip_template
         return _SR_PAYSLIP_LAYOUT_DEFAULT
 
     @api.depends('struct_id')
@@ -564,6 +572,7 @@ class HrPayslip(models.Model):
     def _sr_build_work_entry_snapshot(self, work_entries=None):
         self.ensure_one()
         work_entries = work_entries if work_entries is not None else self._sr_get_period_work_entries()
+        period_start, period_stop = self._sr_get_period_bounds()
         summary = {
             'regular_hours': 0.0,
             'overtime_hours_150': 0.0,
@@ -594,10 +603,32 @@ class HrPayslip(models.Model):
             summary['total_worked_hours'] += actual_hours
 
             if actual_hours > 0.005 and entry.date_start:
-                worked_days.add(entry.date_start.date())
+                worked_days |= self._sr_get_worked_dates_for_entry(
+                    entry,
+                    period_start=period_start,
+                    period_stop=period_stop,
+                )
 
         summary['total_worked_days'] = float(len(worked_days))
         return summary
+
+    def _sr_get_worked_dates_for_entry(self, entry, period_start=None, period_stop=None):
+        effective_start = entry.date_start
+        effective_stop = entry.date_stop
+        if period_start and effective_start:
+            effective_start = max(effective_start, period_start)
+        if period_stop and effective_stop:
+            effective_stop = min(effective_stop, period_stop)
+        if not effective_start or not effective_stop or effective_stop <= effective_start:
+            return set()
+
+        worked_dates = set()
+        current_start = effective_start
+        while current_start < effective_stop:
+            worked_dates.add(current_start.date())
+            next_day_start = datetime.combine(current_start.date() + timedelta(days=1), time.min)
+            current_start = min(next_day_start, effective_stop)
+        return worked_dates
 
     def _sr_store_work_entry_snapshot(self, work_entries=None):
         self.ensure_one()

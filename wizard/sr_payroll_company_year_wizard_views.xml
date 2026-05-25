@@ -9,7 +9,7 @@
         <field name="name">sr.payroll.company.year.wizard.form</field>
         <field name="model">sr.payroll.company.year.wizard</field>
         <field name="arch" type="xml">
-            <form string="Bedrijfs Jaaroverzicht Loonbelasting">
+            <form string="Bedrijfs Jaaroverzicht">
                 <group>
                     <group>
                         <field name="company_id"/>
@@ -21,7 +21,7 @@
                 <footer>
                     <button
                         name="action_export_pdf"
-                        string="PDF Exporteren"
+                        string="Exporteer PDF"
                         type="object"
                         class="btn-primary"
                         icon="fa-file-pdf"/>
@@ -42,7 +42,7 @@
 
     <!-- Action to open wizard -->
     <record id="action_sr_company_year_wizard" model="ir.actions.act_window">
-        <field name="name">Bedrijfs Jaaroverzicht PDF</field>
+        <field name="name">Bedrijfs Jaaroverzicht (PDF)</field>
         <field name="res_model">sr.payroll.company.year.wizard</field>
         <field name="view_mode">form</field>
         <field name="view_id" ref="view_sr_company_year_wizard_form"/>

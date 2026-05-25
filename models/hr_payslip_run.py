@@ -52,7 +52,7 @@ class HrPayslipRun(models.Model):
         self._sr_raise_basisloon_scope_error('Verzamelloonstaat-export')
 
     def action_open_sr_tax_report(self):
-        """Open het SR Fiscaal Belastingoverzicht gefilterd op deze loonrun."""
+        """Open het Fiscaal Belastingoverzicht gefilterd op deze loonrun."""
         self.ensure_one()
         self._sr_raise_basisloon_scope_error('Fiscaal belastingoverzicht')
 

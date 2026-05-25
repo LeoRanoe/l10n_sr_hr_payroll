@@ -1,18 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
 
-    <!-- ══════════════════════════════════════════════════════════════════
-         Suriname Payroll Dashboard  (l10n_sr_hr_payroll)
-         Toont loonstroken geboekt onder de SR-loonstructuur.
-         Zichtbaar via Payroll ▸ Suriname ▸ Loonstroken SR
-    ══════════════════════════════════════════════════════════════════ -->
+        <!-- ══════════════════════════════════════════════════════════════════
+            Suriname Payroll Dashboard  (l10n_sr_hr_payroll)
+            Toont loonstroken geboekt onder de SR-loonstructuur.
+            Zichtbaar via Payroll ▸ Loonstroken ▸ Loonstroken SR
+        ══════════════════════════════════════════════════════════════════ -->
 
     <!-- Aangepaste lijstweergave: SR-kolommen (loontype, LB, AOV, netto) -->
     <record id="view_hr_payslip_sr_list" model="ir.ui.view">
         <field name="name">hr.payslip.sr.list</field>
         <field name="model">hr.payslip</field>
         <field name="arch" type="xml">
-            <list string="Loonstroken Suriname" sample="1" duplicate="0">
+            <list string="Loonstroken SR" sample="1" duplicate="0">
                 <field name="company_id" column_invisible="True"/>
                 <field name="currency_id" column_invisible="True"/>
                 <field name="number" decoration-bf="1" readonly="state not in ['draft', 'verify']"/>
@@ -124,7 +124,7 @@
 
     <!-- Actievenster: gefilterd op SR-loonstructuur -->
     <record id="action_sr_payslip_dashboard" model="ir.actions.act_window">
-        <field name="name">Loonstroken Suriname</field>
+        <field name="name">Loonstroken SR</field>
         <field name="res_model">hr.payslip</field>
         <field name="view_mode">list,kanban,pivot,form</field>
         <field name="view_id" ref="view_hr_payslip_sr_list"/>
@@ -132,8 +132,8 @@
         <field name="domain" eval="[('struct_id', '=', ref('l10n_sr_hr_payroll.sr_payroll_structure'))]"/>
         <field name="context" eval="{'default_struct_id': ref('l10n_sr_hr_payroll.sr_payroll_structure'), 'search_default_filter_current_period': 1}"/>
         <field name="help" type="html">
-            <p class="o_view_nocontent_smiling_face">Nog geen Surinaamse loonstroken gevonden.</p>
-            <h3>Loonstroken Suriname — Wet Loonbelasting</h3>
+            <p class="o_view_nocontent_smiling_face">Nog geen SR-loonstroken gevonden.</p>
+            <h3>Loonstroken SR — Wet Loonbelasting</h3>
             <p>
                 Dit is een <strong>gefilterd overzicht</strong> van alle loonstroken die verwerkt zijn
                 met de structuur <em>Suriname — Normaal Loon (Artikel 14 WLB)</em>.
@@ -152,21 +152,41 @@
         </field>
     </record>
 
-    <!-- Menuitem: Payroll ▸ Suriname ▸ Loonstroken SR -->
+    <!-- Menuitem: Payroll ▸ Loonstroken ▸ Loonstroken SR -->
     <menuitem
         id="menu_sr_payroll_root"
         name="Suriname"
         parent="hr_payroll.menu_hr_payroll_payslips"
         sequence="90"
-        groups="hr_payroll.group_hr_payroll_user,l10n_sr_hr_payroll.group_sr_payroll_accountant_export,base.group_system"/>
+        groups="base.group_no_one"/>
 
     <menuitem
         id="menu_sr_payslip_dashboard"
         name="Loonstroken SR"
-        parent="menu_sr_payroll_root"
+        parent="hr_payroll.menu_hr_payroll_payslips"
         action="action_sr_payslip_dashboard"
         sequence="10"
         groups="hr_payroll.group_hr_payroll_user"/>
+
+    <record id="hr_payroll.menu_hr_payslip_run" model="ir.ui.menu">
+        <field name="name">Batchverwerking</field>
+        <field name="sequence">20</field>
+    </record>
+
+    <record id="hr_payroll.menu_hr_payroll_employee_payslips_to_pay" model="ir.ui.menu">
+        <field name="name">Uit te betalen</field>
+        <field name="sequence">30</field>
+    </record>
+
+    <record id="hr_payroll.menu_hr_payroll_employee_payslips" model="ir.ui.menu">
+        <field name="name">Alle loonstroken</field>
+        <field name="sequence">40</field>
+    </record>
+
+    <record id="hr_work_entry_contract_enterprise.menu_work_entry" model="ir.ui.menu">
+        <field name="name">Alle werkboekingen</field>
+        <field name="sequence">10</field>
+    </record>
 
     <!-- ══════════════════════════════════════════════════════════════════
          Loonstrookformulier uitbreiding: voeg afdruk- en voorbeeldknoppen toe
@@ -215,7 +235,7 @@
         <field name="inherit_id" ref="hr_payroll.view_hr_payslip_form"/>
         <field name="arch" type="xml">
             <xpath expr="//page[@name='salary_computation']" position="after">
-                <page string="SR Fiscaal Overzicht" name="sr_fiscal_overview" invisible="not sr_is_sr_struct">
+                <page string="Fiscaal overzicht" name="sr_fiscal_overview" invisible="not sr_is_sr_struct">
                     <div class="alert alert-info small mb-3" role="status">
                         Deze samenvatting toont opgeslagen loonstrookwaarden uit de database. Herbereken de loonstrook na contract- of inputwijzigingen om de snapshot te verversen.
                     </div>

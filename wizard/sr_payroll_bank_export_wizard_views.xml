@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_sr_payroll_bank_export_wizard_form" model="ir.ui.view">
+        <field name="name">sr.payroll.bank.export.wizard.form</field>
+        <field name="model">sr.payroll.bank.export.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Bankexport — Salarisbetaling">
+
+                <group string="Loonrun">
+                    <field name="company_id" options="{'no_create': True}"/>
+                    <field name="payslip_run_id" options="{'no_create': True}"/>
+                </group>
+
+                <group string="Bankgegevens">
+                    <field name="bank_format" widget="radio"/>
+                    <field name="debit_account" placeholder="bijv. 990012345"/>
+                    <field name="payment_date"/>
+                    <field name="payment_reference" placeholder="bijv. Salaris Mei 2026"/>
+                </group>
+
+                <group string="Resultaat" invisible="not row_count">
+                    <field name="row_count" readonly="1"/>
+                    <field name="total_amount" readonly="1" widget="monetary"
+                           options="{'currency_field': false}"/>
+                    <field name="missing_bank_count" readonly="1"
+                           invisible="not missing_bank_count"/>
+                </group>
+
+                <div class="alert alert-warning" role="alert"
+                     invisible="not warning_message">
+                    <i class="fa fa-exclamation-triangle me-2"/>
+                    <field name="warning_message" readonly="1" nolabel="1"/>
+                </div>
+
+                <div class="alert alert-info" role="alert" style="font-size:0.85em;">
+                    <strong>Formaten:</strong>
+                    <ul style="margin:4px 0 0 0; padding-left:18px;">
+                        <li><strong>DSB</strong>: CSV puntkomma-gescheiden (Advanced Online Banking)</li>
+                        <li><strong>Hakrinbank</strong>: TAB-gescheiden TXT (BOA — Betaalopdrachten Applicatie)</li>
+                        <li><strong>Finabank</strong>: CSV komma-gescheiden (Corporate Online Banking)</li>
+                        <li><strong>Republic Bank</strong>: CSV puntkomma-gescheiden (RepublicOnline)</li>
+                        <li><strong>Generiek</strong>: CSV met alle kolommen — geschikt voor elke bank of Excel</li>
+                    </ul>
+                    <p style="margin:6px 0 0 0;">
+                        <i class="fa fa-info-circle"/> Alle formaten bevatten: betaaldatum, debet- en creditrekeningnummer,
+                        naam werknemer, bedrag (SRD) en omschrijving.
+                        Zorg dat werknemers een bankrekening hebben ingevuld
+                        (<em>Werknemer → Privé-informatie → Bankrekeningen</em>).
+                    </p>
+                </div>
+
+                <footer>
+                    <button string="Genereer betaalbestand"
+                            class="btn-primary"
+                            name="action_export"
+                            type="object"/>
+                    <button string="Annuleren"
+                            class="btn-secondary"
+                            special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_sr_payroll_bank_export_wizard" model="ir.actions.act_window">
+        <field name="name">Bankexport Salarisbetaling</field>
+        <field name="res_model">sr.payroll.bank.export.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+</odoo>

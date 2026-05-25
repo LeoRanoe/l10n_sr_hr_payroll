@@ -5,6 +5,7 @@ from odoo.exceptions import ValidationError
 
 from . import sr_artikel14_calculator as calc
 from .hr_payslip import _SR_PAYSLIP_LAYOUT_DEFAULT, _SR_PAYSLIP_LAYOUTS
+from .res_company import _SR_PAYSLIP_TEMPLATES
 
 
 _SR_PAYSLIP_LAYOUT_CONFIG_KEY = 'sr_payroll.sr_default_payslip_layout'
@@ -154,12 +155,21 @@ class ResConfigSettings(models.TransientModel):
         related='company_id.currency_id',
         readonly=True,
     )
+    sr_payslip_template = fields.Selection(
+        related='company_id.sr_payslip_template',
+        readonly=False,
+        string='Loonstrook template (dit bedrijf)',
+        help=(
+            'Welk template nieuwe loonstroken standaard gebruiken voor dit bedrijf. '
+            'Per loonstrook kan de keuze nog worden overschreven in het loonstrookformulier.'
+        ),
+    )
     sr_default_payslip_layout = fields.Selection(
         selection=_SR_PAYSLIP_LAYOUTS,
-        string='Standaard loonstrook layout',
+        string='Standaard loonstrook layout (globaal)',
         config_parameter=_SR_PAYSLIP_LAYOUT_CONFIG_KEY,
         default=_SR_PAYSLIP_LAYOUT_DEFAULT,
-        help='Nieuwe SR-loonstroken nemen deze layout standaard over. Je kunt dit per loonstrook aanpassen.',
+        help='Globale fallback voor bedrijven zonder eigen templatekeuze.',
     )
     sr_show_contract_shortcuts = fields.Boolean(
         string='Toon standaard contract-shortcuts',

@@ -5,10 +5,10 @@
         <field name="name">sr.payroll.period.wizard.form</field>
         <field name="model">sr.payroll.period.wizard</field>
         <field name="arch" type="xml">
-            <form string="Periode Rapporten — Maandaangifte &amp; Bedrijfsoverzicht">
+            <form string="Maandaangifte &amp; Periodeoverzicht">
                 <div class="alert alert-info" role="alert" style="margin-bottom:12px;">
                     Selecteer een gesloten loonrun om de periode-rapporten te genereren.<br/>
-                    De <strong>Maandaangifte LB+AOV</strong> dient uiterlijk de
+                    De <strong>Maandaangifte LB + AOV</strong> dient uiterlijk de
                     <strong>10e van de volgende maand</strong> ingediend te worden
                     bij de Belastingdienst Suriname.
                 </div>
@@ -24,13 +24,13 @@
                     </group>
                 </group>
                 <footer>
-                    <button string="Maandaangifte LB+AOV (PDF)"
+                        <button string="Maandaangifte LB + AOV (PDF)"
                             name="action_print_maandaangifte"
                             type="object"
                             class="btn-primary"
                             icon="fa-landmark"
                             invisible="not payslip_run_id"/>
-                    <button string="Bedrijfs Periode Overzicht (PDF)"
+                        <button string="Bedrijfs periodeoverzicht (PDF)"
                             name="action_print_periode_overzicht"
                             type="object"
                             class="btn-secondary"
@@ -43,7 +43,7 @@
     </record>
 
     <record id="action_sr_periode_wizard" model="ir.actions.act_window">
-        <field name="name">Periode Rapporten (Maandaangifte &amp; Bedrijfsoverzicht)</field>
+        <field name="name">Maandaangifte &amp; Periodeoverzicht</field>
         <field name="res_model">sr.payroll.period.wizard</field>
         <field name="view_mode">form</field>
         <field name="target">new</field>
