@@ -29,7 +29,7 @@
 
                 <div class="alert alert-warning" role="alert"
                      invisible="not warning_message">
-                    <i class="fa fa-exclamation-triangle me-2"/>
+                    <i class="fa fa-exclamation-triangle me-2" title="Waarschuwing"/>
                     <field name="warning_message" readonly="1" nolabel="1"/>
                 </div>
 
@@ -43,7 +43,7 @@
                         <li><strong>Generiek</strong>: CSV met alle kolommen — geschikt voor elke bank of Excel</li>
                     </ul>
                     <p style="margin:6px 0 0 0;">
-                        <i class="fa fa-info-circle"/> Alle formaten bevatten: betaaldatum, debet- en creditrekeningnummer,
+                        <i class="fa fa-info-circle" title="Informatie"/> Alle formaten bevatten: betaaldatum, debet- en creditrekeningnummer,
                         naam werknemer, bedrag (SRD) en omschrijving.
                         Zorg dat werknemers een bankrekening hebben ingevuld
                         (<em>Werknemer → Privé-informatie → Bankrekeningen</em>).
