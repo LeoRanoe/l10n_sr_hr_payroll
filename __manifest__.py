@@ -64,6 +64,7 @@ Berekeningen:
         'views/hr_payroll_tax_report_views.xml',
         'views/hr_payroll_help_views.xml',
         'views/sr_help_template.xml',
+        'wizard/sr_payroll_bank_export_wizard_views.xml',
         'wizard/sr_payroll_annual_statement_wizard_views.xml',
         'reports/report_payslip_sr.xml',
         'reports/report_payslip_sr_layouts.xml',

@@ -76,4 +76,13 @@
         sequence="50"
         groups="hr_payroll.group_hr_payroll_user,hr_payroll.group_hr_payroll_manager,base.group_system"/>
 
+    <!-- Bankexport salarisbetaling -->
+    <menuitem
+        id="menu_sr_overzichten_bankexport"
+        name="Bankexport Salarisbetaling"
+        parent="menu_sr_overzichten_root"
+        action="action_sr_payroll_bank_export_wizard"
+        sequence="45"
+        groups="hr_payroll.group_hr_payroll_user,hr_payroll.group_hr_payroll_manager,l10n_sr_hr_payroll.group_sr_payroll_accountant_export,base.group_system"/>
+
 </odoo>
