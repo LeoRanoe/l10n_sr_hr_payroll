@@ -2,22 +2,23 @@
 """
 Bankexport Wizard — Salarisbetaling Betaalbestand Suriname
 ==========================================================
-Genereert betaalbestanden voor de Surinaamse banken op basis van een loonrun.
+Genereert betaalbestanden voor Surinaamse banken op basis van een loonrun.
 
-Ondersteunde banken en formaten (gebaseerd op bankeigen standaarden):
-- De Surinaamsche Bank (DSB)  : CSV puntkomma-gescheiden (Advanced Online Banking)
-- Hakrinbank                  : TXT tab-gescheiden (BOA — Betaalopdrachten Applicatie)
-- Finabank N.V.               : CSV komma-gescheiden (Corporate Online Banking)
-- Republic Bank Suriname      : CSV puntkomma-gescheiden (RepublicOnline)
-- Generiek / Overig           : CSV met volledige informatiekolommen
+Ondersteunde banken:
+- De Surinaamsche Bank (DSB)  : CSV puntkomma-gescheiden
+- Hakrinbank                  : TXT tab-gescheiden (BOA)
+- Finabank N.V.               : CSV komma-gescheiden
+- Republic Bank Suriname      : CSV puntkomma-gescheiden
+- Generiek / Overig           : CSV met alle kolommen
 
 Vereisten:
-- Werknemer moet een bankrekening hebben (Werknemer → Privé-informatie → Bankrekening)
-- Loonrun moet bevestigde loonstroken bevatten (status Done of Paid)
+- Werknemer heeft een bankrekening (Werknemer → Privé-informatie → Bankrekeningen)
+- Loonrun bevat bevestigde loonstroken (status Done of Paid)
 """
 
 from base64 import b64encode
 import csv
+from datetime import date
 from io import StringIO
 import re
 
@@ -57,21 +58,26 @@ class SrPayrollBankExportWizard(models.TransientModel):
         _BANK_FORMATS,
         string='Bank / Formaat',
         required=True,
-        default='dsb',
-        help=(
-            'Selecteer de bank waarvoor het betaalbestand wordt gegenereerd. '
-            'Elk formaat is afgestemd op de upload-specificaties van die bank.'
-        ),
+        default='generic',
+        help='Selecteer de bank waarvoor het betaalbestand wordt gegenereerd.',
     )
     debit_account = fields.Char(
         string='Rekeningnr. werkgever (debet)',
+        required=True,
         help='Rekeningnummer van de werkgever waarvan de salarissen worden afgeschreven.',
+    )
+    payment_date = fields.Date(
+        string='Betaaldatum',
+        required=True,
+        default=fields.Date.today,
+        help='Datum waarop de overboekingen worden uitgevoerd.',
     )
     payment_reference = fields.Char(
         string='Betalingsomschrijving',
-        help='Omschrijving die op de afschriften van werknemers verschijnt, bijv. "Salaris Mei 2026".',
+        help='Omschrijving die op de afschriften van werknemers verschijnt.',
     )
-    # Result fields (readonly)
+
+    # Resultaatvelden (readonly, zichtbaar na genereren)
     row_count = fields.Integer(string='Aantal werknemers', readonly=True)
     total_amount = fields.Float(string='Totaal netto (SRD)', readonly=True, digits=(16, 2))
     missing_bank_count = fields.Integer(string='Zonder bankrekening', readonly=True)
@@ -85,10 +91,7 @@ class SrPayrollBankExportWizard(models.TransientModel):
             self.payment_reference = f'Salaris {self.payslip_run_id.name}'
 
     def _get_payment_records(self):
-        """
-        Haalt netto-salarissen op uit de belastingrapportage view.
-        Geeft (records_list, missing_bank_list) terug.
-        """
+        """Haalt netto-salarissen op per werknemer uit de loonrun."""
         self.ensure_one()
         self.env.flush_all()
 
@@ -102,8 +105,7 @@ class SrPayrollBankExportWizard(models.TransientModel):
         if not tax_records:
             raise UserError(
                 f'Geen bevestigde loonstroken gevonden in loonrun "{run.name}". '
-                'Zorg dat de loonstroken bevestigd zijn (status: Gedaan of Betaald) '
-                'voordat u het betaalbestand genereert.'
+                'Zorg dat de loonstroken de status Bevestigd of Betaald hebben.'
             )
 
         result = []
@@ -116,8 +118,6 @@ class SrPayrollBankExportWizard(models.TransientModel):
             bank_name = ''
             if bank_acc and bank_acc.bank_id:
                 bank_name = bank_acc.bank_id.name or ''
-            elif bank_acc and hasattr(bank_acc, 'bank_name'):
-                bank_name = bank_acc.bank_name or ''
 
             if not acc_number:
                 missing_bank.append(rec.employee_name or (emp.name if emp else '?'))
@@ -126,27 +126,44 @@ class SrPayrollBankExportWizard(models.TransientModel):
                 'employee_name': rec.employee_name or (emp.name if emp else '-'),
                 'account_number': acc_number,
                 'bank_name': bank_name,
-                'amount_srd': rec.amount_netto_srd or 0.0,
+                'amount': rec.amount_netto_srd or 0.0,
             })
 
         return result, missing_bank
 
+    def _fmt_amount(self, value):
+        """Bedrag als decimaal getal met punt (internationale bankstandaard)."""
+        return f'{value:.2f}'
+
+    def _fmt_date(self):
+        """Datum als DD-MM-YYYY."""
+        d = self.payment_date or date.today()
+        return d.strftime('%d-%m-%Y')
+
     # ── DSB betaalbestand ────────────────────────────────────────────────────
     def _build_dsb_payload(self, records, reference, run):
         """
-        De Surinaamsche Bank (DSB) — Advanced Online Banking batch betaalbestand.
-        Formaat: CSV puntkomma-gescheiden.
-        Conform DSB file upload specificatie (Excel-template equivalent).
-        Velden: Rekeningnummer ; Naam begunstigde ; Bedrag ; Valuta ; Omschrijving
+        De Surinaamsche Bank (DSB) — CSV puntkomma-gescheiden.
+        Kolommen: Betaaldatum ; Debitering ; Creditering ; Naam ; Bedrag ; Valuta ; Omschrijving
         """
         buf = StringIO()
         w = csv.writer(buf, delimiter=';', quoting=csv.QUOTE_MINIMAL)
-        w.writerow(['Rekeningnummer', 'Naam begunstigde', 'Bedrag', 'Valuta', 'Omschrijving'])
+        w.writerow([
+            'Betaaldatum',
+            'Rekeningnr. debet (werkgever)',
+            'Rekeningnr. credit (werknemer)',
+            'Naam werknemer',
+            'Bedrag',
+            'Valuta',
+            'Omschrijving',
+        ])
         for r in records:
             w.writerow([
+                self._fmt_date(),
+                self.debit_account or '',
                 r['account_number'],
                 r['employee_name'],
-                f"{r['amount_srd']:.2f}".replace('.', ','),
+                self._fmt_amount(r['amount']),
                 'SRD',
                 reference,
             ])
@@ -155,21 +172,19 @@ class SrPayrollBankExportWizard(models.TransientModel):
     # ── Hakrinbank BOA betaalbestand ─────────────────────────────────────────
     def _build_hakrinbank_payload(self, records, reference, run):
         """
-        Hakrinbank — BOA (Betaalopdrachten Applicatie) importbestand.
-        Formaat: TAB-gescheiden TXT bestand conform Hakrinbank BOA import standaard.
-        Hakrinbank BOA accepteert meerdere bestandstypen; dit is het TXT-formaat.
-        Geen header — Hakrinbank BOA leest velden op positie.
-        Velden: Rekeningnr [TAB] Naam [TAB] Bedrag [TAB] Valuta [TAB] Omschrijving [TAB] Referentie
+        Hakrinbank — BOA (Betaalopdrachten Applicatie) TAB-gescheiden TXT.
+        Kolommen (geen header): Datum [TAB] Debet [TAB] Credit [TAB] Naam [TAB] Bedrag [TAB] Valuta [TAB] Omschrijving
         """
         buf = StringIO()
         for r in records:
             line = '\t'.join([
+                self._fmt_date(),
+                self.debit_account or '',
                 r['account_number'],
                 r['employee_name'],
-                f"{r['amount_srd']:.2f}",
+                self._fmt_amount(r['amount']),
                 'SRD',
                 reference,
-                f"Loon {run.name}",
             ])
             buf.write(line + '\r\n')
         return buf.getvalue().encode('utf-8'), 'txt'
@@ -177,70 +192,88 @@ class SrPayrollBankExportWizard(models.TransientModel):
     # ── Finabank betaalbestand ───────────────────────────────────────────────
     def _build_finabank_payload(self, records, reference, run):
         """
-        Finabank N.V. — Corporate Online Banking betaalbestand.
-        Formaat: CSV komma-gescheiden (conform Finabank Corporate Banking upload).
-        Velden: AccountNumber, BeneficiaryName, Amount, Currency, Reference, Description
+        Finabank N.V. — CSV komma-gescheiden.
+        Kolommen: PaymentDate, DebitAccount, CreditAccount, BeneficiaryName, Amount, Currency, Reference
         """
         buf = StringIO()
         w = csv.writer(buf, delimiter=',', quoting=csv.QUOTE_ALL)
-        w.writerow(['AccountNumber', 'BeneficiaryName', 'Amount', 'Currency', 'Reference', 'Description'])
+        w.writerow([
+            'PaymentDate',
+            'DebitAccount',
+            'CreditAccount',
+            'BeneficiaryName',
+            'Amount',
+            'Currency',
+            'Reference',
+        ])
         for r in records:
             w.writerow([
+                self._fmt_date(),
+                self.debit_account or '',
                 r['account_number'],
                 r['employee_name'],
-                f"{r['amount_srd']:.2f}",
+                self._fmt_amount(r['amount']),
                 'SRD',
                 reference,
-                f"Salaris {run.name}",
             ])
         return buf.getvalue().encode('utf-8-sig'), 'csv'
 
     # ── Republic Bank betaalbestand ──────────────────────────────────────────
     def _build_republic_bank_payload(self, records, reference, run):
         """
-        Republic Bank Suriname — RepublicOnline batch betaalbestand.
-        Formaat: CSV puntkomma-gescheiden conform Republic Bank online portaal.
-        Velden: account_number ; beneficiary_name ; amount ; currency ; reference ; description
+        Republic Bank Suriname — CSV puntkomma-gescheiden.
+        Kolommen: payment_date ; debit_account ; credit_account ; beneficiary_name ; amount ; currency ; reference
         """
         buf = StringIO()
         w = csv.writer(buf, delimiter=';', quoting=csv.QUOTE_MINIMAL)
-        w.writerow(['account_number', 'beneficiary_name', 'amount', 'currency', 'reference', 'description'])
+        w.writerow([
+            'payment_date',
+            'debit_account',
+            'credit_account',
+            'beneficiary_name',
+            'amount',
+            'currency',
+            'reference',
+        ])
         for r in records:
             w.writerow([
+                self._fmt_date(),
+                self.debit_account or '',
                 r['account_number'],
                 r['employee_name'],
-                f"{r['amount_srd']:.2f}",
+                self._fmt_amount(r['amount']),
                 'SRD',
                 reference,
-                f"Salaris {run.name}",
             ])
         return buf.getvalue().encode('utf-8-sig'), 'csv'
 
     # ── Generiek betaalbestand ───────────────────────────────────────────────
     def _build_generic_payload(self, records, reference, run):
         """
-        Generiek betaalbestand — bruikbaar voor banken zonder specifiek formaat.
-        Formaat: CSV puntkomma-gescheiden met volledige informatiekolommen.
+        Generiek betaalbestand — volledige informatie, geschikt voor elke bank.
+        CSV puntkomma-gescheiden met alle kolommen.
         """
         buf = StringIO()
         w = csv.writer(buf, delimiter=';', quoting=csv.QUOTE_MINIMAL)
         w.writerow([
-            'Werknemer',
-            'Bankrekeningnr.',
-            'Bank',
-            'Netto bedrag (SRD)',
+            'Betaaldatum',
+            'Rekeningnr. debet (werkgever)',
+            'Rekeningnr. credit (werknemer)',
+            'Naam werknemer',
+            'Bank werknemer',
+            'Bedrag (SRD)',
             'Valuta',
-            'Betalingsomschrijving',
-            'Referentie',
+            'Omschrijving',
         ])
         for r in records:
             w.writerow([
-                r['employee_name'],
+                self._fmt_date(),
+                self.debit_account or '',
                 r['account_number'],
+                r['employee_name'],
                 r['bank_name'],
-                f"{r['amount_srd']:.2f}",
+                self._fmt_amount(r['amount']),
                 'SRD',
-                f"Salaris {run.name}",
                 reference,
             ])
         return buf.getvalue().encode('utf-8-sig'), 'csv'
@@ -269,26 +302,32 @@ class SrPayrollBankExportWizard(models.TransientModel):
         warning = None
         if missing_bank:
             warning = (
-                f'{len(missing_bank)} werknemer(s) zonder bankrekeningnummer — '
-                'vul dit in via Werknemer → Privé-informatie → Bankrekeningen: '
+                f'{len(missing_bank)} werknemer(s) missen een bankrekeningnummer '
+                '(Werknemer → Privé-informatie → Bankrekeningen): '
                 + ', '.join(missing_bank[:5])
                 + ('…' if len(missing_bank) > 5 else '')
             )
 
+        # Sla bestand op als bijlage voor betrouwbare download
+        attachment = self.env['ir.attachment'].sudo().create({
+            'name': filename,
+            'datas': b64encode(payload).decode(),
+            'type': 'binary',
+            'res_model': self._name,
+            'res_id': self.id,
+        })
+
         self.write({
             'row_count': len(records),
-            'total_amount': sum(r['amount_srd'] for r in records),
+            'total_amount': sum(r['amount'] for r in records),
             'missing_bank_count': len(missing_bank),
             'export_filename': filename,
-            'export_file': b64encode(payload),
             'warning_message': warning or False,
         })
+
+        # Bestand downloaden + dialoog open houden via twee acties
         return {
             'type': 'ir.actions.act_url',
-            'url': (
-                '/web/content?model=%s&id=%s&field=export_file'
-                '&download=true&filename_field=export_filename'
-                % (self._name, self.id)
-            ),
-            'target': 'self',
+            'url': f'/web/content/{attachment.id}?download=true',
+            'target': 'new',
         }

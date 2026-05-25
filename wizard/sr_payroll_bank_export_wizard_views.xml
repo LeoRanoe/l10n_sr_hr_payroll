@@ -6,21 +6,22 @@
         <field name="model">sr.payroll.bank.export.wizard</field>
         <field name="arch" type="xml">
             <form string="Bankexport — Salarisbetaling">
-                <group string="Loonrun &amp; Bank">
+
+                <group string="Loonrun">
                     <field name="company_id" options="{'no_create': True}"/>
                     <field name="payslip_run_id" options="{'no_create': True}"/>
-                    <field name="bank_format" widget="radio"/>
                 </group>
-                <group string="Betalingsgegevens">
+
+                <group string="Bankgegevens">
+                    <field name="bank_format" widget="radio"/>
                     <field name="debit_account" placeholder="bijv. 990012345"/>
+                    <field name="payment_date"/>
                     <field name="payment_reference" placeholder="bijv. Salaris Mei 2026"/>
                 </group>
 
-                <!-- Resultaten na export -->
                 <group string="Resultaat" invisible="not row_count">
                     <field name="row_count" readonly="1"/>
-                    <field name="total_amount" readonly="1"
-                           widget="monetary"
+                    <field name="total_amount" readonly="1" widget="monetary"
                            options="{'currency_field': false}"/>
                     <field name="missing_bank_count" readonly="1"
                            invisible="not missing_bank_count"/>
@@ -33,16 +34,18 @@
                 </div>
 
                 <div class="alert alert-info" role="alert" style="font-size:0.85em;">
-                    <strong>Formaat-informatie:</strong>
+                    <strong>Formaten:</strong>
                     <ul style="margin:4px 0 0 0; padding-left:18px;">
-                        <li><strong>DSB</strong>: CSV puntkomma-gescheiden (Advanced Online Banking file upload)</li>
+                        <li><strong>DSB</strong>: CSV puntkomma-gescheiden (Advanced Online Banking)</li>
                         <li><strong>Hakrinbank</strong>: TAB-gescheiden TXT (BOA — Betaalopdrachten Applicatie)</li>
                         <li><strong>Finabank</strong>: CSV komma-gescheiden (Corporate Online Banking)</li>
                         <li><strong>Republic Bank</strong>: CSV puntkomma-gescheiden (RepublicOnline)</li>
-                        <li><strong>Generiek</strong>: CSV met alle kolommen, geschikt voor elke bank</li>
+                        <li><strong>Generiek</strong>: CSV met alle kolommen — geschikt voor elke bank of Excel</li>
                     </ul>
                     <p style="margin:6px 0 0 0;">
-                        <i class="fa fa-info-circle"/> Zorg dat werknemers een bankrekening hebben ingevuld
+                        <i class="fa fa-info-circle"/> Alle formaten bevatten: betaaldatum, debet- en creditrekeningnummer,
+                        naam werknemer, bedrag (SRD) en omschrijving.
+                        Zorg dat werknemers een bankrekening hebben ingevuld
                         (<em>Werknemer → Privé-informatie → Bankrekeningen</em>).
                     </p>
                 </div>
