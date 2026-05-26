@@ -41,11 +41,11 @@
                                     </group>
                                 </group>
                                 <div class="alert alert-secondary mt-3 mb-0" role="alert">
-                                    <strong>AOV franchise:</strong> dit is een <strong>maandbedrag</strong>.
-                                    Bij <strong>FN / Fortnight</strong> rekent de payroll-engine deze franchise automatisch pro-rata om naar <strong>12 / 26</strong> per periode.
+                                    <strong>AOV franchise:</strong> dit is een <strong>maandbedrag</strong> voor maandloon.
+                                    Bij <strong>FN / Fortnight</strong> past de Surinaamse payroll-engine standaard <strong>geen franchise</strong> toe.
                                 </div>
                                 <div class="alert alert-light border mt-3 mb-0" role="alert">
-                                    <strong>Heffingskorting:</strong> wordt als <strong>aparte netto-credit</strong> toegepast.
+                                    <strong>Heffingskorting:</strong> verlaagt de in te houden <strong>loonbelasting</strong> en wordt niet als losse pluspost op netto gepresenteerd.
                                     Voor maandloon geldt de ingevoerde maandwaarde; voor <strong>FN / Fortnight</strong> rekent de payroll-engine deze pro-rata om naar 12/26 van de maandwaarde.
                                 </div>
                             </page>
@@ -96,22 +96,22 @@
                                     </group>
                                     <group string="Toelichting">
                                         <div class="text-muted">
-                                            Kies welke templatestijl nieuwe loonstroken standaard gebruiken voor dit bedrijf.
-                                            Per loonstrook kan de keuze nog worden overschreven in het loonstrookformulier.
+                                            De Surinaamse werknemer-layout <strong>Werknemer overzicht</strong> is de standaard fallback voor deze addon.
+                                            Kies alleen een andere layout als expliciet alternatief voor rapportage of audit.
                                         </div>
                                     </group>
                                 </group>
                                 <div class="alert alert-info mt-3 mb-0" role="alert">
-                                    <strong>Odoo Standaard</strong> gebruikt Bootstrap-opmaak conform Odoo huisstijl met Surinaamse wettelijke inhoud (CRIB, FIN, LB, AOV).<br/>
-                                    <strong>Klassiek (donkerblauw)</strong> gebruikt de traditionele SR-huisstijl met professionele donkerblauwe koptekst.<br/>
+                                    <strong>Werknemer overzicht</strong> is de aanbevolen Surinaamse standaard en toont de loonstrook als werknemerkaart met samenvattingsblokken, contractgegevens en een debet/credit/netto-tabel.<br/>
                                     <strong>Compact</strong> toont alleen categorie-totalen zonder individuele regeldetails.<br/>
-                                    <strong>Artikel 14 Detail</strong> toont de volledige stap-voor-stap Wet Loonbelasting berekening.
+                                    <strong>Artikel 14 Detail</strong> toont de volledige stap-voor-stap Wet Loonbelasting berekening.<br/>
+                                    <strong>Alternatieve Odoo-opmaak</strong> gebruikt Bootstrap-opmaak conform Odoo huisstijl, maar is geen SR-standaardlayout.
                                 </div>
                                 <group string="Globale standaard (fallback)" class="mt-3"
                                        groups="base.group_system">
                                     <field name="sr_default_payslip_layout"/>
                                     <div class="text-muted">
-                                        Gebruikt als een bedrijf geen eigen templatekeuze heeft ingesteld.
+                                        Standaard staat deze op <strong>Werknemer overzicht</strong> en wordt gebruikt als een bedrijf geen eigen templatekeuze heeft ingesteld.
                                     </div>
                                 </group>
                             </page>

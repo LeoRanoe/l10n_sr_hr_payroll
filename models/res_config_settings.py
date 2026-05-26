@@ -160,7 +160,8 @@ class ResConfigSettings(models.TransientModel):
         readonly=False,
         string='Loonstrook template (dit bedrijf)',
         help=(
-            'Welk template nieuwe loonstroken standaard gebruiken voor dit bedrijf. '
+            'Als dit bedrijf geen expliciete keuze heeft, gebruikt het systeem standaard '
+            'de Surinaamse werknemer-layout "Werknemer overzicht". '
             'Per loonstrook kan de keuze nog worden overschreven in het loonstrookformulier.'
         ),
     )
@@ -169,7 +170,7 @@ class ResConfigSettings(models.TransientModel):
         string='Standaard loonstrook layout (globaal)',
         config_parameter=_SR_PAYSLIP_LAYOUT_CONFIG_KEY,
         default=_SR_PAYSLIP_LAYOUT_DEFAULT,
-        help='Globale fallback voor bedrijven zonder eigen templatekeuze.',
+        help='Globale Surinaamse standaardlayout voor bedrijven zonder eigen templatekeuze.',
     )
     sr_show_contract_shortcuts = fields.Boolean(
         string='Toon standaard contract-shortcuts',

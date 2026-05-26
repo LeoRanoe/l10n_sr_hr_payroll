@@ -809,6 +809,13 @@ class TestArtikel14Breakdown(common.TransactionCase):
             else:
                 icp.set_param(key, old_value)
 
+    def test_new_company_has_no_explicit_payslip_template(self):
+        """Nieuwe bedrijven moeten de Surinaamse globale layoutfallback kunnen gebruiken."""
+        company = self.env['res.company'].create({
+            'name': 'Layout Default Testbedrijf',
+        })
+        self.assertFalse(company.sr_payslip_template)
+
     def test_breakdown_actieve_heffingskorting_volgt_payslip_netto(self):
         """
         Heffingskorting blijft zichtbaar voor audit, maar verlaagt de

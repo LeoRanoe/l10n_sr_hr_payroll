@@ -6,10 +6,10 @@ from odoo.exceptions import ValidationError
 _SR_SUPPORTED_CURRENCIES = frozenset({'SRD', 'USD', 'EUR'})
 
 _SR_PAYSLIP_TEMPLATES = [
-    ('odoo_standard', 'Odoo Standaard'),
-    ('employee_simple', 'Klassiek (donkerblauw)'),
+    ('employee_simple', 'Werknemer overzicht'),
     ('compact', 'Compact Netto-overzicht'),
     ('artikel14_detail', 'Artikel 14 Detail'),
+    ('odoo_standard', 'Alternatieve Odoo-opmaak'),
 ]
 
 
@@ -17,7 +17,7 @@ class ResCompany(models.Model):
     _inherit = 'res.company'
 
     def init(self):
-        """Migratie: initialiseer standaard contractvaluta, shortcut-weergave en loonstrook template voor bestaande bedrijven."""
+        """Migratie: initialiseer SR-standaarden voor bestaande bedrijven."""
         self.env.cr.execute("""
             UPDATE res_company c
             SET    sr_default_contract_currency_id = cur.id
@@ -32,19 +32,20 @@ class ResCompany(models.Model):
         """)
         self.env.cr.execute("""
             UPDATE res_company
-            SET    sr_payslip_template = 'odoo_standard'
-            WHERE  sr_payslip_template IS NULL
+            SET    sr_payslip_template = NULL
+            WHERE  sr_payslip_template = 'odoo_standard'
         """)
 
     sr_payslip_template = fields.Selection(
         selection=_SR_PAYSLIP_TEMPLATES,
         string='Standaard loonstrook template',
-        default='odoo_standard',
         help=(
-            'Welke templatestijl nieuwe loonstroken standaard gebruiken voor dit bedrijf. '
-            '"Odoo Standaard" gebruikt Bootstrap-opmaak conform Odoo huisstijl met Surinaamse inhoud. '
-            '"Klassiek" gebruikt de traditionele donkerblauwe SR-huisstijl. '
-            'Per loonstrook kan de keuze nog worden overschreven.'
+            'Als geen expliciete bedrijfskeuze is ingesteld, gebruikt het systeem standaard '
+            'de Surinaamse werknemer-layout "Werknemer overzicht". '
+            '"Werknemer overzicht" toont de SR-loonstrook met samenvattingskaarten, '
+            'contractgegevens en een enkele detailtabel. '
+            'Alleen als expliciet alternatief kan per bedrijf of per loonstrook '
+            'een andere layout gekozen worden.'
         ),
     )
 

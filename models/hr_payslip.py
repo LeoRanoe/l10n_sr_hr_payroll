@@ -16,16 +16,16 @@ _sr_calc_thread_local = threading.local()
 _SR_MONEY_QUANT = Decimal('0.01')
 _SR_INTERNAL_MONEY_QUANT = Decimal('0.000001')
 _SR_HOURLY_RATE_QUANT = Decimal('0.000001')
-_SR_PAYSLIP_LAYOUT_DEFAULT = 'odoo_standard'
+_SR_PAYSLIP_LAYOUT_DEFAULT = 'employee_simple'
 _SR_PAYSLIP_LAYOUT_CONFIG_KEY = 'sr_payroll.sr_default_payslip_layout'
 _SR_PAYSLIP_LAYOUT_LEGACY_CONFIG_KEY = 'sr_payroll.default_payslip_layout'
 _SR_DISPLAY_MODE_CONFIG_KEY = 'sr_payroll.netto_display_mode'
 _SR_DISPLAY_MODE_DEFAULT = 'srd'
 _SR_PAYSLIP_LAYOUTS = [
-    ('odoo_standard', 'Odoo Standaard'),
-    ('employee_simple', 'Klassiek (donkerblauw)'),
+    ('employee_simple', 'Werknemer overzicht'),
     ('compact', 'Compact Netto-overzicht'),
     ('artikel14_detail', 'Artikel 14 Detail'),
+    ('odoo_standard', 'Alternatieve Odoo-opmaak'),
 ]
 
 SR_FN_2026_PERIODS = (
