@@ -799,7 +799,7 @@
                         <h2>Dit hoeft u niet zelf te berekenen</h2>
                         <ul class="sr-hero__list">
                             <li><strong>Loonbelasting (Art. 14)</strong> — progressieve schijven automatisch berekend.</li>
-                            <li><strong>AOV bijdrage</strong> — tarief en franchise automatisch toegepast.</li>
+                            <li><strong>AOV bijdrage</strong> — tarief en toepasselijke franchise automatisch toegepast; bij FN zonder franchise.</li>
                             <li><strong>Kinderbijslag (AKB)</strong> — vrijstelling op basis van aantal kinderen in het contract.</li>
                             <li><strong>Vakantietoelage, gratificatie en bijzondere beloningen</strong> — elk via eigen fiscaal regime.</li>
                             <li><strong>Overwerk</strong> — automatisch uit Werkboekingen of handmatig via Other Inputs.</li>
@@ -931,7 +931,7 @@
                         <p class="sr-kicker">Snelste controles</p>
                         <ul class="sr-checklist">
                             <li>Contract staat op <strong>Running</strong> en gebruikt <strong>Suriname Salaris Structuur</strong>.</li>
-                            <li><strong>Belastingtype</strong> staat op <strong>1 lb sal ovw</strong> (maand) of <strong>FN</strong> (14-daags).</li>
+                            <li><strong>Loontype</strong> staat op <strong>Maandloon</strong> of <strong>FN</strong> (14-daags).</li>
                             <li><strong>Aantal Kinderen</strong> klopt en is maximaal <strong>4</strong>.</li>
                             <li>Eenmalige posten staan in <strong>Andere invoer</strong> met het juiste SR inputtype.</li>
                             <li>Bij valutacontract: wisselkoers is actueel in <strong>SR Payroll Instellingen</strong>.</li>
@@ -1161,7 +1161,7 @@
                                     <ul class="sr-checklist">
                                         <li><strong>Salary Structure Type</strong> = <strong>Suriname Salaris Structuur</strong>.</li>
                                         <li>Contractstatus = <strong>Running</strong>.</li>
-                                        <li><strong>Belastingtype</strong> correct ingesteld op <strong>1 lb sal ovw</strong> of <strong>FN</strong>.</li>
+                                        <li><strong>Loontype</strong> correct ingesteld op <strong>Maandloon</strong> of <strong>FN</strong>.</li>
                                         <li><strong>Aantal Kinderen</strong> tussen <strong>0</strong> en <strong>4</strong>.</li>
                                     </ul>
                                 </article>
@@ -1186,9 +1186,9 @@
                                     </thead>
                                     <tbody>
                                         <tr>
-                                            <td><strong>Belastingtype</strong></td>
+                                            <td><strong>Loontype</strong></td>
                                             <td>Bepaalt of de werknemer per maand of per FN-tijdvak wordt belast.</td>
-                                            <td><strong>1 lb sal ovw</strong> gebruikt 12 periodes en past de AOV-franchise toe. <strong>FN</strong> gebruikt 26 perioden en geen AOV-franchise.</td>
+                                            <td><strong>Maandloon</strong> gebruikt 12 periodes en past de AOV-franchise toe. <strong>FN</strong> gebruikt 26 perioden en geen AOV-franchise.</td>
                                         </tr>
                                         <tr>
                                             <td><strong>Aantal Kinderen</strong></td>
@@ -1573,7 +1573,7 @@
 
                             <div class="sr-callout">
                                 <strong>2026 kernregels:</strong> AKB = SRD 250 per kind met een maximum van SRD 1.000 per maand en maximaal 4 kinderen.
-                                De bijzondere vrijstellingscap blijft SRD 19.500. De heffingskorting is zichtbaar voor audit, maar wordt niet actief toegepast in de Art. 14 engine.
+                                De bijzondere vrijstellingscap blijft SRD 19.500. De heffingskorting verlaagt de in te houden loonbelasting en blijft zichtbaar voor audit.
                             </div>
 
                             <div class="sr-table-wrap">
@@ -1631,7 +1631,7 @@
                                     <ul class="sr-checklist">
                                         <li>Maak een back-up en werk daarna de module bij.</li>
                                         <li>Bevestig 2026-waarden in <strong>SR Payroll Instellingen</strong>.</li>
-                                        <li>Controleer actieve contracten op <strong>1 lb sal ovw</strong> of <strong>FN</strong> en AKB max 4.</li>
+                                        <li>Controleer actieve contracten op <strong>Maandloon</strong> of <strong>FN</strong> en AKB max 4.</li>
                                         <li>Maak een proefloonstrook met SRD 20.255,60 en vergelijk LB, AOV en netto.</li>
                                     </ul>
                                 </article>
@@ -1686,7 +1686,7 @@
                                 <article class="sr-flow-card">
                                     <span class="sr-step">3</span>
                                     <h3>Belastingvrije voet</h3>
-                                    <p>SRD <t t-esc="'{:,.0f}'.format(v.get('SR_BELASTINGVRIJ_JAAR', 108000))"/> per jaar, oftewel SRD <t t-esc="'{:,.0f}'.format(v.get('SR_BELASTINGVRIJ_JAAR', 108000) / 12)"/> per maand.</p>
+                                    <p>Actuele instelling: SRD <t t-esc="'{:,.0f}'.format(v.get('SR_BELASTINGVRIJ_JAAR', 0))"/> per jaar, oftewel SRD <t t-esc="'{:,.0f}'.format(v.get('SR_BELASTINGVRIJ_JAAR', 0) / 12)"/> per maand indien van toepassing.</p>
                                 </article>
                                 <article class="sr-flow-card">
                                     <span class="sr-step">4</span>
@@ -1701,7 +1701,7 @@
                                 <article class="sr-flow-card">
                                     <span class="sr-step">6</span>
                                     <h3>AOV bijdrage</h3>
-                                    <p><t t-esc="'{:.0f}'.format(v.get('SR_AOV_TARIEF', 0.04) * 100)"/>% over bruto minus franchise. De maandfranchise van SRD <t t-esc="'{:,.0f}'.format(v.get('SR_AOV_FRANCHISE_MAAND', 400))"/> wordt voor FN pro-rata omgerekend naar de periode.</p>
+                                    <p><t t-esc="'{:.0f}'.format(v.get('SR_AOV_TARIEF', 0.04) * 100)"/>% over bruto minus franchise. Voor maandloon geldt de maandfranchise van SRD <t t-esc="'{:,.0f}'.format(v.get('SR_AOV_FRANCHISE_MAAND', 400))"/>; voor FN geldt geen franchise.</p>
                                 </article>
                                 <article class="sr-flow-card">
                                     <span class="sr-step">7</span>
@@ -1711,7 +1711,7 @@
                             </div>
 
                             <div class="sr-callout sr-callout--neutral">
-                                <strong>Belangrijke nuance:</strong> de heffingskorting is beschikbaar voor audit en parametrisering, maar wordt in deze Art. 14 engine niet actief toegepast.
+                                <strong>Belangrijke nuance:</strong> de heffingskorting blijft beschikbaar voor audit en parametrisering en verlaagt de in te houden loonbelasting per periode.
                             </div>
 
                             <div class="sr-table-wrap">
@@ -1929,7 +1929,7 @@
                                         <tr>
                                             <td>De loonbelasting is SRD 0 of ontbreekt</td>
                                             <td>Belastingtype staat mogelijk op een onbekend type, of het bruto loon valt volledig binnen de belastingvrije voet.</td>
-                                            <td>Controleer het belastingtype in het contract (<strong>1 lb sal ovw</strong> of <strong>FN</strong>) en de hoogte van het bruto loon.</td>
+                                            <td>Controleer het loontype in het contract (<strong>Maandloon</strong> of <strong>FN</strong>) en de hoogte van het bruto loon.</td>
                                         </tr>
                                         <tr>
                                             <td>AOV ontbreekt op de loonstrook</td>

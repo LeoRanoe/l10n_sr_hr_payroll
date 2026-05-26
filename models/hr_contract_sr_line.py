@@ -107,7 +107,7 @@ class HrContractSrLine(models.Model):
         currency_field='currency_id',
         help=(
             'Vaste maandbedrag voor deze toelage of inhouding.\n'
-            'Bij FN-contracten wordt dit automatisch omgerekend naar per-fortnight (× 12 ÷ 26).'
+            'Bij FN-contracten wordt dit automatisch omgerekend naar per FN-periode (× 12 ÷ 26).'
         ),
     )
     amount_type = fields.Selection(

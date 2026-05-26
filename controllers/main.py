@@ -96,7 +96,7 @@ class SrPayrollHelpController(http.Controller):
             ('SR_TARIEF_3', 'Tarief 3'),
             ('SR_TARIEF_4', 'Tarief 4'),
             ('SR_AOV_TARIEF', 'AOV tarief'),
-            ('SR_AOV_FRANCHISE_MAAND', 'AOV franchise per maand'),
+            ('SR_AOV_FRANCHISE_MAAND', 'AOV franchise maandloon'),
             ('SR_OWK_SCHIJF_1_GRENS', 'Overwerk schijf 1'),
             ('SR_OWK_SCHIJF_2_GRENS', 'Overwerk schijf 2'),
             ('SR_OWK_TARIEF_1', 'Overwerk tarief 1'),

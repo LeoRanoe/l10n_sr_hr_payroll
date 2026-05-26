@@ -833,7 +833,7 @@ class HrPayslip(models.Model):
             raise UserError(
                 'Deze SR-loonstrook overlapt meerdere contracten voor dezelfde werknemer '
                 f'({contract_names}). Maak aparte loonstroken per contractperiode zodat '
-                'maandloon/Fortnight en vaste regels niet door elkaar lopen.'
+                'maandloon/FN en vaste regels niet door elkaar lopen.'
             )
 
     def _sr_get_hourly_rate(self):
@@ -1001,7 +1001,7 @@ class HrPayslip(models.Model):
             ) from None
 
     def _sr_get_periodes(self):
-        """Bepaalt het aantal periodes per jaar: 12 (maandloon) of 26 (fortnight)."""
+        """Bepaalt het aantal periodes per jaar: 12 (maandloon) of 26 (FN)."""
         self.ensure_one()
         contract = self.contract_id
         if not contract:
@@ -1009,7 +1009,7 @@ class HrPayslip(models.Model):
         return 26 if contract.sr_salary_type == 'fn' else 12
 
     def _sr_get_fn_period_2026(self):
-        """Geeft fortnight periode-info terug op basis van de loonstrookdatums.
+        """Geeft FN-periode-info terug op basis van de loonstrookdatums.
 
         Probeert eerst een exacte match met de standaard SR-kalender; anders
         wordt de periodelabel dynamisch berekend vanuit de dag-positie in het jaar.
@@ -1046,7 +1046,7 @@ class HrPayslip(models.Model):
         duration = (self.date_to - self.date_from).days + 1
         if duration < 13 or duration > 16:
             raise UserError(
-                f'Fortnight-loonstroken moeten ca. 14 dagen beslaan (13–16 dagen). '
+                f'FN-loonstroken moeten ca. 14 dagen beslaan (13–16 dagen). '
                 f'De ingestelde periode beslaat {duration} dag(en). '
                 f'Pas de datums aan of gebruik Maandloon voor een andere periodelengte.'
             )

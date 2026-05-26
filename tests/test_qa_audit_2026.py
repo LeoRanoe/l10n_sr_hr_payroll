@@ -941,9 +941,9 @@ class TestQAAudit2026(common.TransactionCase):
         self.assertEqual(monthly['aov_grondslag'], 3600.0)
         self.assertEqual(monthly['aov_per_periode'], 144.0)
 
-        self.assertAlmostEqual(fortnight['franchise_periode'], 184.62, places=2)
-        self.assertAlmostEqual(fortnight['aov_grondslag'], 3815.38, places=2)
-        self.assertAlmostEqual(fortnight['aov_per_periode'], 152.62, places=2)
+        self.assertAlmostEqual(fortnight['franchise_periode'], 0.0, places=2)
+        self.assertAlmostEqual(fortnight['aov_grondslag'], 4000.0, places=2)
+        self.assertAlmostEqual(fortnight['aov_per_periode'], 160.0, places=2)
 
     def test_active_sr_contract_requires_positive_wage(self):
         with self.assertRaises(ValidationError):

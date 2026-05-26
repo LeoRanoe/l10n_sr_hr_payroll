@@ -836,10 +836,10 @@
     </template>
 
 
-    <!-- ═══════════════════════════════════════════════════════════════════
-         LAYOUT 4: Odoo Standaard  (report_payslip_sr_employee_odoo_standard)
-         Odoo Bootstrap-stijl met Surinaamse inhoud en wettelijke velden.
-    ═══════════════════════════════════════════════════════════════════ -->
+        <!-- ═══════════════════════════════════════════════════════════════════
+            LAYOUT 4: Alternatieve Odoo-opmaak  (report_payslip_sr_employee_odoo_standard)
+            Odoo-bootstrapstijl met Surinaamse inhoud en wettelijke velden.
+        ═══════════════════════════════════════════════════════════════════ -->
                 <template id="report_payslip_sr_employee_odoo_standard">
                     <t t-call="web.external_layout">
                         <div class="page">
@@ -854,7 +854,7 @@
                             <p class="text-muted" style="font-size:9pt; margin-top:0; margin-bottom:12px;">
                                 <t t-esc="doc.company_id.name or ''"/>
                                 &#160;·&#160;Wet Loonbelasting Suriname
-                                <t t-if="bd.get('is_fn')">&#160;·&#160;Fortnight (26x/jaar)</t>
+                                <t t-if="bd.get('is_fn')">&#160;·&#160;FN (26x/jaar)</t>
                                 <t t-else="">&#160;·&#160;Maandloon (12x/jaar)</t>
                             </p>
 
@@ -1108,7 +1108,7 @@
                             <div class="sr-header-subtitle">
                                 Wet Loonbelasting Suriname |
                                 <t t-esc="bd.get('payslip_layout_label', '')"/>
-                                <t t-if="bd.get('is_fn')"> | Fortnight (26x/jaar)</t>
+                                <t t-if="bd.get('is_fn')"> | FN (26x/jaar)</t>
                                 <t t-else=""> | Maandloon (12x/jaar)</t>
                             </div>
                         </div>

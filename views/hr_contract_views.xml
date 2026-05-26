@@ -21,6 +21,28 @@
         <field name="model">hr.contract</field>
         <field name="inherit_id" ref="hr_contract.hr_contract_view_form"/>
         <field name="arch" type="xml">
+            <xpath expr="//group[@name='top_info_right']/field[@name='structure_type_id'][1]" position="before">
+                <field name="sr_allowed_structure_type_ids" invisible="1"/>
+            </xpath>
+
+            <xpath expr="//group[@name='top_info_right']/field[@name='structure_type_id'][1]" position="attributes">
+                <attribute name="domain">[('id', 'in', sr_allowed_structure_type_ids)]</attribute>
+                <attribute name="options">{'no_open': True, 'no_create': True}</attribute>
+                <attribute name="help">Kies de payroll-motor voor dit contract. Suriname — Normaal Loon is de standaard voor gewone SR-contracten; daarna kies je onder Surinaams loontype tussen maandloon en FN. Suriname — Uurloon gebruik je alleen voor echte uurlooncontracten.</attribute>
+            </xpath>
+
+            <xpath expr="//group[@name='top_info_right']/field[@name='structure_type_id'][2]" position="attributes">
+                <attribute name="domain">[('id', 'in', sr_allowed_structure_type_ids)]</attribute>
+                <attribute name="options">{'no_open': True, 'no_create': True}</attribute>
+                <attribute name="help">Kies de payroll-motor voor dit contract. Suriname — Normaal Loon is de standaard voor gewone SR-contracten; daarna kies je onder Surinaams loontype tussen maandloon en FN. Suriname — Uurloon gebruik je alleen voor echte uurlooncontracten.</attribute>
+            </xpath>
+
+            <xpath expr="//group[@name='top_info_right']/field[@name='department_id'][1]" position="before">
+                <div class="text-muted small mb-2">
+                    <strong>Verschil:</strong> <strong>Suriname — Normaal Loon (Artikel 14)</strong> is de standaard voor alle gewone SR-contracten; het onderscheid tussen <strong>Maandloon</strong> en <strong>FN-loon</strong> maak je daarna in <strong>Surinaams loontype</strong>. <strong>Suriname — Uurloon</strong> gebruik je alleen als het contract echt op uurloon wordt verwerkt.
+                </div>
+            </xpath>
+
             <xpath expr="//notebook" position="inside">
                 <page string="Suriname Payroll" name="sr_payroll_tab">
 
@@ -44,19 +66,19 @@
                                            help="Basisloonvaluta. Bij vreemde valuta: zie koers onder 'Wisselkoers (bedrijfsinstelling)'. Alle bedragen worden naar SRD omgerekend."/>
                                     <field name="wage" widget="monetary" options="{'currency_field': 'sr_contract_currency'}" required="1"
                                            string="Basisloon (per maand)"
-                                           help="Voer het maandloon in. Voor FN-contracten berekent het systeem automatisch het bedrag per fortnight (× 12 ÷ 26)."/>
+                                         help="Voer het maandloon in. Voor FN-contracten berekent het systeem automatisch het bedrag per FN-periode (× 12 ÷ 26)."/>
                                     <field name="sr_salary_type"
                                            widget="radio"
-                                           string="Belastingtype"
+                                         string="Surinaams loontype"
                                            required="1"
-                                           help="Maandloon: 12 periodes. FN: 26 periodes — basisloon wordt automatisch omgerekend (maandloon × 12 ÷ 26) per fortnight."/>
+                                         help="Maandloon: 12 periodes. FN-loon: 26 periodes — basisloon wordt automatisch omgerekend (maandloon × 12 ÷ 26) per FN-periode."/>
                                     <field name="sr_wage_per_period_srd"
                                            readonly="1"
                                            widget="monetary"
                                            options="{'currency_field': 'currency_id'}"
                                            invisible="sr_salary_type != 'fn'"
-                                           string="Loon per Fortnight (SRD)"
-                                           help="Automatisch berekend: maandloon × 12 ÷ 26. Dit bedrag wordt als BASIC op de loonstrook gebruikt."/>
+                                         string="Loon per FN-periode (SRD)"
+                                         help="Automatisch berekend: maandloon × 12 ÷ 26. Dit bedrag wordt als BASIC op de loonstrook gebruikt voor FN-contracten."/>
                                     <field name="sr_hourly_wage" readonly="1"
                                            help="Bruto uurloon (automatisch berekend): maandloon ÷ 173,33."/>
                                     <!-- Valutapaar: wisselkoers + SRD equivalent — alleen zichtbaar voor vreemde valuta -->
@@ -88,7 +110,7 @@
                                            string="Kinderbijslag (per Maand)"
                                            widget="monetary"
                                            options="{'currency_field': 'currency_id'}"
-                                           help="Kinderbijslag per maand. Bij FN-contracten automatisch omgerekend naar per-fortnight (× 12 ÷ 26). Wordt gesplitst in vrijgesteld (max SRD 250/kind/maand) en belastbaar deel (Art. 10h WLB)."/>
+                                         help="Kinderbijslag per maand. Bij FN-contracten automatisch omgerekend naar per FN-periode (× 12 ÷ 26). Wordt gesplitst in vrijgesteld (max SRD 250/kind/maand) en belastbaar deel (Art. 10h WLB)."/>
                                 </group>
                                 <group>
                                     <div class="text-muted small pt-1">
@@ -118,7 +140,7 @@
                             <separator string="Overige Vaste Toelagen &amp; Inhoudingen"/>
                             <div class="text-muted small mb-2">
                                 Voer alle bedragen in als <strong>maandbedrag</strong>.
-                                Bij FN-contracten worden vaste bedragen automatisch omgerekend naar per-fortnight (× 12 ÷ 26).
+                                Bij FN-contracten worden vaste bedragen automatisch omgerekend naar per FN-periode (× 12 ÷ 26).
                                 Kies per regel de categorie: <strong>Belastbaar</strong>, <strong>Belastingvrij</strong>,
                                 <strong>Aftrek Belastingvrij</strong> of <strong>Inhouding</strong>.
                                 Bij een gekozen <strong>Type</strong> bepaalt het type altijd de fiscale categorie.

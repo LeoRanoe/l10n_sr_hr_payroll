@@ -508,7 +508,7 @@ class TestArtikel14AOV(common.TransactionCase):
     """
     Tests specifiek voor de AOV berekening:
     - Franchise SRD 400/maand (maandloon)
-    - Geprorateerde franchise voor fortnight loon
+    - Geen franchise voor FN-loon
     - 4% tarief
     """
 
@@ -572,16 +572,16 @@ class TestArtikel14AOV(common.TransactionCase):
 
     def test_aov_fortnight_met_geprorateerde_franchise(self):
         """
-        Fortnight loon SRD 5.000/fortnight (ingevoerd als maandloon × 26/12) →
-        pro-rata franchise = 400 × 12 / 26.
-        AOV grondslag = 5.000 − 184,62 → AOV ≈ 192,62.
+        FN-loon SRD 5.000/periode (ingevoerd als maandloon × 26/12) →
+        geen franchise van toepassing.
+        AOV grondslag = 5.000 → AOV = 200.
         """
         maandloon = round(5000.0 * 26 / 12, 2)  # geeft per-FN ≈ 5000
         payslip = self._make_payslip(wage=maandloon, salary_type='fn')
         aov = payslip.line_ids.filtered(lambda l: l.code == 'SR_AOV').total
-        verwacht_aov = -round((5000.0 - (400.0 * 12 / 26)) * 0.04, 2)
+        verwacht_aov = -round(5000.0 * 0.04, 2)
         self.assertAlmostEqual(aov, verwacht_aov, delta=0.02,
-                               msg='AOV fortnight met geprorateerde franchise klopt niet')
+                               msg='AOV FN zonder franchise klopt niet')
 
     def test_aov_maandloon_lager_dan_franchise(self):
         """
@@ -871,8 +871,8 @@ class TestArtikel14Breakdown(common.TransactionCase):
         bd = payslip._get_sr_artikel14_breakdown()
         self.assertEqual(bd['periodes'], 26)
         self.assertTrue(bd['is_fn'])
-        self.assertAlmostEqual(bd['franchise_periode'], 184.62, places=2,
-             msg='Fortnight AOV franchise moet pro-rata uit maandfranchise worden berekend')
+        self.assertAlmostEqual(bd['franchise_periode'], 0.0, places=2,
+                               msg='FN AOV franchise moet op nul blijven')
         self.assertEqual(bd['fn_period_label'], '2026FN10')
         self.assertEqual(bd['fn_period_indicator'], '202610')
 
@@ -977,3 +977,49 @@ class TestArtikel14Breakdown(common.TransactionCase):
                 config.search([('key', '=', 'sr_payroll.belastingvrij_jaar')], limit=1).unlink()
             else:
                 config.set_param('sr_payroll.belastingvrij_jaar', old_config)
+
+
+@tagged('post_install', 'post_install_l10n', '-at_install')
+class TestSrStructureTypeDefaults(common.TransactionCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.company = cls.env['res.company'].create({
+            'name': 'Test Structuurtype Bedrijf SR',
+            'country_id': cls.env.ref('base.sr').id,
+            'currency_id': cls.env.ref('base.SRD').id,
+        })
+        cls.env = cls.env(context=dict(
+            cls.env.context,
+            allowed_company_ids=[cls.company.id],
+        ))
+        cls.employee = cls.env['hr.employee'].create({
+            'name': 'Structuurtype Werknemer',
+            'company_id': cls.company.id,
+        })
+        cls.sr_structure_type = cls.env.ref('l10n_sr_hr_payroll.sr_payroll_structure_type')
+        cls.sr_hourly_structure_type = cls.env.ref('l10n_sr_hr_payroll.sr_payroll_structure_type_hourly')
+
+    def test_new_sr_contract_defaults_to_sr_normaal_loon(self):
+        contract = self.env['hr.contract'].create({
+            'name': 'Structuurtype Default Contract',
+            'employee_id': self.employee.id,
+            'company_id': self.company.id,
+            'date_start': date(2026, 1, 1),
+            'wage': 1000.0,
+        })
+
+        self.assertEqual(contract.structure_type_id, self.sr_structure_type)
+
+    def test_explicit_sr_uurloon_choice_blijft_behouden(self):
+        contract = self.env['hr.contract'].create({
+            'name': 'Structuurtype Uurloon Contract',
+            'employee_id': self.employee.id,
+            'company_id': self.company.id,
+            'date_start': date(2026, 1, 1),
+            'wage': 1000.0,
+            'structure_type_id': self.sr_hourly_structure_type.id,
+        })
+
+        contract._compute_structure_type_id()
+        self.assertEqual(contract.structure_type_id, self.sr_hourly_structure_type)

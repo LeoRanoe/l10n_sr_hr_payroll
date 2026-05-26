@@ -42,11 +42,11 @@
                                 </group>
                                 <div class="alert alert-secondary mt-3 mb-0" role="alert">
                                     <strong>AOV franchise:</strong> dit is een <strong>maandbedrag</strong> voor maandloon.
-                                    Bij <strong>FN / Fortnight</strong> past de Surinaamse payroll-engine standaard <strong>geen franchise</strong> toe.
+                                    Bij <strong>FN-loon</strong> past de Surinaamse payroll-engine standaard <strong>geen franchise</strong> toe.
                                 </div>
                                 <div class="alert alert-light border mt-3 mb-0" role="alert">
                                     <strong>Heffingskorting:</strong> verlaagt de in te houden <strong>loonbelasting</strong> en wordt niet als losse pluspost op netto gepresenteerd.
-                                    Voor maandloon geldt de ingevoerde maandwaarde; voor <strong>FN / Fortnight</strong> rekent de payroll-engine deze pro-rata om naar 12/26 van de maandwaarde.
+                                    Voor maandloon geldt de ingevoerde maandwaarde; voor <strong>FN-loon</strong> rekent de payroll-engine deze pro-rata om naar 12/26 van de maandwaarde.
                                 </div>
                             </page>
                             <page string="AKB">
@@ -181,7 +181,7 @@
                                     </group>
                                     <group string="Toelichting">
                                         <div class="text-muted">
-                                            Deze tab is alleen voor systeembeheer. De heffingskorting wordt als afzonderlijke nettocredit beheerd en verandert de Art. 14 LB-schijfbepaling zelf niet.
+                                            Deze tab is alleen voor systeembeheer. De heffingskorting verlaagt de in te houden loonbelasting en blijft hier zichtbaar als audit- en parameterwaarde.
                                         </div>
                                     </group>
                                 </group>

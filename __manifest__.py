@@ -15,7 +15,7 @@ Art. 17c overwerk, Art. 10 vrijstellingen).
 
 Ondersteunde verloningstypes:
 - Maandloon      (12 periodes per jaar)
-- Fortnight Loon (26 periodes per jaar)
+- FN-loon        (26 periodes per jaar)
 
 Berekeningen:
 - Bruto loon (maandloon + belastbare toelagen)
@@ -23,7 +23,7 @@ Berekeningen:
 - Geïntegreerde belastingvrije voet (2026 standaard SRD 0/jaar)
 - Belastbaar jaarloon (na aftrekken)
 - Loonbelasting Artikel 14 (progressieve schijven via SR-parameters)
-- AOV bijdrage (actief tarief en franchise via SR-parameters)
+- AOV bijdrage (maandloon met franchise, FN zonder franchise via SR-parameters)
 - Pensioenpremie bijdrage
 - Kinderbijslag (belastingvrij)
 - Netto loon

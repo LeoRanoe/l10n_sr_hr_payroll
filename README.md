@@ -7,7 +7,7 @@ Suriname payroll add-on voor Odoo 18, afgestemd op de payrollcontext in `Salaris
 De module ondersteunt:
 
 - Artikel 14 loonbelasting via bewerkbare `hr.rule.parameter` records
-- maandloon en fortnight-verloning (`12` of `26` periodes)
+- maandloon en FN-verloning (`12` of `26` periodes)
 - FN 2026 tijdvakvalidatie en indicatoren
 - AOV-berekening met parametergestuurd tarief en franchise
 - overwerk (Art. 17c)

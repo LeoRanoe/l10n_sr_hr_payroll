@@ -3,7 +3,7 @@
     <data noupdate="1">
         <!--
             Suriname Payroll Structure Type
-            Gebruikt voor zowel maandloon als fortnight loon (artikel 14 WLB).
+            Gebruikt voor zowel maandloon als FN-loon (artikel 14 WLB).
             Het feitelijke aantal periodes (12 of 26) wordt bepaald door het
             veld sr_salary_type op het contract.
         -->

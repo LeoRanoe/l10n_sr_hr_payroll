@@ -269,7 +269,7 @@ class ResConfigSettings(models.TransientModel):
         string='Heffingskorting (SRD)',
         config_parameter='sr_payroll.heffingskorting',
         default=lambda self: self._sr_default_param('SR_HEFFINGSKORTING'),
-        help='Actieve netto heffingskorting: SRD per maand voor maandloon, pro-rata omgerekend voor FN.',
+        help='Actieve heffingskorting: verlaagt de in te houden loonbelasting. Invoer is SRD per maand voor maandloon en wordt pro-rata omgerekend voor FN.',
     )
     aov_tarief = fields.Float(
         string='AOV tarief (decimaal)',
@@ -279,10 +279,10 @@ class ResConfigSettings(models.TransientModel):
         help='AOV-inhouding als decimaal percentage. Heeft direct impact op elke nieuw berekende loonstrook.',
     )
     aov_franchise_maand = fields.Float(
-        string='AOV franchise (SRD / maand)',
+        string='AOV franchise maandloon (SRD / maand)',
         config_parameter='sr_payroll.aov_franchise_maand',
         default=lambda self: self._sr_default_param('SR_AOV_FRANCHISE_MAAND'),
-        help='Maandelijkse franchise die eerst van de AOV-grondslag wordt afgetrokken bij maandloon-contracten.',
+        help='Maandelijkse AOV-franchise voor maandloon-contracten. Voor FN-contracten geldt standaard geen AOV-franchise.',
     )
     bijz_beloning_max = fields.Float(
         string='Vrijstelling vakantie/gratificatie per categorie (SRD / jaar)',

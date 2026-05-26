@@ -438,7 +438,7 @@ class TestIntegratieVolledigeCyclus(common.TransactionCase):
     # ──────────────────────────────────────────────────────────────────
     def test_fortnight_loonstrook_aangemaakt(self):
         """
-        Fortnight contract genereert een geldige loonstrook met SR_LB en SR_AOV regels.
+        FN-contract genereert een geldige loonstrook met SR_LB en SR_AOV regels.
         Voor FN geldt geen AOV-franchise.
         """
         fn_per_periode = 8000.0  # gewenst SRD per fortnight
@@ -451,9 +451,9 @@ class TestIntegratieVolledigeCyclus(common.TransactionCase):
         )
 
         aov = self._haal_totaal(payslip, 'SR_AOV')
-        expected_aov = -round((fn_per_periode - (400.0 * 12 / 26)) * 0.04, 2)
+        expected_aov = -round(fn_per_periode * 0.04, 2)
         self.assertAlmostEqual(aov, expected_aov, delta=0.02,
-                               msg='AOV fortnight met geprorateerde franchise klopt niet')
+                               msg='AOV FN zonder franchise klopt niet')
         self.assertEqual(
             payslip._get_sr_artikel14_breakdown()['fn_period_label'], '2026FN9'
         )
@@ -486,7 +486,7 @@ class TestIntegratieVolledigeCyclus(common.TransactionCase):
             )
 
     def test_fortnight_maureen_like_netto_met_geprorateerde_aov_franchise(self):
-        """Maureen-achtig FN-pakket moet netto met pro-rata AOV-franchise berekend worden."""
+        """Maureen-achtig FN-pakket moet netto zonder AOV-franchise berekend worden."""
 
         def _maureen_like_lines():
             return [
@@ -543,25 +543,25 @@ class TestIntegratieVolledigeCyclus(common.TransactionCase):
 
         self.assertAlmostEqual(
             contract_fn.sr_preview_aov_periode,
-            300.92,
+            308.31,
             delta=0.05,
-            msg='Preview AOV moet voor FN met geprorateerde franchise worden berekend',
+            msg='Preview AOV moet voor FN zonder franchise worden berekend',
         )
         self.assertAlmostEqual(
             contract_fn.sr_preview_netto,
-            6609.23,
+            6601.85,
             delta=0.05,
             msg='Preview netto voor Maureen-achtig FN-pakket klopt niet',
         )
         self.assertAlmostEqual(
             self._haal_totaal(payslip_fn, 'SR_AOV'),
-            -300.92,
+            -308.31,
             delta=0.05,
-            msg='Loonstrook AOV moet voor FN met geprorateerde franchise worden berekend',
+            msg='Loonstrook AOV moet voor FN zonder franchise worden berekend',
         )
         self.assertAlmostEqual(
             self._haal_totaal(payslip_fn, 'NET'),
-            6609.23,
+            6601.85,
             delta=0.05,
             msg='Loonstrook netto voor Maureen-achtig FN-pakket klopt niet',
         )
@@ -578,12 +578,12 @@ class TestIntegratieVolledigeCyclus(common.TransactionCase):
         )
 
         aov_line = payslip.line_ids.filtered(lambda line: line.code == 'SR_AOV')[:1]
-        self.assertAlmostEqual(aov_line.total, -192.62, delta=0.02)
+        self.assertAlmostEqual(aov_line.total, -200.0, delta=0.02)
 
-        # Simuleer een historische slip die nog zonder de pro-rata franchise is opgeslagen.
+        # Simuleer een historische slip die nog met de oude pro-rata franchise is opgeslagen.
         self.env.cr.execute(
             "UPDATE hr_payslip_line SET amount = %s, total = %s WHERE id = %s",
-            (-200.0, -200.0, aov_line.id),
+            (-192.62, -192.62, aov_line.id),
         )
         self.env.invalidate_all()
 
@@ -592,7 +592,7 @@ class TestIntegratieVolledigeCyclus(common.TransactionCase):
 
         self.assertEqual(result['count'], 1)
         self.assertEqual(result['recomputed_ids'], [payslip.id])
-        self.assertAlmostEqual(self._haal_totaal(payslip, 'SR_AOV'), -192.62, delta=0.02)
+        self.assertAlmostEqual(self._haal_totaal(payslip, 'SR_AOV'), -200.0, delta=0.02)
 
     def test_fn_laatste_periode_corrigeert_jaartotaal_naar_maandloon(self):
         monthly_contract = self.env['hr.contract'].create({
@@ -908,16 +908,16 @@ class TestIntegratieContractPreview(common.TransactionCase):
 
     def test_preview_aov_fortnight_met_geprorateerde_franchise(self):
         """
-        Fortnight SRD 5.000/periode → pro-rata franchise.
-        AOV grondslag = 5.000 − (400 × 12 ÷ 26) → sr_preview_aov_periode ≈ 192,62.
+        FN SRD 5.000/periode → geen franchise.
+        AOV grondslag = 5.000 → sr_preview_aov_periode = 200.
         Maandloon ingevoerd als 5000 × 26/12, systeem rekent terug naar 5000/FN.
         """
         maandloon = round(5000.0 * 26 / 12, 2)
         contract = self._maak_contract(wage=maandloon, salary_type='fn')
-        verwacht = round((5000.0 - (400.0 * 12 / 26)) * 0.04, 2)
+        verwacht = round(5000.0 * 0.04, 2)
         self.assertAlmostEqual(
             contract.sr_preview_aov_periode, verwacht, delta=0.02,
-            msg='sr_preview_aov_periode fortnight met geprorateerde franchise klopt niet',
+            msg='sr_preview_aov_periode FN zonder franchise klopt niet',
         )
 
     # ──────────────────────────────────────────────────────────────────

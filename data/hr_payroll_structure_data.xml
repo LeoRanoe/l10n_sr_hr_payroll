@@ -3,7 +3,7 @@
     <data noupdate="1">
         <!--
             Suriname Salarisstructuur — Artikel 14 Wet Loonbelasting
-            Geldig voor maandloon (12×) en fortnight loon (26×).
+            Geldig voor maandloon (12×) en FN-loon (26×).
         -->
         <record id="sr_payroll_structure" model="hr.payroll.structure">
             <field name="name">Suriname — Normaal Loon (Artikel 14 WLB)</field>
