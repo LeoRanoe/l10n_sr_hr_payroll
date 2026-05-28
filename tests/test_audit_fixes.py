@@ -142,6 +142,11 @@ class TestAuditFixes(common.TransactionCase):
         view = self.env.ref('l10n_sr_hr_payroll.hr_contract_sr_view_form')
 
         self.assertIn("options=\"{'currency_field': 'sr_contract_currency'}\"", view.arch_db)
+        self.assertNotIn('sr_allowed_structure_type_ids', view.arch_db)
+        self.assertIn(
+            "('country_id', '=', company_country_id)",
+            view.arch_db,
+        )
 
     def test_foreign_currency_onchange_warns_with_exchange_rate_snapshot_context(self):
         contract = self.env['hr.contract'].new({

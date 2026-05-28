@@ -21,17 +21,6 @@ SR_STRUCTURE_TYPE_XMLIDS = (
 class HrContract(models.Model):
     _inherit = 'hr.contract'
 
-    sr_allowed_structure_type_ids = fields.Many2many(
-        'hr.payroll.structure.type',
-        compute='_compute_sr_allowed_structure_type_ids',
-        string='Toegestane loonstructuurtypes',
-        help=(
-            'Voor Suriname-contracten beperkt het systeem de keuze tot de twee SR-'
-            'structuurtypes: Normaal Loon en Uurloon.'
-        ),
-        store=False,
-    )
-
     SR_AKB_MAX_CHILDREN = 4
     SR_FOREIGN_WAGE_WARNING_THRESHOLD = 1000.0
     SR_CONTRACT_LINE_FIELD_MAP = {
@@ -186,31 +175,6 @@ class HrContract(models.Model):
                 continue
             if not contract.structure_type_id or contract.structure_type_id not in sr_structure_types:
                 contract.structure_type_id = sr_default_structure_type
-
-    @api.depends('company_id')
-    def _compute_sr_allowed_structure_type_ids(self):
-        sr_structure_types = self._sr_get_structure_types()
-        fallback_by_country = {}
-
-        for contract in self:
-            company_country = contract.company_id.country_id
-            if company_country.code == 'SR' and sr_structure_types:
-                contract.sr_allowed_structure_type_ids = sr_structure_types
-                continue
-
-            cache_key = company_country.id or 0
-            allowed_types = fallback_by_country.get(cache_key)
-            if allowed_types is None:
-                if company_country:
-                    allowed_types = self.env['hr.payroll.structure.type'].search([
-                        '|', ('country_id', '=', False), ('country_id', '=', company_country.id),
-                    ])
-                else:
-                    allowed_types = self.env['hr.payroll.structure.type'].search([
-                        ('country_id', '=', False),
-                    ])
-                fallback_by_country[cache_key] = allowed_types
-            contract.sr_allowed_structure_type_ids = allowed_types
 
     sr_hourly_wage = fields.Float(
         string='Uurloon (SRD)',
