@@ -103,10 +103,10 @@
                                            string="Aantal Kinderen (Art. 10h)"
                                            help="Aantal kinderen voor kinderbijslag vrijstelling. Wettelijk gemaximeerd op 4 kinderen in de 2026 release."/>
                                     <field name="sr_kinderbijslag_bedrag"
-                                           string="Kinderbijslag (per Maand)"
+                                           string="Kinderbijslag (per kind / maand)"
                                            widget="monetary"
                                            options="{'currency_field': 'currency_id'}"
-                                         help="Kinderbijslag per maand. Bij FN-contracten automatisch omgerekend naar per FN-periode (× 12 ÷ 26). Wordt gesplitst in vrijgesteld (max SRD 250/kind/maand) en belastbaar deel (Art. 10h WLB)."/>
+                                         help="Kinderbijslag per kind per maand. Bij FN-contracten automatisch omgerekend naar per FN-periode (× 12 ÷ 26) en vermenigvuldigd met Aantal Kinderen. Wordt gesplitst in vrijgesteld (max SRD 250/kind/maand) en belastbaar deel (Art. 10h WLB)."/>
                                 </group>
                                 <group>
                                     <div class="text-muted small pt-1">
@@ -135,8 +135,9 @@
 
                             <separator string="Overige Vaste Toelagen &amp; Inhoudingen"/>
                             <div class="text-muted small mb-2">
-                                Voer alle bedragen in als <strong>maandbedrag</strong>.
-                                Bij FN-contracten worden vaste bedragen automatisch omgerekend naar per FN-periode (× 12 ÷ 26).
+                                Voer vaste toelagen en inhoudingen in als <strong>bedrag per loonperiode</strong>.
+                                Percentage-regels worden automatisch over het periode-basisloon berekend.
+                                Kinderbijslag is de uitzondering: bedrag per kind per maand.
                                 Kies per regel de categorie: <strong>Belastbaar</strong>, <strong>Belastingvrij</strong>,
                                 <strong>Aftrek Belastingvrij</strong> of <strong>Inhouding</strong>.
                                 Bij een gekozen <strong>Type</strong> bepaalt het type altijd de fiscale categorie.

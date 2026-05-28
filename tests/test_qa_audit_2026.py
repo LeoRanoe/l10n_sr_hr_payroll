@@ -899,7 +899,7 @@ class TestQAAudit2026(common.TransactionCase):
                 'name': 'Kinderbijslag QA',
                 'type_id': self.env.ref('l10n_sr_hr_payroll.sr_line_type_kinderbijslag').id,
                 'sr_categorie': 'vrijgesteld',
-                'amount': 1250.0,
+                'amount': 312.5,
             })],
         )
 
@@ -942,8 +942,8 @@ class TestQAAudit2026(common.TransactionCase):
         self.assertEqual(monthly['aov_per_periode'], 144.0)
 
         self.assertAlmostEqual(fortnight['franchise_periode'], 0.0, places=2)
-        self.assertAlmostEqual(fortnight['aov_grondslag'], 4000.0, places=2)
-        self.assertAlmostEqual(fortnight['aov_per_periode'], 160.0, places=2)
+        self.assertAlmostEqual(fortnight['aov_grondslag'], 3840.0, places=2)
+        self.assertAlmostEqual(fortnight['aov_per_periode'], 153.6, places=2)
 
     def test_active_sr_contract_requires_positive_wage(self):
         with self.assertRaises(ValidationError):
@@ -1106,7 +1106,7 @@ class TestQAAudit2026(common.TransactionCase):
                     'name': 'Kinderbijslag QA',
                     'type_id': self.env.ref('l10n_sr_hr_payroll.sr_line_type_kinderbijslag').id,
                     'sr_categorie': 'vrijgesteld',
-                    'amount': 1250.0,
+                    'amount': 312.5,
                 }),
                 (0, 0, {
                     'name': 'Pensioen QA',

@@ -264,9 +264,10 @@ class TestIntegratieVolledigeCyclus(common.TransactionCase):
         mag de loonbelasting NIET verhogen.
         """
         kinderbijslag = 500.0
+        kinderbijslag_per_kind = kinderbijslag / 4
         contract_zonder = self._maak_contract(wage=20000.0)
         contract_met = self._maak_contract(
-            wage=20000.0, kinderbijslag=kinderbijslag, employee=self.employee_b
+            wage=20000.0, kinderbijslag=kinderbijslag_per_kind, employee=self.employee_b
         )
 
         payslip_zonder = self._maak_loonstrook(contract_zonder)
@@ -451,9 +452,10 @@ class TestIntegratieVolledigeCyclus(common.TransactionCase):
         )
 
         aov = self._haal_totaal(payslip, 'SR_AOV')
-        expected_aov = -round(fn_per_periode * 0.04, 2)
+        forfaitaire_periode = min(fn_per_periode * 26 * 0.04, 4800.0) / 26
+        expected_aov = -round((fn_per_periode - forfaitaire_periode) * 0.04, 2)
         self.assertAlmostEqual(aov, expected_aov, delta=0.02,
-                               msg='AOV FN zonder franchise klopt niet')
+                               msg='AOV FN op fiscale grondslag klopt niet')
         self.assertEqual(
             payslip._get_sr_artikel14_breakdown()['fn_period_label'], '2026FN9'
         )
@@ -485,10 +487,10 @@ class TestIntegratieVolledigeCyclus(common.TransactionCase):
                 date_to=date(2026, 5, 31),
             )
 
-    def test_fortnight_maureen_like_netto_met_geprorateerde_aov_franchise(self):
-        """Maureen-achtig FN-pakket moet netto zonder AOV-franchise berekend worden."""
+    def test_fortnight_patricia_handberekening(self):
+        """Patricia-achtig FN-pakket moet aansluiten op de handberekening."""
 
-        def _maureen_like_lines():
+        def _patricia_like_lines():
             return [
                 (0, 0, {
                     'name': 'Kleding Toelage',
@@ -500,37 +502,49 @@ class TestIntegratieVolledigeCyclus(common.TransactionCase):
                     'name': 'Representatie Toelage',
                     'type_id': self.env.ref('l10n_sr_hr_payroll.sr_line_type_representatie').id,
                     'sr_categorie': 'belastbaar',
-                    'amount': 1500.0,
+                    'amount_type': 'percentage',
+                    'percentage': 15.0,
+                    'percentage_base': 'basisloon',
+                }),
+                (0, 0, {
+                    'name': 'Vrije Geneeskundige Behandeling',
+                    'type_id': self.env.ref('l10n_sr_hr_payroll.sr_line_type_geneeskunde').id,
+                    'sr_categorie': 'fiscaal_grondslag',
+                    'amount_type': 'percentage',
+                    'percentage': 3.0,
+                    'percentage_base': 'basisloon',
                 }),
                 (0, 0, {
                     'name': 'Kinderbijslag',
                     'type_id': self.env.ref('l10n_sr_hr_payroll.sr_line_type_kinderbijslag').id,
                     'sr_categorie': 'vrijgesteld',
-                    'amount': 600.0,
+                    'amount': 300.0,
                 }),
                 (0, 0, {
                     'name': 'Pensioenpremie',
                     'type_id': self.env.ref('l10n_sr_hr_payroll.sr_line_type_pensioen').id,
                     'sr_categorie': 'aftrek_belastingvrij',
-                    'amount': 900.0,
+                    'amount_type': 'percentage',
+                    'percentage': 8.0,
+                    'percentage_base': 'basisloon',
                 }),
                 (0, 0, {
                     'name': 'Ziektekostenpremie',
                     'type_id': self.env.ref('l10n_sr_hr_payroll.sr_line_type_ziektekosten').id,
                     'sr_categorie': 'inhouding',
-                    'amount': 1234.0,
+                    'amount': 1500.0,
                 }),
             ]
 
         contract_fn = self.env['hr.contract'].create({
-            'name': 'Integratie Contract Maureen FN',
+            'name': 'Integratie Contract Patricia FN',
             'employee_id': self.employee.id,
             'company_id': self.company.id,
             'structure_type_id': self.structure_type.id,
             'wage': 15000.0,
             'sr_salary_type': 'fn',
-            'sr_aantal_kinderen': 2,
-            'sr_vaste_regels': _maureen_like_lines(),
+            'sr_aantal_kinderen': 4,
+            'sr_vaste_regels': _patricia_like_lines(),
             'date_start': date(2026, 1, 1),
             'state': 'open',
         })
@@ -542,33 +556,45 @@ class TestIntegratieVolledigeCyclus(common.TransactionCase):
         )
 
         self.assertAlmostEqual(
+            contract_fn.sr_preview_bruto,
+            9515.38,
+            delta=0.02,
+            msg='Preview bruto moet de handberekening volgen',
+        )
+        self.assertAlmostEqual(
+            contract_fn.sr_preview_lb_periode,
+            682.77,
+            delta=0.02,
+            msg='Preview LB moet de handberekening volgen',
+        )
+        self.assertAlmostEqual(
             contract_fn.sr_preview_aov_periode,
-            308.31,
-            delta=0.05,
-            msg='Preview AOV moet voor FN zonder franchise worden berekend',
+            332.92,
+            delta=0.02,
+            msg='Preview AOV moet de handberekening volgen',
         )
         self.assertAlmostEqual(
             contract_fn.sr_preview_netto,
-            6601.85,
-            delta=0.05,
-            msg='Preview netto voor Maureen-achtig FN-pakket klopt niet',
+            6445.85,
+            delta=0.02,
+            msg='Preview netto moet de handberekening volgen',
         )
         self.assertAlmostEqual(
             self._haal_totaal(payslip_fn, 'SR_AOV'),
-            -308.31,
-            delta=0.05,
-            msg='Loonstrook AOV moet voor FN zonder franchise worden berekend',
+            -332.92,
+            delta=0.02,
+            msg='Loonstrook AOV moet de handberekening volgen',
         )
         self.assertAlmostEqual(
             self._haal_totaal(payslip_fn, 'NET'),
-            6601.85,
-            delta=0.05,
-            msg='Loonstrook netto voor Maureen-achtig FN-pakket klopt niet',
+            6445.85,
+            delta=0.02,
+            msg='Loonstrook netto moet de handberekening volgen',
         )
 
     def test_batch_recompute_corrigeert_legacy_fn_aov_loonstrook(self):
         """Een FN-loonstrook met oude AOV-berekening moet als legacy-kandidaat herrekend worden."""
-        fn_per_periode = 5000.0
+        fn_per_periode = 4000.0
         maandloon = round(fn_per_periode * 26 / 12, 2)
         contract = self._maak_contract(wage=maandloon, salary_type='fn')
         payslip = self._maak_loonstrook(
@@ -578,7 +604,7 @@ class TestIntegratieVolledigeCyclus(common.TransactionCase):
         )
 
         aov_line = payslip.line_ids.filtered(lambda line: line.code == 'SR_AOV')[:1]
-        self.assertAlmostEqual(aov_line.total, -200.0, delta=0.02)
+        self.assertAlmostEqual(aov_line.total, -153.60, delta=0.02)
 
         # Simuleer een historische slip die nog met de oude pro-rata franchise is opgeslagen.
         self.env.cr.execute(
@@ -592,7 +618,7 @@ class TestIntegratieVolledigeCyclus(common.TransactionCase):
 
         self.assertEqual(result['count'], 1)
         self.assertEqual(result['recomputed_ids'], [payslip.id])
-        self.assertAlmostEqual(self._haal_totaal(payslip, 'SR_AOV'), -200.0, delta=0.02)
+        self.assertAlmostEqual(self._haal_totaal(payslip, 'SR_AOV'), -153.60, delta=0.02)
 
     def test_fn_laatste_periode_corrigeert_jaartotaal_naar_maandloon(self):
         monthly_contract = self.env['hr.contract'].create({
@@ -686,6 +712,7 @@ class TestIntegratieVolledigeCyclus(common.TransactionCase):
         })
         fn_contract._compute_sr_preview()
 
+        expected_annual = fn_contract.sr_preview_netto_jaar
         preview_annual_without_correction = round((fn_contract.sr_preview_netto or 0.0) * 26, 2)
         expected_preview_correction = round(expected_annual - preview_annual_without_correction, 2)
 
@@ -700,7 +727,7 @@ class TestIntegratieVolledigeCyclus(common.TransactionCase):
 
         self.assertTrue(final_slip)
         self.assertAlmostEqual(round(annual_fn_total, 2), expected_annual, places=2)
-        self.assertAlmostEqual(self._haal_totaal(final_slip, 'SR_FN_ROUND'), 0.02, places=2)
+        self.assertAlmostEqual(self._haal_totaal(final_slip, 'SR_FN_ROUND'), expected_preview_correction, places=2)
 
     # ──────────────────────────────────────────────────────────────────
     # Test 8: Breakdown dict consistent met SR_LB salarisregel (integratiecheck)
@@ -879,7 +906,7 @@ class TestIntegratieContractPreview(common.TransactionCase):
         sr_preview_lb_periode gelijk laten.
         """
         contract_zonder = self._maak_contract(wage=20000.0)
-        contract_met = self._maak_contract(wage=20000.0, kinderbijslag=500.0)
+        contract_met = self._maak_contract(wage=20000.0, kinderbijslag=125.0)
 
         self.assertGreater(
             contract_met.sr_preview_bruto, contract_zonder.sr_preview_bruto,
@@ -908,16 +935,16 @@ class TestIntegratieContractPreview(common.TransactionCase):
 
     def test_preview_aov_fortnight_met_geprorateerde_franchise(self):
         """
-        FN SRD 5.000/periode → geen franchise.
-        AOV grondslag = 5.000 → sr_preview_aov_periode = 200.
+        FN SRD 5.000/periode → geen franchise; AOV volgt fiscale grondslag.
         Maandloon ingevoerd als 5000 × 26/12, systeem rekent terug naar 5000/FN.
         """
         maandloon = round(5000.0 * 26 / 12, 2)
         contract = self._maak_contract(wage=maandloon, salary_type='fn')
-        verwacht = round(5000.0 * 0.04, 2)
+        forfaitaire_periode = min(5000.0 * 26 * 0.04, 4800.0) / 26
+        verwacht = round((5000.0 - forfaitaire_periode) * 0.04, 2)
         self.assertAlmostEqual(
             contract.sr_preview_aov_periode, verwacht, delta=0.02,
-            msg='sr_preview_aov_periode FN zonder franchise klopt niet',
+            msg='sr_preview_aov_periode FN op fiscale grondslag klopt niet',
         )
 
     # ──────────────────────────────────────────────────────────────────

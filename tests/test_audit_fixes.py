@@ -76,7 +76,7 @@ class TestAuditFixes(common.TransactionCase):
             sr_vaste_regels=[(0, 0, {
                 'name': 'Kinderbijslag',
                 'sr_categorie': 'vrijgesteld',
-                'amount': 500.0,
+                'amount': 125.0,
             })],
         )
 
@@ -201,7 +201,7 @@ class TestAuditFixes(common.TransactionCase):
                     'name': 'Kinderbijslag',
                     'type_id': self.kindbijslag_type.id,
                     'sr_categorie': 'vrijgesteld',
-                    'amount': 1250.0,
+                    'amount': 312.5,
                 }),
             ],
         )
@@ -227,7 +227,7 @@ class TestAuditFixes(common.TransactionCase):
                     'name': 'Kinderbijslag',
                     'type_id': self.kindbijslag_type.id,
                     'sr_categorie': 'vrijgesteld',
-                    'amount': 1250.0,
+                    'amount': 312.5,
                 }),
             ],
         )
@@ -286,7 +286,7 @@ class TestAuditFixes(common.TransactionCase):
             wage=5000.0,
             sr_vaste_regels=[(0, 0, {
                 'type_id': self.env.ref('l10n_sr_hr_payroll.sr_line_type_pensioen').id,
-                'amount': 1000.0,
+                'amount': 250.0,
             })],
         )
 
@@ -534,7 +534,7 @@ class TestAuditFixes(common.TransactionCase):
             sr_vaste_regels=[(0, 0, {
                 'name': 'Kinderbijslag',
                 'sr_categorie': 'vrijgesteld',
-                'amount': 1000.0,
+                'amount': 250.0,
             })],
         )
 
@@ -564,7 +564,7 @@ class TestAuditFixes(common.TransactionCase):
             sr_vaste_regels=[(0, 0, {
                 'name': 'Kinderbijslag',
                 'sr_categorie': 'vrijgesteld',
-                'amount': 1000.0,
+                'amount': 250.0,
             })],
         )
         payslip = self._make_payslip(contract)

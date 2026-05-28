@@ -274,7 +274,7 @@ class TestArtikel14Berekening(common.TransactionCase):
     def test_kinderbijslag_is_belastingvrij(self):
         """Kinderbijslag mag de loonbelasting NIET verhogen."""
         contract_zonder = self._create_contract(wage=20000.0, kinderbijslag=0.0)
-        contract_met = self._create_contract(wage=20000.0, kinderbijslag=500.0, employee=self.employee_b)
+        contract_met = self._create_contract(wage=20000.0, kinderbijslag=125.0, employee=self.employee_b)
 
         date_from = date(2026, 4, 1)
         date_to = date(2026, 4, 30)
@@ -573,15 +573,15 @@ class TestArtikel14AOV(common.TransactionCase):
     def test_aov_fortnight_met_geprorateerde_franchise(self):
         """
         FN-loon SRD 5.000/periode (ingevoerd als maandloon × 26/12) →
-        geen franchise van toepassing.
-        AOV grondslag = 5.000 → AOV = 200.
+        geen franchise; AOV volgt de fiscale grondslag na forfaitaire aftrek.
         """
         maandloon = round(5000.0 * 26 / 12, 2)  # geeft per-FN ≈ 5000
         payslip = self._make_payslip(wage=maandloon, salary_type='fn')
         aov = payslip.line_ids.filtered(lambda l: l.code == 'SR_AOV').total
-        verwacht_aov = -round(5000.0 * 0.04, 2)
+        forfaitaire_periode = min(5000.0 * 26 * 0.04, 4800.0) / 26
+        verwacht_aov = -round((5000.0 - forfaitaire_periode) * 0.04, 2)
         self.assertAlmostEqual(aov, verwacht_aov, delta=0.02,
-                               msg='AOV FN zonder franchise klopt niet')
+                               msg='AOV FN op fiscale grondslag klopt niet')
 
     def test_aov_maandloon_lager_dan_franchise(self):
         """

@@ -442,13 +442,17 @@ def calculate_lb(
     lb_jaar = max(ZERO, lb_voor_heffingskorting_jaar - heffingskorting_jaar)
     lb_per_periode = max(ZERO, lb_voor_heffingskorting_per_periode - heffingskorting_per_periode_dec)
 
-    # AOV — ook over gecorrigeerd bruto (Art. 10f aftrek)
-    # De franchise geldt alleen voor maandloon; FN-tijdvakken hebben geen franchise.
+    # AOV. Maandloon blijft de maandfranchise toepassen. Voor FN sluit de
+    # handberekening aan op de fiscale grondslag na Art. 10f en forfaitaire aftrek.
     effective_bruto_per_periode = max(ZERO, bruto_per_periode_dec - aftrek_bv_per_periode_dec)
     franchise_periode = ZERO
-    if aov_franchise_maand and periodes == 12:
+    if periodes == 26:
+        aov_grondslag = grondslag_belasting_per_periode
+    elif aov_franchise_maand and periodes == 12:
         franchise_periode = _to_decimal(aov_franchise_maand)
-    aov_grondslag = max(ZERO, effective_bruto_per_periode - franchise_periode)
+        aov_grondslag = max(ZERO, effective_bruto_per_periode - franchise_periode)
+    else:
+        aov_grondslag = effective_bruto_per_periode
     aov_per_periode = aov_grondslag * aov_tarief
 
     serialized_bracket_rows = []
@@ -652,11 +656,14 @@ def generate_breakdown_html(result, wage, periodes, salary_type, kb_split=None,
                         m(r['aftrek_bv_per_periode'], '-')))
     rows.append(row('Belastbaar loon vóór franchise', '', m(r['adjusted_bruto_per_periode']), '#f0f9ff'))
     if salary_type == 'fn':
-        franchise_label = 'FN-tijdvak: geen franchise van toepassing'
+        franchise_label = 'FN-tijdvak: AOV over fiscale grondslag na forfaitaire aftrek'
     else:
         franchise_label = f'AOV franchise − {format_srd(r["franchise_periode"])}/periode'
     rows.append(row('Franchise (Art. 4 AOV)', franchise_label, m(r['franchise_periode'], '-')))
-    aov_grondslag_formula = f'{format_srd(r["adjusted_bruto_per_periode"])} − {format_srd(r["franchise_periode"])}'
+    if salary_type == 'fn':
+        aov_grondslag_formula = f'Grondslag voor Belasting: {format_srd(r["grondslag_belasting_per_periode"])}'
+    else:
+        aov_grondslag_formula = f'{format_srd(r["adjusted_bruto_per_periode"])} − {format_srd(r["franchise_periode"])}'
     rows.append(row('AOV grondslag', aov_grondslag_formula, m(r['aov_grondslag']), '#f0f9ff'))
     rows.append(row('<strong>AOV inhouding per periode</strong>',
                     f'{_format_number(r["aov_tarief"] * 100, 0)}% × {format_srd(r["aov_grondslag"])}',

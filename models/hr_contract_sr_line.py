@@ -103,11 +103,11 @@ class HrContractSrLine(models.Model):
         store=False,
     )
     amount = fields.Monetary(
-        string='Bedrag (per Maand)',
+        string='Bedrag (per Periode)',
         currency_field='currency_id',
         help=(
-            'Vaste maandbedrag voor deze toelage of inhouding.\n'
-            'Bij FN-contracten wordt dit automatisch omgerekend naar per FN-periode (× 12 ÷ 26).'
+            'Vast bedrag per loonperiode zoals het op de loonstrook moet komen.\n'
+            'Uitzondering: Kinderbijslag is invoer per kind per maand en wordt apart omgerekend/gesplitst.'
         ),
     )
     amount_type = fields.Selection(
