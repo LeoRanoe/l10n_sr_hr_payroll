@@ -107,7 +107,8 @@ class HrContractSrLine(models.Model):
         currency_field='currency_id',
         help=(
             'Vast bedrag per loonperiode zoals het op de loonstrook moet komen.\n'
-            'Uitzondering: Kinderbijslag is invoer per kind per maand en wordt apart omgerekend/gesplitst.'
+            'Uitzondering: Kinderbijslag is invoer per kind per maand en wordt apart omgerekend/gesplitst; '
+            'voer hier dus nooit het totaal voor alle kinderen samen in.'
         ),
     )
     amount_type = fields.Selection(
@@ -237,6 +238,29 @@ class HrContractSrLine(models.Model):
         if self.type_id and self.type_id.code == 'KINDBIJ':
             return True
         return (self.name or '').strip().casefold() == 'kinderbijslag'
+
+    @api.onchange('amount', 'amount_type', 'type_id', 'name', 'contract_id', 'contract_id.sr_aantal_kinderen')
+    def _onchange_kindbijslag_amount_semantics(self):
+        self.ensure_one()
+        if not self._is_sr_kindbijslag_line() or self.amount_type != 'fixed' or self.amount <= 0:
+            return None
+
+        children = self.contract_id.sr_aantal_kinderen or 0
+        if children <= 1:
+            return None
+
+        total_amount = self.amount * children
+        return {
+            'warning': {
+                'title': 'Kinderbijslag is per kind',
+                'message': (
+                    'Kinderbijslag wordt centraal berekend als bedrag per kind per maand. '
+                    f'Met {children} kinderen betekent een invoer van SRD {self.amount:.2f} '
+                    f'een totaal van SRD {total_amount:.2f} per maand. '
+                    f'Als je een totaalbedrag wilde invoeren, deel dat totaal eerst door {children}.'
+                ),
+            }
+        }
 
     @api.model
     def _sr_prepare_kindbijslag_vals(self, vals):

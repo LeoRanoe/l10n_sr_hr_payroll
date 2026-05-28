@@ -95,6 +95,41 @@ class TestAuditFixes(common.TransactionCase):
                 'amount': 125.0,
             })])
 
+    def test_kindbijslag_onchange_warns_amount_is_per_child(self):
+        contract = self._make_contract(sr_aantal_kinderen=2)
+        line = self.env['hr.contract.sr.line'].new({
+            'contract_id': contract.id,
+            'name': 'Kinderbijslag',
+            'type_id': self.kindbijslag_type.id,
+            'sr_categorie': 'vrijgesteld',
+            'amount': 300.0,
+        })
+
+        warning = line._onchange_kindbijslag_amount_semantics()
+
+        self.assertEqual(warning['warning']['title'], 'Kinderbijslag is per kind')
+        self.assertIn('per kind per maand', warning['warning']['message'])
+        self.assertIn('SRD 300.00', warning['warning']['message'])
+        self.assertIn('SRD 600.00', warning['warning']['message'])
+        self.assertIn('deel dat totaal eerst door 2', warning['warning']['message'])
+
+    def test_kinderbijslag_split_uses_per_child_amount_for_monthly_contracts(self):
+        contract = self._make_contract(
+            wage=15000.0,
+            sr_aantal_kinderen=2,
+            sr_vaste_regels=[(0, 0, {
+                'name': 'Kinderbijslag',
+                'type_id': self.kindbijslag_type.id,
+                'sr_categorie': 'vrijgesteld',
+                'amount': 300.0,
+            })],
+        )
+
+        split = contract._sr_kinderbijslag_split(max_kind_maand=250.0, max_maand=1000.0)
+
+        self.assertAlmostEqual(split['vrijgesteld'], 500.0, places=2)
+        self.assertAlmostEqual(split['belastbaar'], 100.0, places=2)
+
     def test_negative_contract_amount_is_rejected(self):
         with self.assertRaises(ValidationError):
             self._make_contract(sr_vaste_regels=[(0, 0, {
