@@ -15,6 +15,18 @@
         <field name="model">hr.contract</field>
         <field name="inherit_id" ref="hr_contract.hr_contract_view_form"/>
         <field name="arch" type="xml">
+            <xpath expr="//group[@name='top_info_right']/field[@name='structure_type_id'][1]" position="attributes">
+                <attribute name="domain">['|', ('country_id', '=', False), ('country_id', '=', company_country_id)]</attribute>
+                <attribute name="options">{'no_open': True, 'no_create': True}</attribute>
+                <attribute name="help">Kies de payroll-motor voor dit contract. Suriname - Normaal Loon is de standaard voor gewone SR-contracten; daarna kies je onder Surinaams loontype tussen maandloon en FN. Suriname - Uurloon gebruik je alleen voor echte uurlooncontracten.</attribute>
+            </xpath>
+
+            <xpath expr="//group[@name='top_info_right']/field[@name='structure_type_id'][2]" position="attributes">
+                <attribute name="domain">['|', ('country_id', '=', False), ('country_id', '=', company_country_id)]</attribute>
+                <attribute name="options">{'no_open': True, 'no_create': True}</attribute>
+                <attribute name="help">Kies de payroll-motor voor dit contract. Suriname - Normaal Loon is de standaard voor gewone SR-contracten; daarna kies je onder Surinaams loontype tussen maandloon en FN. Suriname - Uurloon gebruik je alleen voor echte uurlooncontracten.</attribute>
+            </xpath>
+
             <xpath expr="//notebook" position="inside">
                 <page string="Suriname Payroll" name="sr_payroll_tab">
 
@@ -38,19 +50,19 @@
                                            help="Basisloonvaluta. Bij vreemde valuta: zie koers onder 'Wisselkoers (bedrijfsinstelling)'. Alle bedragen worden naar SRD omgerekend."/>
                                     <field name="wage" widget="monetary" options="{'currency_field': 'sr_contract_currency'}" required="1"
                                            string="Basisloon (per maand)"
-                                           help="Voer het maandloon in. Voor FN-contracten berekent het systeem automatisch het bedrag per fortnight (× 12 ÷ 26)."/>
+                                         help="Voer het maandloon in. Voor FN-contracten berekent het systeem automatisch het bedrag per FN-periode (× 12 ÷ 26)."/>
                                     <field name="sr_salary_type"
                                            widget="radio"
-                                           string="Belastingtype"
+                                         string="Surinaams loontype"
                                            required="1"
-                                           help="Maandloon: 12 periodes. FN: 26 periodes — basisloon wordt automatisch omgerekend (maandloon × 12 ÷ 26) per fortnight."/>
+                                         help="Maandloon: 12 periodes. FN-loon: 26 periodes — basisloon wordt automatisch omgerekend (maandloon × 12 ÷ 26) per FN-periode."/>
                                     <field name="sr_wage_per_period_srd"
                                            readonly="1"
                                            widget="monetary"
                                            options="{'currency_field': 'currency_id'}"
                                            invisible="sr_salary_type != 'fn'"
-                                           string="Loon per Fortnight (SRD)"
-                                           help="Automatisch berekend: maandloon × 12 ÷ 26. Dit bedrag wordt als BASIC op de loonstrook gebruikt."/>
+                                         string="Loon per FN-periode (SRD)"
+                                         help="Automatisch berekend: maandloon × 12 ÷ 26. Dit bedrag wordt als BASIC op de loonstrook gebruikt voor FN-contracten."/>
                                     <field name="sr_hourly_wage" readonly="1"
                                            help="Bruto uurloon (automatisch berekend): maandloon ÷ 173,33."/>
                                     <!-- Valutapaar: wisselkoers + SRD equivalent — alleen zichtbaar voor vreemde valuta -->

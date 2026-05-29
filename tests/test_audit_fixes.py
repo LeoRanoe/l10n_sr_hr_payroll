@@ -76,7 +76,7 @@ class TestAuditFixes(common.TransactionCase):
             sr_vaste_regels=[(0, 0, {
                 'name': 'Kinderbijslag',
                 'sr_categorie': 'vrijgesteld',
-                'amount': 500.0,
+                'amount': 125.0,
             })],
         )
 
@@ -94,6 +94,41 @@ class TestAuditFixes(common.TransactionCase):
                 'sr_categorie': 'vrijgesteld',
                 'amount': 125.0,
             })])
+
+    def test_kindbijslag_onchange_warns_amount_is_per_child(self):
+        contract = self._make_contract(sr_aantal_kinderen=2)
+        line = self.env['hr.contract.sr.line'].new({
+            'contract_id': contract.id,
+            'name': 'Kinderbijslag',
+            'type_id': self.kindbijslag_type.id,
+            'sr_categorie': 'vrijgesteld',
+            'amount': 300.0,
+        })
+
+        warning = line._onchange_kindbijslag_amount_semantics()
+
+        self.assertEqual(warning['warning']['title'], 'Kinderbijslag is per kind')
+        self.assertIn('per kind per maand', warning['warning']['message'])
+        self.assertIn('SRD 300.00', warning['warning']['message'])
+        self.assertIn('SRD 600.00', warning['warning']['message'])
+        self.assertIn('deel dat totaal eerst door 2', warning['warning']['message'])
+
+    def test_kinderbijslag_split_uses_per_child_amount_for_monthly_contracts(self):
+        contract = self._make_contract(
+            wage=15000.0,
+            sr_aantal_kinderen=2,
+            sr_vaste_regels=[(0, 0, {
+                'name': 'Kinderbijslag',
+                'type_id': self.kindbijslag_type.id,
+                'sr_categorie': 'vrijgesteld',
+                'amount': 300.0,
+            })],
+        )
+
+        split = contract._sr_kinderbijslag_split(max_kind_maand=250.0, max_maand=1000.0)
+
+        self.assertAlmostEqual(split['vrijgesteld'], 500.0, places=2)
+        self.assertAlmostEqual(split['belastbaar'], 100.0, places=2)
 
     def test_negative_contract_amount_is_rejected(self):
         with self.assertRaises(ValidationError):
@@ -142,6 +177,11 @@ class TestAuditFixes(common.TransactionCase):
         view = self.env.ref('l10n_sr_hr_payroll.hr_contract_sr_view_form')
 
         self.assertIn("options=\"{'currency_field': 'sr_contract_currency'}\"", view.arch_db)
+        self.assertNotIn('sr_allowed_structure_type_ids', view.arch_db)
+        self.assertIn(
+            "('country_id', '=', company_country_id)",
+            view.arch_db,
+        )
 
     def test_foreign_currency_onchange_warns_with_exchange_rate_snapshot_context(self):
         contract = self.env['hr.contract'].new({
@@ -196,7 +236,7 @@ class TestAuditFixes(common.TransactionCase):
                     'name': 'Kinderbijslag',
                     'type_id': self.kindbijslag_type.id,
                     'sr_categorie': 'vrijgesteld',
-                    'amount': 1250.0,
+                    'amount': 312.5,
                 }),
             ],
         )
@@ -222,7 +262,7 @@ class TestAuditFixes(common.TransactionCase):
                     'name': 'Kinderbijslag',
                     'type_id': self.kindbijslag_type.id,
                     'sr_categorie': 'vrijgesteld',
-                    'amount': 1250.0,
+                    'amount': 312.5,
                 }),
             ],
         )
@@ -281,7 +321,7 @@ class TestAuditFixes(common.TransactionCase):
             wage=5000.0,
             sr_vaste_regels=[(0, 0, {
                 'type_id': self.env.ref('l10n_sr_hr_payroll.sr_line_type_pensioen').id,
-                'amount': 1000.0,
+                'amount': 250.0,
             })],
         )
 
@@ -529,7 +569,7 @@ class TestAuditFixes(common.TransactionCase):
             sr_vaste_regels=[(0, 0, {
                 'name': 'Kinderbijslag',
                 'sr_categorie': 'vrijgesteld',
-                'amount': 1000.0,
+                'amount': 250.0,
             })],
         )
 
@@ -559,7 +599,7 @@ class TestAuditFixes(common.TransactionCase):
             sr_vaste_regels=[(0, 0, {
                 'name': 'Kinderbijslag',
                 'sr_categorie': 'vrijgesteld',
-                'amount': 1000.0,
+                'amount': 250.0,
             })],
         )
         payslip = self._make_payslip(contract)

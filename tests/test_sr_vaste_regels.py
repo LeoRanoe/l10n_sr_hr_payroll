@@ -492,28 +492,23 @@ class TestSrVasteRegels(common.TransactionCase):
         """Bij fortnight loon moet sr_preview_belastbaar_jaar kloppen voor 26 periodes."""
         fn_per_periode = 5000.0
         maandloon = round(fn_per_periode * 26 / 12, 2)
-        # 200 is een maandelijks bedrag — per FN = 200 × 12/26 ≈ 92.31
         contract = self._create_contract(wage=maandloon, salary_type='fn', vaste_regels=[
             (0, 0, {'name': 'Olie', 'sr_categorie': 'belastbaar', 'amount': 200.0}),
         ])
-        # (fn_per_periode + 92.31) * 26 → minus vrijstellingen; moet positief zijn
+        # (fn_per_periode + vaste periode-toelage) * 26 -> minus vrijstellingen; moet positief zijn
         self.assertGreater(contract.sr_preview_belastbaar_jaar, 0.0)
 
     def test_fortnight_gemengde_regels(self):
-        """Fortnight contract: vaste bedragen zijn maandelijks en worden × 12/26 geschaald naar per-fortnight."""
+        """FN-contract: vaste contractbedragen blijven periodebedragen zoals ingevoerd."""
         fn_per_periode = 5000.0
         maandloon = round(fn_per_periode * 26 / 12, 2)
-        # Voer maandelijkse bedragen in — systeem schaalt automatisch naar per-fortnight (× 12/26)
-        belastbaar_maand = 300.0
-        vrijgesteld_maand = 150.0
+        belastbaar_periode = 300.0
+        vrijgesteld_periode = 150.0
         contract = self._create_contract(wage=maandloon, salary_type='fn', vaste_regels=[
-            (0, 0, {'name': 'Belastbaar', 'sr_categorie': 'belastbaar', 'amount': belastbaar_maand}),
-            (0, 0, {'name': 'Vrijgesteld', 'sr_categorie': 'vrijgesteld', 'amount': vrijgesteld_maand}),
+            (0, 0, {'name': 'Belastbaar', 'sr_categorie': 'belastbaar', 'amount': belastbaar_periode}),
+            (0, 0, {'name': 'Vrijgesteld', 'sr_categorie': 'vrijgesteld', 'amount': vrijgesteld_periode}),
         ])
-        # Bruto = fn_per_periode + (300 + 150) × 12/26
-        belastbaar_fn = round(belastbaar_maand * 12 / 26, 2)
-        vrijgesteld_fn = round(vrijgesteld_maand * 12 / 26, 2)
-        verwacht_bruto = fn_per_periode + belastbaar_fn + vrijgesteld_fn
+        verwacht_bruto = fn_per_periode + belastbaar_periode + vrijgesteld_periode
         self.assertAlmostEqual(contract.sr_preview_bruto, verwacht_bruto, delta=0.05)
 
     def test_fortnight_percentage_regel_over_fn_loon(self):

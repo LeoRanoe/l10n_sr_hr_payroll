@@ -12,6 +12,10 @@ from . import sr_artikel14_calculator as calc
 
 SR_STANDARD_SHORTCUT_CODES = frozenset({'KINDBIJ', 'TRANSPORT', 'REPRES', 'GENEESK'})
 SR_INTERNAL_MONEY_QUANT = Decimal('0.000001')
+SR_STRUCTURE_TYPE_XMLIDS = (
+    'l10n_sr_hr_payroll.sr_payroll_structure_type',
+    'l10n_sr_hr_payroll.sr_payroll_structure_type_hourly',
+)
 
 
 class HrContract(models.Model):
@@ -52,13 +56,13 @@ class HrContract(models.Model):
 
     sr_salary_type = fields.Selection(
         selection=[
-            ('monthly', '1 lb sal ovw (Maandloon)'),
-            ('fn', 'FN (Fortnight)'),
+            ('monthly', 'Maandloon (12 periodes)'),
+            ('fn', 'FN-loon (26 periodes)'),
         ],
-        string='Surinaams Loontype',
+        string='Surinaams loontype',
         default='monthly',
         store=True,
-        help='Selecteer het betaaltype: maandloon (12 periodes) of fortnight (26 periodes per jaar).',
+        help='Selecteer het betaaltype: maandloon (12 periodes per jaar) of FN-loon (26 periodes per jaar).',
     )
 
     sr_aantal_kinderen = fields.Integer(
@@ -148,6 +152,30 @@ class HrContract(models.Model):
         store=False,
     )
 
+    @api.model
+    def _sr_get_structure_types(self):
+        structure_types = self.env['hr.payroll.structure.type']
+        for xmlid in SR_STRUCTURE_TYPE_XMLIDS:
+            structure_type = self.env.ref(xmlid, raise_if_not_found=False)
+            if structure_type:
+                structure_types |= structure_type
+        return structure_types
+
+    @api.depends('company_id')
+    def _compute_structure_type_id(self):
+        super()._compute_structure_type_id()
+        sr_default_structure_type = self.env.ref(
+            'l10n_sr_hr_payroll.sr_payroll_structure_type',
+            raise_if_not_found=False,
+        )
+        sr_structure_types = self._sr_get_structure_types()
+
+        for contract in self:
+            if contract.company_id.country_id.code != 'SR' or not sr_default_structure_type:
+                continue
+            if not contract.structure_type_id or contract.structure_type_id not in sr_structure_types:
+                contract.structure_type_id = sr_default_structure_type
+
     sr_hourly_wage = fields.Float(
         string='Uurloon (SRD)',
         digits=(16, 4),
@@ -169,20 +197,20 @@ class HrContract(models.Model):
         help='Maandloon omgerekend naar SRD op basis van de actuele wisselkoers.',
     )
     sr_wage_per_period_srd = fields.Monetary(
-        string='Loon per Fortnight (SRD)',
+        string='Loon per FN-periode (SRD)',
         currency_field='currency_id',
         compute='_compute_sr_wage_per_period',
         store=False,
-        help='Automatisch berekend: maandloon × 12 ÷ 26. Dit bedrag wordt op de loonstrook als BASIC gebruikt.',
+        help='Automatisch berekend: maandloon × 12 ÷ 26. Dit bedrag wordt bij FN als BASIC op de loonstrook gebruikt.',
     )
     sr_kinderbijslag_bedrag = fields.Monetary(
-        string='Kinderbijslag per Periode',
+        string='Kinderbijslag per Kind per Maand',
         currency_field='currency_id',
         compute='_compute_sr_named_contract_lines',
         inverse='_inverse_sr_kinderbijslag_bedrag',
         store=True,
         precompute=True,
-        help='Snelle contractinvoer voor de vaste kinderbijslagregel. Schrijft door naar de fiscale contractregels.',
+        help='Snelle contractinvoer voor de kinderbijslagregel. Bedrag is per kind per maand; FN rekent dit naar per periode om.',
     )
     sr_vervoer_toelage = fields.Monetary(
         string='Vervoer / Transport',
@@ -827,6 +855,8 @@ class HrContract(models.Model):
         Handelt zowel vaste bedragen als percentages af.
         Bij percentage: berekend over het loon per periode (FN: maandloon × 12/26) in SRD.
         Bij vast bedrag in vreemde valuta (USD/EUR): converteert naar SRD via exchange_rate.
+        Vaste bedragen zijn loonperiode-bedragen zoals ingevoerd. Alleen het basisloon
+        en maandnormen zoals kinderbijslag-vrijstelling worden voor FN omgerekend.
         """
         quant = calc.MONEY_QUANT if round_result else SR_INTERNAL_MONEY_QUANT
 
@@ -846,15 +876,17 @@ class HrContract(models.Model):
             return float(percentage_amount.quantize(quant, rounding=ROUND_HALF_UP))
 
         # Vast bedrag — converteer naar SRD als de lijn-valuta vreemd is
+        amount = self._sr_resolve_fixed_line_amount_srd(line, exchange_rate=exchange_rate)
+        return float(amount.quantize(quant, rounding=ROUND_HALF_UP))
+
+    def _sr_resolve_fixed_line_amount_srd(self, line, exchange_rate=None):
+        """Converteert een vast contractregelbedrag naar SRD zonder periode-prorata."""
         amount = Decimal(str(line.amount or 0.0))
         line_currency = line.line_currency_id
         if line_currency and line_currency.name not in ('SRD', False, ''):
             rate = Decimal(str(exchange_rate if exchange_rate is not None else self._sr_get_current_exchange_rate()))
             amount = amount * rate
-        # Alle vaste bedragen zijn maandelijkse bedragen — FN: schaal naar per-fortnight (× 12 ÷ 26)
-        if self.sr_salary_type == 'fn':
-            amount = amount * Decimal('12') / Decimal('26')
-        return float(amount.quantize(quant, rounding=ROUND_HALF_UP))
+        return amount
 
     def _sr_resolve_regels(self, categorie, exchange_rate=None, round_result=True):
         """
@@ -905,28 +937,29 @@ class HrContract(models.Model):
                 raise_if_not_found=False,
             )
         # Kinderbijslag regels via type KINDBIJ of genormaliseerde naam.
+        # Invoer is het maandbedrag per kind. Voor FN wordt dit eerst naar
+        # een FN-periode omgerekend en daarna vermenigvuldigd met het aantal kinderen.
         kb_lines = [
             r for r in self.sr_vaste_regels
             if r._is_sr_kindbijslag_line()
         ]
-        total_kb = sum((
-            Decimal(str(self._sr_resolve_line_amount(r, exchange_rate=exchange_rate, round_result=False)))
-            for r in kb_lines
-        ), Decimal('0')) if kb_lines else Decimal('0')
+        eligible_children = min(self.sr_aantal_kinderen or 0, self.SR_AKB_MAX_CHILDREN)
+        total_kb = Decimal('0')
+        for line in kb_lines:
+            if line.amount_type == 'percentage':
+                line_amount = Decimal(str(
+                    self._sr_resolve_line_amount(line, exchange_rate=exchange_rate, round_result=False)
+                ))
+            else:
+                line_amount = self._sr_resolve_fixed_line_amount_srd(line, exchange_rate=exchange_rate)
+                if self.sr_salary_type == 'fn':
+                    line_amount = line_amount * Decimal('12') / Decimal('26')
+            total_kb += line_amount * Decimal(str(eligible_children))
 
         if total_kb <= 0:
             return {'belastbaar': 0.0, 'vrijgesteld': 0.0}
 
-        if not self.sr_aantal_kinderen or self.sr_aantal_kinderen <= 0:
-            # Geen kinderen geregistreerd: volledige KB is belastbaar
-            quant = calc.MONEY_QUANT if round_result else SR_INTERNAL_MONEY_QUANT
-            return {
-                'belastbaar': float(total_kb.quantize(quant, rounding=ROUND_HALF_UP)),
-                'vrijgesteld': 0.0,
-            }
-
         periodes = 26 if self.sr_salary_type == 'fn' else 12
-        eligible_children = min(self.sr_aantal_kinderen, self.SR_AKB_MAX_CHILDREN)
         exempt_maand = min(eligible_children * max_kind_maand, max_maand)
         exempt_per_periode = Decimal(str(exempt_maand or 0.0))
         if periodes != 12:

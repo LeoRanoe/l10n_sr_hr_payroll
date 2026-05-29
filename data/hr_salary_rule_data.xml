@@ -101,14 +101,14 @@ result = contract._sr_resolve_regels('belastbaar', exchange_rate=payslip.sr_exch
             <field name="condition_python">
 max_kind = payslip._rule_parameter('SR_KINDBIJ_MAX_KIND_MAAND')
 max_maand = payslip._rule_parameter('SR_KINDBIJ_MAX_MAAND')
-kb = contract._sr_kinderbijslag_split(max_kind, max_maand, round_result=False)
+kb = contract._sr_kinderbijslag_split(max_kind, max_maand, exchange_rate=payslip.sr_exchange_rate or 1.0, round_result=False)
 result = kb['belastbaar'] > 0
             </field>
             <field name="amount_select">code</field>
             <field name="amount_python_compute">
 max_kind = payslip._rule_parameter('SR_KINDBIJ_MAX_KIND_MAAND')
 max_maand = payslip._rule_parameter('SR_KINDBIJ_MAX_MAAND')
-kb = contract._sr_kinderbijslag_split(max_kind, max_maand, round_result=False)
+kb = contract._sr_kinderbijslag_split(max_kind, max_maand, exchange_rate=payslip.sr_exchange_rate or 1.0, round_result=False)
 result = kb['belastbaar']
             </field>
         </record>
@@ -211,8 +211,8 @@ result = heffingskorting
         <!-- ─────────────────────────────────────────────────────────
              60 — SR_AOV: AOV Bijdrage werknemer
              ─────────────────────────────────────────────────────────
-             4% over het belastbaar loon per periode minus de franchise
-             van SRD 400/maand (omgerekend per periode).
+               Maandloon: 4% over het belastbaar loon minus de maandfranchise.
+               FN-loon: 4% over de fiscale grondslag na forfaitaire aftrek.
              ───────────────────────────────────────────────────────── -->
         <record id="sr_rule_aov" model="hr.salary.rule">
             <field name="struct_id" ref="l10n_sr_hr_payroll.sr_payroll_structure"/>
@@ -320,14 +320,14 @@ result = sum(
             <field name="condition_python">
 max_kind = payslip._rule_parameter('SR_KINDBIJ_MAX_KIND_MAAND')
 max_maand = payslip._rule_parameter('SR_KINDBIJ_MAX_MAAND')
-kb = contract._sr_kinderbijslag_split(max_kind, max_maand, round_result=False)
+kb = contract._sr_kinderbijslag_split(max_kind, max_maand, exchange_rate=payslip.sr_exchange_rate or 1.0, round_result=False)
 result = kb['vrijgesteld'] > 0
             </field>
             <field name="amount_select">code</field>
             <field name="amount_python_compute">
 max_kind = payslip._rule_parameter('SR_KINDBIJ_MAX_KIND_MAAND')
 max_maand = payslip._rule_parameter('SR_KINDBIJ_MAX_MAAND')
-kb = contract._sr_kinderbijslag_split(max_kind, max_maand, round_result=False)
+kb = contract._sr_kinderbijslag_split(max_kind, max_maand, exchange_rate=payslip.sr_exchange_rate or 1.0, round_result=False)
 result = kb['vrijgesteld']
             </field>
         </record>
