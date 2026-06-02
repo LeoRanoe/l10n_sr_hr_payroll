@@ -14,6 +14,22 @@ class HrPayslip(models.Model):
                 ON hr_payslip (sr_is_sr_struct, state)
             """
         )
+        self.env.cr.execute(
+            """
+            WITH sr_structures AS (
+                SELECT res_id
+                  FROM ir_model_data
+                 WHERE module = 'l10n_sr_hr_payroll'
+                   AND model = 'hr.payroll.structure'
+                   AND name IN ('sr_payroll_structure', 'sr_payroll_structure_hourly')
+            )
+            UPDATE hr_payslip AS hp
+               SET sr_is_sr_struct = TRUE
+              FROM sr_structures
+             WHERE hp.struct_id = sr_structures.res_id
+               AND COALESCE(hp.sr_is_sr_struct, FALSE) IS DISTINCT FROM TRUE
+            """
+        )
 
 
 class HrPayslipLine(models.Model):

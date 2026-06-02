@@ -27,6 +27,10 @@ _SR_PAYSLIP_LAYOUTS = [
     ('artikel14_detail', 'Artikel 14 Detail'),
     ('odoo_standard', 'Alternatieve Odoo-opmaak'),
 ]
+_SR_PAYROLL_STRUCTURE_XMLIDS = (
+    'l10n_sr_hr_payroll.sr_payroll_structure',
+    'l10n_sr_hr_payroll.sr_payroll_structure_hourly',
+)
 
 SR_FN_2026_PERIODS = (
     {'indicator': '202601', 'label': '2026FN1', 'date_from': dt_date(2026, 1, 1), 'date_to': dt_date(2026, 1, 14)},
@@ -251,11 +255,24 @@ class HrPayslip(models.Model):
             return company.sr_payslip_template
         return _SR_PAYSLIP_LAYOUT_DEFAULT
 
+    @api.model
+    def _sr_get_payroll_structures(self):
+        structures = self.env['hr.payroll.structure']
+        for xmlid in _SR_PAYROLL_STRUCTURE_XMLIDS:
+            structure = self.env.ref(xmlid, raise_if_not_found=False)
+            if structure:
+                structures |= structure
+        return structures
+
+    def _sr_is_supported_sr_payslip(self):
+        self.ensure_one()
+        return bool(self.struct_id and self.struct_id in self._sr_get_payroll_structures())
+
     @api.depends('struct_id')
     def _compute_sr_is_sr_struct(self):
-        sr_struct = self.env.ref('l10n_sr_hr_payroll.sr_payroll_structure', raise_if_not_found=False)
+        sr_structures = self._sr_get_payroll_structures()
         for slip in self:
-            slip.sr_is_sr_struct = sr_struct and slip.struct_id == sr_struct
+            slip.sr_is_sr_struct = bool(slip.struct_id and slip.struct_id in sr_structures)
 
     @api.depends('line_ids.code', 'line_ids.total')
     def _compute_sr_summary_display(self):
@@ -302,9 +319,9 @@ class HrPayslip(models.Model):
         _clear_sr_calc_cache()
         try:
             self._sr_lock_for_update()
-            sr_struct = self.env.ref('l10n_sr_hr_payroll.sr_payroll_structure', raise_if_not_found=False)
+            sr_structures = self._sr_get_payroll_structures()
             locked_slips = self.filtered(
-                lambda slip: sr_struct and slip.struct_id == sr_struct and slip.state in ('done', 'paid')
+                lambda slip: slip.struct_id in sr_structures and slip.state in ('done', 'paid')
             )
             if locked_slips and not self.env.context.get('sr_allow_confirmed_recompute'):
                 raise UserError(
@@ -364,15 +381,15 @@ class HrPayslip(models.Model):
         return float(total.quantize(_SR_MONEY_QUANT, rounding=ROUND_HALF_UP))
 
     def _sr_collect_legacy_fn_aov_recompute_candidates(self):
-        sr_struct = self.env.ref('l10n_sr_hr_payroll.sr_payroll_structure', raise_if_not_found=False)
+        sr_structures = self._sr_get_payroll_structures()
         candidates = self.env['hr.payslip']
         before_by_id = {}
 
-        if not sr_struct:
+        if not sr_structures:
             return candidates, before_by_id
 
         slips = self.filtered(
-            lambda slip: slip.struct_id == sr_struct
+            lambda slip: slip.struct_id in sr_structures
             and slip.contract_id
             and slip.contract_id.sr_salary_type == 'fn'
             and slip.state != 'cancel'
@@ -417,18 +434,18 @@ class HrPayslip(models.Model):
         return candidates, before_by_id
 
     def _sr_recompute_legacy_fn_aov_slips(self, limit=None):
-        sr_struct = self.env.ref('l10n_sr_hr_payroll.sr_payroll_structure', raise_if_not_found=False)
+        sr_structures = self._sr_get_payroll_structures()
         slips = self
 
         if not slips:
-            if not sr_struct:
+            if not sr_structures:
                 return {
                     'count': 0,
                     'recomputed_ids': [],
                     'detail_lines': [],
                 }
             slips = self.search([
-                ('struct_id', '=', sr_struct.id),
+                ('struct_id', 'in', sr_structures.ids),
                 ('contract_id', '!=', False),
                 ('contract_id.sr_salary_type', '=', 'fn'),
                 ('state', 'in', ('draft', 'verify', 'done', 'paid')),
@@ -501,8 +518,7 @@ class HrPayslip(models.Model):
 
     def _sr_require_positive_contract_wage(self):
         self.ensure_one()
-        sr_struct = self.env.ref('l10n_sr_hr_payroll.sr_payroll_structure', raise_if_not_found=False)
-        if self.struct_id != sr_struct or not self.contract_id:
+        if not self._sr_is_supported_sr_payslip() or not self.contract_id:
             return
         if (self.contract_id.wage or 0.0) > 0.0:
             return
@@ -522,8 +538,7 @@ class HrPayslip(models.Model):
 
     def _sr_get_period_work_entries(self):
         self.ensure_one()
-        sr_struct = self.env.ref('l10n_sr_hr_payroll.sr_payroll_structure', raise_if_not_found=False)
-        if self.struct_id != sr_struct or not self.contract_id or not self.date_from or not self.date_to:
+        if not self._sr_is_supported_sr_payslip() or not self.contract_id or not self.date_from or not self.date_to:
             return self.env['hr.work.entry']
 
         period_start, period_stop = self._sr_get_period_bounds()
@@ -539,9 +554,9 @@ class HrPayslip(models.Model):
     def _sr_get_period_work_entries_batch(self):
         work_entry_model = self.env['hr.work.entry']
         grouped_entries = {slip.id: work_entry_model for slip in self}
-        sr_struct = self.env.ref('l10n_sr_hr_payroll.sr_payroll_structure', raise_if_not_found=False)
+        sr_structures = self._sr_get_payroll_structures()
         valid_slips = self.filtered(
-            lambda slip: sr_struct and slip.struct_id == sr_struct and slip.contract_id and slip.date_from and slip.date_to
+            lambda slip: slip.struct_id in sr_structures and slip.contract_id and slip.date_from and slip.date_to
         )
         if not valid_slips:
             return grouped_entries
@@ -805,8 +820,7 @@ class HrPayslip(models.Model):
 
     def _sr_validate_contract_period_integrity(self):
         self.ensure_one()
-        sr_struct = self.env.ref('l10n_sr_hr_payroll.sr_payroll_structure', raise_if_not_found=False)
-        if self.struct_id != sr_struct or not self.contract_id or not self.employee_id or not self.date_from or not self.date_to:
+        if not self._sr_is_supported_sr_payslip() or not self.contract_id or not self.employee_id or not self.date_from or not self.date_to:
             return
 
         contract = self.contract_id
@@ -849,8 +863,7 @@ class HrPayslip(models.Model):
         """Bouw nog niet opgeslagen overwerk-inputs voor deze loonstrook."""
         self.ensure_one()
 
-        sr_struct = self.env.ref('l10n_sr_hr_payroll.sr_payroll_structure', raise_if_not_found=False)
-        if self.struct_id != sr_struct or not self.contract_id or not self.date_from or not self.date_to:
+        if not self._sr_is_supported_sr_payslip() or not self.contract_id or not self.date_from or not self.date_to:
             return []
 
         # Medewerkers zonder overwerkrecht krijgen geen variabele overwerkinput

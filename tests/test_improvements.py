@@ -39,6 +39,8 @@ class TestImprovements(common.TransactionCase):
         )
         cls.structure = cls.env.ref('l10n_sr_hr_payroll.sr_payroll_structure')
         cls.structure_type = cls.structure.type_id
+        cls.hourly_structure = cls.env.ref('l10n_sr_hr_payroll.sr_payroll_structure_hourly')
+        cls.hourly_structure_type = cls.hourly_structure.type_id
 
     def _create_contract(self, wage=5000, salary_type='monthly'):
         existing = self.env['hr.contract'].search([
@@ -125,12 +127,27 @@ class TestImprovements(common.TransactionCase):
         })
         self.assertTrue(payslip.sr_is_sr_struct)
 
+    def test_sr_is_sr_struct_true_for_hourly_structure(self):
+        """Payslip met SR uurloonstructuur moet ook sr_is_sr_struct = True hebben."""
+        contract = self._create_contract()
+        contract.structure_type_id = self.hourly_structure_type
+        payslip = self.env['hr.payslip'].create({
+            'name': 'Test Hourly Struct Check',
+            'employee_id': self.employee.id,
+            'contract_id': contract.id,
+            'struct_id': self.hourly_structure.id,
+            'date_from': date(2026, 4, 1),
+            'date_to': date(2026, 4, 30),
+            'company_id': self.company.id,
+        })
+        self.assertTrue(payslip.sr_is_sr_struct)
+
     def test_sr_is_sr_struct_false(self):
         """Payslip met andere structuur moet sr_is_sr_struct = False hebben."""
         contract = self._create_contract()
         # Gebruik de standaard 'Default Structure' of maak er een aan
         other_struct = self.env['hr.payroll.structure'].search([
-            ('id', '!=', self.structure.id),
+            ('id', 'not in', (self.structure | self.hourly_structure).ids),
         ], limit=1)
         if not other_struct:
             self.skipTest("Geen andere structuur beschikbaar")

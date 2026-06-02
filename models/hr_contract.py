@@ -655,8 +655,7 @@ class HrContract(models.Model):
 
     def _sr_is_payroll_contract(self):
         self.ensure_one()
-        sr_struct = self.env.ref('l10n_sr_hr_payroll.sr_payroll_structure', raise_if_not_found=False)
-        return bool(sr_struct and self.structure_type_id == sr_struct.type_id)
+        return bool(self.structure_type_id and self.structure_type_id in self._sr_get_structure_types())
 
     def _sr_guard_salary_type_change_with_existing_slips(self, new_salary_type):
         if self.env.context.get('sr_allow_salary_type_change_with_slips'):

@@ -405,11 +405,13 @@ class TestAuditFixes(common.TransactionCase):
         self.assertEqual(generated_inputs.sr_work_entry_id, work_entry)
         self.assertAlmostEqual(self._line_total(payslip, 'SR_OVERWERK'), 300.0, places=2)
 
-    def test_hourly_contract_overtime_work_entry_does_not_generate_input(self):
+    def test_hourly_contract_overtime_work_entry_generates_input(self):
         contract = self._make_contract(
             wage=17333.3333,
             structure_type=self.hourly_structure_type,
         )
+        self.assertTrue(self.hourly_structure.rule_ids.filtered(lambda rule: rule.code == 'SR_OVERWERK'))
+
         overtime_type = self.env['hr.work.entry.type'].create({
             'name': 'SR Overwerk 150% Hourly',
             'code': 'SR_OT_150_HR',
@@ -422,16 +424,19 @@ class TestAuditFixes(common.TransactionCase):
             'employee_id': contract.employee_id.id,
             'contract_id': contract.id,
             'work_entry_type_id': overtime_type.id,
-            'date_start': datetime(2026, 5, 10, 18, 0, 0),
-            'date_stop': datetime(2026, 5, 10, 20, 0, 0),
+            'date_start': datetime(2026, 5, 11, 18, 0, 0),
+            'date_stop': datetime(2026, 5, 11, 20, 0, 0),
         })
         self.assertTrue(work_entry.action_validate())
 
         payslip = self._make_payslip(contract, structure=self.hourly_structure)
 
         generated_inputs = payslip.input_line_ids.filtered('sr_generated_from_work_entry')
-        self.assertFalse(generated_inputs)
-        self.assertAlmostEqual(self._line_total(payslip, 'SR_OVERWERK'), 0.0, places=2)
+        self.assertEqual(len(generated_inputs), 1)
+        self.assertAlmostEqual(work_entry.sr_overtime_150, 2.0, places=2)
+        self.assertAlmostEqual(generated_inputs.amount, 300.0, places=2)
+        self.assertAlmostEqual(self._line_total(payslip, 'SR_OVERWERK'), 300.0, places=2)
+        self.assertTrue(payslip.sr_is_sr_struct)
 
     def test_regeneration_wizard_detects_overlapping_validated_entry(self):
         contract = self._make_contract()

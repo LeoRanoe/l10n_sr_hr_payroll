@@ -6,6 +6,12 @@ from odoo import api, fields, models
 from odoo.exceptions import UserError
 
 
+_SR_PAYROLL_STRUCTURE_XMLIDS = (
+    'l10n_sr_hr_payroll.sr_payroll_structure',
+    'l10n_sr_hr_payroll.sr_payroll_structure_hourly',
+)
+
+
 class SrPayrollAnnualStatementWizard(models.TransientModel):
     _name = 'sr.payroll.annual.statement.wizard'
     _description = 'SR Payroll Annual Statement Wizard'
@@ -23,15 +29,23 @@ class SrPayrollAnnualStatementWizard(models.TransientModel):
         self.ensure_one()
         return dt_date(self.year, 1, 1), dt_date(self.year, 12, 31)
 
+    def _get_sr_payroll_structures(self):
+        structures = self.env['hr.payroll.structure']
+        for xmlid in _SR_PAYROLL_STRUCTURE_XMLIDS:
+            structure = self.env.ref(xmlid, raise_if_not_found=False)
+            if structure:
+                structures |= structure
+        return structures
+
     def _get_sr_payslips(self):
         self.ensure_one()
         if self.year < 2000 or self.year > fields.Date.context_today(self).year + 1:
             raise UserError('Kies een geldig boekjaar voor de jaaropgave.')
         date_from, date_to = self._get_year_date_range()
-        sr_struct = self.env.ref('l10n_sr_hr_payroll.sr_payroll_structure', raise_if_not_found=False)
+        sr_structures = self._get_sr_payroll_structures()
         return self.env['hr.payslip'].search([
             ('employee_id', '=', self.employee_id.id),
-            ('struct_id', '=', sr_struct.id if sr_struct else False),
+            ('struct_id', 'in', sr_structures.ids),
             ('date_from', '>=', date_from),
             ('date_to', '<=', date_to),
             ('state', 'in', ['done', 'paid']),

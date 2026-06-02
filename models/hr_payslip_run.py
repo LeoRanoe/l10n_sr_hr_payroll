@@ -4,6 +4,12 @@ from odoo import api, fields, models
 from odoo.exceptions import UserError
 
 
+_SR_PAYROLL_STRUCTURE_XMLIDS = (
+    'l10n_sr_hr_payroll.sr_payroll_structure',
+    'l10n_sr_hr_payroll.sr_payroll_structure_hourly',
+)
+
+
 class HrPayslipRun(models.Model):
     _inherit = 'hr.payslip.run'
 
@@ -12,19 +18,27 @@ class HrPayslipRun(models.Model):
         compute='_compute_sr_has_sr_payslips',
     )
 
+    def _sr_get_payroll_structures(self):
+        structures = self.env['hr.payroll.structure']
+        for xmlid in _SR_PAYROLL_STRUCTURE_XMLIDS:
+            structure = self.env.ref(xmlid, raise_if_not_found=False)
+            if structure:
+                structures |= structure
+        return structures
+
     @api.depends('slip_ids', 'slip_ids.struct_id', 'slip_ids.state')
     def _compute_sr_has_sr_payslips(self):
-        sr_struct = self.env.ref('l10n_sr_hr_payroll.sr_payroll_structure', raise_if_not_found=False)
+        sr_structures = self._sr_get_payroll_structures()
         for payslip_run in self:
             payslip_run.sr_has_sr_payslips = bool(
-                sr_struct and payslip_run.slip_ids.filtered(lambda slip: slip.struct_id == sr_struct)
+                payslip_run.slip_ids.filtered(lambda slip: slip.struct_id in sr_structures)
             )
 
     def _sr_get_tax_overview_slips(self):
         self.ensure_one()
-        sr_struct = self.env.ref('l10n_sr_hr_payroll.sr_payroll_structure', raise_if_not_found=False)
+        sr_structures = self._sr_get_payroll_structures()
         return self.slip_ids.filtered(
-            lambda slip: slip.struct_id == sr_struct and slip.state in ('done', 'paid')
+            lambda slip: slip.struct_id in sr_structures and slip.state in ('done', 'paid')
         ).sorted(lambda slip: (
             slip.employee_id.department_id.name or '',
             slip.employee_id.name or '',

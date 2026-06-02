@@ -848,5 +848,7 @@ result = -float_round(bedrag * aov_tarief, precision_digits=2)
             </field>
         </record>
 
+        <function model="hr.salary.rule" name="_sr_sync_hourly_structure_rules_from_xml"/>
+
     </data>
 </odoo>
