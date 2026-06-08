@@ -5,5 +5,6 @@ from . import test_audit_fixes
 from . import test_sr_vaste_regels
 from . import test_improvements
 from . import test_report_exports
+from . import test_security
 from . import test_qa_audit_2026
 from . import test_currency_integration
