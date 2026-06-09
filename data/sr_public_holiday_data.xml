@@ -34,7 +34,7 @@
         <!-- Eid ul-Fitr (Suikerfeest) — variabel, schatting -->
         <record id="sr_holiday_2026_03_31" model="sr.public.holiday">
             <field name="name">Eid ul-Fitr (Suikerfeest)</field>
-            <field name="date">2026-03-31</field>
+            <field name="date">2026-03-20</field>
         </record>
 
         <!-- Goede Vrijdag (Pasen 2026: 5 april) -->
@@ -70,13 +70,25 @@
         <!-- Eid ul-Adha (Offerfeest) — variabel, schatting -->
         <record id="sr_holiday_2026_06_06" model="sr.public.holiday">
             <field name="name">Eid ul-Adha (Offerfeest)</field>
-            <field name="date">2026-06-06</field>
+            <field name="date">2026-05-27</field>
         </record>
 
         <!-- Keti Koti (Emancipatiedag) -->
         <record id="sr_holiday_2026_07_01" model="sr.public.holiday">
             <field name="name">Keti Koti (Emancipatiedag)</field>
             <field name="date">2026-07-01</field>
+        </record>
+
+        <!-- Dag der Inheemsen -->
+        <record id="sr_holiday_2026_08_09" model="sr.public.holiday">
+            <field name="name">Dag der Inheemsen</field>
+            <field name="date">2026-08-09</field>
+        </record>
+
+        <!-- Dag der Marrons -->
+        <record id="sr_holiday_2026_10_10" model="sr.public.holiday">
+            <field name="name">Dag der Marrons</field>
+            <field name="date">2026-10-10</field>
         </record>
 
         <!-- Diwali (Lichtjesfeest) — variabel, schatting -->

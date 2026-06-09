@@ -228,7 +228,7 @@ class TestSrReportExports(common.TransactionCase):
             + breakdown.get('aov_overwerk', 0.0)
         )
 
-        self.assertTrue(any(row['article'] == 'art 17c' for row in data['article14_rows']))
+        self.assertTrue(any(row['article'] == 'Art. 17c' for row in data['article14_rows']))
         self.assertAlmostEqual(data['lb_total'], expected_lb_total, places=2)
         self.assertAlmostEqual(data['aov_total'], expected_aov_total, places=2)
         self.assertTrue(any(row['description'] == 'OVERWERK' for row in data['income_rows']))

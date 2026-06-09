@@ -195,7 +195,7 @@ class TestIntegratieVolledigeCyclus(common.TransactionCase):
     # Test 2: Netto = Bruto + alle inhoudingen (balanscontrole)
     # ──────────────────────────────────────────────────────────────────
     def test_netto_is_bruto_min_inhoudingen(self):
-        """NET = GROSS + SR_LB + SR_AOV; SR_HK verlaagt SR_LB."""
+        """NET = GROSS + SR_LB + SR_AOV; legacy SR_HK is niet actief."""
         self.env['ir.config_parameter'].sudo().set_param('sr_payroll.heffingskorting', '750.0')
         contract = self._maak_contract(wage=20000.0)
         payslip = self._maak_loonstrook(contract)
@@ -206,10 +206,7 @@ class TestIntegratieVolledigeCyclus(common.TransactionCase):
         hk = self._haal_totaal(payslip, 'SR_HK')
         net = self._haal_totaal(payslip, 'NET')
 
-        self.assertAlmostEqual(
-            hk, 750.0, places=2,
-            msg='SR_HK moet exact SRD 750,00 per maand zijn',
-        )
+        self.assertAlmostEqual(hk, 0.0, places=2, msg='SR_HK moet inactief blijven voor 2026')
         self.assertAlmostEqual(
             net, gross + lb + aov, places=2,
             msg='Nettoloon ≠ Bruto + LB + AOV (saldo klopt niet)',
@@ -592,6 +589,78 @@ class TestIntegratieVolledigeCyclus(common.TransactionCase):
             msg='Loonstrook netto moet de handberekening volgen',
         )
 
+    def test_maandloon_maureen_handberekening(self):
+        """Maureen-achtig maandloonpakket moet aansluiten op de adviseursberekening."""
+        contract = self.env['hr.contract'].create({
+            'name': 'Integratie Contract Maureen Maandloon',
+            'employee_id': self.employee_b.id,
+            'company_id': self.company.id,
+            'structure_type_id': self.structure_type.id,
+            'wage': 15000.0,
+            'sr_salary_type': 'monthly',
+            'sr_aantal_kinderen': 2,
+            'sr_vaste_regels': [
+                (0, 0, {
+                    'name': 'Kleding Toelage',
+                    'type_id': self.env.ref('l10n_sr_hr_payroll.sr_line_type_kleding').id,
+                    'sr_categorie': 'belastbaar',
+                    'amount': 1000.0,
+                }),
+                (0, 0, {
+                    'name': 'Representatie Toelage',
+                    'type_id': self.env.ref('l10n_sr_hr_payroll.sr_line_type_representatie').id,
+                    'sr_categorie': 'belastbaar',
+                    'amount_type': 'percentage',
+                    'percentage': 10.0,
+                    'percentage_base': 'basisloon',
+                }),
+                (0, 0, {
+                    'name': 'Vrije Geneeskundige Behandeling',
+                    'type_id': self.env.ref('l10n_sr_hr_payroll.sr_line_type_geneeskunde').id,
+                    'sr_categorie': 'fiscaal_grondslag',
+                    'amount_type': 'percentage',
+                    'percentage': 3.0,
+                    'percentage_base': 'basisloon',
+                }),
+                (0, 0, {
+                    'name': 'Kinderbijslag',
+                    'type_id': self.env.ref('l10n_sr_hr_payroll.sr_line_type_kinderbijslag').id,
+                    'sr_categorie': 'vrijgesteld',
+                    'amount': 300.0,
+                }),
+                (0, 0, {
+                    'name': 'Pensioenpremie',
+                    'type_id': self.env.ref('l10n_sr_hr_payroll.sr_line_type_pensioen').id,
+                    'sr_categorie': 'aftrek_belastingvrij',
+                    'amount_type': 'percentage',
+                    'percentage': 6.0,
+                    'percentage_base': 'basisloon',
+                }),
+                (0, 0, {
+                    'name': 'Ziektekostenpremie',
+                    'type_id': self.env.ref('l10n_sr_hr_payroll.sr_line_type_ziektekosten').id,
+                    'sr_categorie': 'inhouding',
+                    'amount': 1234.0,
+                }),
+            ],
+            'date_start': date(2026, 1, 1),
+            'state': 'open',
+        })
+        payslip = self._maak_loonstrook(
+            contract,
+            date_from=date(2026, 5, 1),
+            date_to=date(2026, 5, 31),
+        )
+
+        self.assertAlmostEqual(contract.sr_preview_bruto, 18100.0, delta=0.02)
+        self.assertAlmostEqual(contract.sr_preview_belastinggrondslag, 16316.67, delta=0.02)
+        self.assertAlmostEqual(contract.sr_preview_lb_periode, 998.67, delta=0.02)
+        self.assertAlmostEqual(contract.sr_preview_aov_periode, 652.67, delta=0.02)
+        self.assertAlmostEqual(contract.sr_preview_netto, 14314.66, delta=0.02)
+        self.assertAlmostEqual(self._haal_totaal(payslip, 'SR_LB'), -998.67, delta=0.02)
+        self.assertAlmostEqual(self._haal_totaal(payslip, 'SR_AOV'), -652.67, delta=0.02)
+        self.assertAlmostEqual(self._haal_totaal(payslip, 'NET'), 14314.66, delta=0.02)
+
     def test_batch_recompute_corrigeert_legacy_fn_aov_loonstrook(self):
         """Een FN-loonstrook met oude AOV-berekening moet als legacy-kandidaat herrekend worden."""
         fn_per_periode = 4000.0
@@ -921,19 +990,19 @@ class TestIntegratieContractPreview(common.TransactionCase):
     # ──────────────────────────────────────────────────────────────────
     # Test 7: Preview AOV correct voor maand/fortnight
     # ──────────────────────────────────────────────────────────────────
-    def test_preview_aov_maandloon_met_franchise(self):
+    def test_preview_aov_maandloon_met_forfaitaire_aftrek(self):
         """
-        Maandloon SRD 5.000 → AOV grondslag = 5.000 − 400 = 4.600
-        sr_preview_aov_periode = 4.600 × 4% = 184.
+        Maandloon SRD 5.000 → forfaitaire aftrek = 200
+        sr_preview_aov_periode = 4.800 × 4% = 192.
         """
         contract = self._maak_contract(wage=5000.0, salary_type='monthly')
-        verwacht = (5000.0 - 400.0) * 0.04
+        verwacht = (5000.0 - 200.0) * 0.04
         self.assertAlmostEqual(
             contract.sr_preview_aov_periode, verwacht, places=2,
             msg='sr_preview_aov_periode maandloon klopt niet',
         )
 
-    def test_preview_aov_fortnight_met_geprorateerde_franchise(self):
+    def test_preview_aov_fortnight_met_forfaitaire_aftrek(self):
         """
         FN SRD 5.000/periode → geen franchise; AOV volgt fiscale grondslag.
         Maandloon ingevoerd als 5000 × 26/12, systeem rekent terug naar 5000/FN.

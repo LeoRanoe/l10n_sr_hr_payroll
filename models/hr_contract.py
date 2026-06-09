@@ -369,7 +369,9 @@ class HrContract(models.Model):
 
         for contract in self:
             periodes = 26 if contract.sr_salary_type == 'fn' else 12
-            heffingskorting = contract._sr_get_heffingskorting_per_periode(round_result=False)
+            # The 2026 WLB calculation uses the Art. 13 belastingvrije som.
+            # A separate heffingskorting is kept as a legacy setting only.
+            heffingskorting = 0.0
 
             rate = contract._sr_get_current_exchange_rate()
             belastbaar_toelagen = contract._sr_resolve_regels('belastbaar', exchange_rate=rate, round_result=False)
@@ -423,7 +425,7 @@ class HrContract(models.Model):
                 monthly_kb_belastbaar = Decimal(str(kb_belastbaar)) * scale
                 monthly_kb_vrijgesteld = Decimal(str(kb_vrijgesteld)) * scale
                 monthly_vgb_belastbaar = Decimal(str(vgb_belastbaar)) * scale
-                monthly_heffingskorting = Decimal(str(heffingskorting)) * scale
+                monthly_heffingskorting = Decimal('0')
 
                 monthly_bruto_belastbaar = (
                     monthly_wage

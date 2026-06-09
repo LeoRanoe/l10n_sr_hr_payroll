@@ -9,7 +9,7 @@
     <data>
            <!-- ═══════════════════════════════════════════════════════════
                BELASTINGVRIJE VOET
-               2026: geïntegreerd in de actuele SR-regelset, daarom standaard SRD 0 per jaar.
+               2026: Art. 13 belastingvrije som SRD 108.000 per jaar.
                ═══════════════════════════════════════════════════════════ -->
         <record id="sr_param_belastingvrij_jaar" model="hr.rule.parameter">
             <field name="name">SR — Belastingvrije voet — Art. 14 lid 1 (SRD / jaar)</field>
@@ -19,7 +19,7 @@
         <record id="sr_param_belastingvrij_jaar_2026" model="hr.rule.parameter.value">
             <field name="rule_parameter_id" ref="sr_param_belastingvrij_jaar"/>
             <field name="date_from" eval="datetime(2026, 1, 1).date()"/>
-            <field name="parameter_value">0.0</field>
+            <field name="parameter_value">108000.0</field>
         </record>
 
         <!-- ═══════════════════════════════════════════════════════════
@@ -147,7 +147,8 @@
 
         <!-- ═══════════════════════════════════════════════════════════
              AOV (Algemene Ouderdomsvoorziening)
-             4% over belastbaar loon minus franchise SRD 400/maand
+             4% over zuiver loon na Art. 10f en Art. 12 forfaitaire aftrek.
+             Er is geen aparte actieve AOV-franchise in de 2026 berekening.
              ═══════════════════════════════════════════════════════════ -->
         <record id="sr_param_aov_tarief" model="hr.rule.parameter">
             <field name="name">SR — AOV tarief — ALS 2005 (decimaal: 0.04 = 4%%)</field>
@@ -161,14 +162,14 @@
         </record>
 
         <record id="sr_param_aov_franchise_maand" model="hr.rule.parameter">
-            <field name="name">SR — AOV franchise (drempel) — ALS 2005 (SRD / maand)</field>
+            <field name="name">SR — AOV franchise legacy — ALS 2005 (SRD / maand)</field>
             <field name="code">SR_AOV_FRANCHISE_MAAND</field>
             <field name="country_id" ref="base.sr"/>
         </record>
         <record id="sr_param_aov_franchise_maand_2026" model="hr.rule.parameter.value">
             <field name="rule_parameter_id" ref="sr_param_aov_franchise_maand"/>
             <field name="date_from" eval="datetime(2026, 1, 1).date()"/>
-            <field name="parameter_value">400.0</field>
+            <field name="parameter_value">0.0</field>
         </record>
 
         <!-- ═══════════════════════════════════════════════════════════
@@ -265,14 +266,14 @@
         </record>
 
         <record id="sr_param_heffingskorting" model="hr.rule.parameter">
-            <field name="name">SR — Heffingskorting (actief; SRD per maand)</field>
+            <field name="name">SR — Heffingskorting (legacy/inactief; SRD per maand)</field>
             <field name="code">SR_HEFFINGSKORTING</field>
             <field name="country_id" ref="base.sr"/>
         </record>
         <record id="sr_param_heffingskorting_2026" model="hr.rule.parameter.value">
             <field name="rule_parameter_id" ref="sr_param_heffingskorting"/>
             <field name="date_from" eval="datetime(2026, 1, 1).date()"/>
-            <field name="parameter_value">750.0</field>
+            <field name="parameter_value">0.0</field>
         </record>
 
         <!-- ═══════════════════════════════════════════════════════════
@@ -303,8 +304,8 @@
 
         <!-- ═══════════════════════════════════════════════════════════
              ART. 17a — UITKERING INEENS / JUBILEUM
-             Eigen tariefschijven: 5% / 15% / 25% / 35% / 45%
-             Grenzen: 42.000 / 84.000 / 126.000 / 168.000
+              Eigen tariefschijven: 5% / 15% / 25% / 35%
+              Grenzen: 42.000 / 84.000 / 126.000
              Geen belastingvrije som. AOV = 4% van het bedrag.
              ═══════════════════════════════════════════════════════════ -->
         <record id="sr_param_17a_schijf_1_grens" model="hr.rule.parameter">
@@ -345,11 +346,7 @@
             <field name="code">SR_17A_SCHIJF_4_GRENS</field>
             <field name="country_id" ref="base.sr"/>
         </record>
-        <record id="sr_param_17a_schijf_4_grens_2026" model="hr.rule.parameter.value">
-            <field name="rule_parameter_id" ref="sr_param_17a_schijf_4_grens"/>
-            <field name="date_from" eval="datetime(2026, 1, 1).date()"/>
-            <field name="parameter_value">168000.0</field>
-        </record>
+        <!-- Geen actieve 2026 waarde: Art. 17a heeft boven SRD 126.000 direct het 35% tarief. -->
 
         <record id="sr_param_17a_tarief_1" model="hr.rule.parameter">
             <field name="name">SR — Art. 17a tarief 1 (decimaal: 0.05 = 5%)</field>
@@ -396,15 +393,11 @@
         </record>
 
         <record id="sr_param_17a_tarief_5" model="hr.rule.parameter">
-            <field name="name">SR — Art. 17a tarief 5 (decimaal: 0.45 = 45%)</field>
+            <field name="name">SR — Art. 17a tarief 5 legacy/vervallen (geen 2026 waarde)</field>
             <field name="code">SR_17A_TARIEF_5</field>
             <field name="country_id" ref="base.sr"/>
         </record>
-        <record id="sr_param_17a_tarief_5_2026" model="hr.rule.parameter.value">
-            <field name="rule_parameter_id" ref="sr_param_17a_tarief_5"/>
-            <field name="date_from" eval="datetime(2026, 1, 1).date()"/>
-            <field name="parameter_value">0.45</field>
-        </record>
+        <!-- Geen actieve 2026 waarde: de tijdelijke 45% solidariteitsheffing is vervallen. -->
 
     </data>
 </odoo>

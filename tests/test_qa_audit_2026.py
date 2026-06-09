@@ -5,7 +5,7 @@ QA regressietests voor de 2026 Suriname payroll uitbreiding.
 Deze suite dekt drie auditdoelen:
   - persistence van werkboekingen, contractflags en settings
   - overwerkclassificatie vanuit work entries naar payslip inputs
-  - 2026 fiscale regressies voor AKB, gratificatie en AOV franchise
+  - 2026 fiscale regressies voor AKB, gratificatie en AOV-grondslag
 """
 
 from datetime import date, datetime, timedelta
@@ -839,11 +839,11 @@ class TestQAAudit2026(common.TransactionCase):
         overtime_entry = self._create_work_entry(
             contract,
             self.overtime_work_type,
-            datetime(2026, 6, 5, 23, 0, 0),
+            datetime(2026, 5, 26, 23, 0, 0),
             4.0,
         )
 
-        payslip = self._create_payslip(contract, date(2026, 6, 1), date(2026, 6, 30))
+        payslip = self._create_payslip(contract, date(2026, 5, 1), date(2026, 5, 31))
         hourly_rate = payslip._sr_get_hourly_rate()
 
         self.assertAlmostEqual(overtime_entry.sr_overtime_150, 1.0, places=2)
@@ -932,14 +932,14 @@ class TestQAAudit2026(common.TransactionCase):
         self.assertAlmostEqual(excess_slip._sr_bijz_belastbaar_totaal(), 500.0, places=2)
         self.assertLess(self._line_total(excess_slip, 'SR_LB_BIJZ'), 0.0)
 
-    def test_aov_franchise_is_prorated_by_period(self):
+    def test_aov_uses_forfaitaire_base_by_period(self):
         params = calc.fetch_params_from_rule_parameter(self.env, date(2026, 4, 30))
         monthly = calc.calculate_lb(4000.0, 12, params)
         fortnight = calc.calculate_lb(4000.0, 26, params)
 
-        self.assertEqual(monthly['franchise_periode'], 400.0)
-        self.assertEqual(monthly['aov_grondslag'], 3600.0)
-        self.assertEqual(monthly['aov_per_periode'], 144.0)
+        self.assertEqual(monthly['franchise_periode'], 160.0)
+        self.assertEqual(monthly['aov_grondslag'], 3840.0)
+        self.assertEqual(monthly['aov_per_periode'], 153.6)
 
         self.assertAlmostEqual(fortnight['franchise_periode'], 0.0, places=2)
         self.assertAlmostEqual(fortnight['aov_grondslag'], 3840.0, places=2)
@@ -1040,8 +1040,8 @@ class TestQAAudit2026(common.TransactionCase):
 
             slip_a = slips.filtered(lambda slip: slip.contract_id == contract_a)
             slip_b = slips.filtered(lambda slip: slip.contract_id == contract_b)
-            self.assertAlmostEqual(self._line_total(slip_a, 'SR_HK'), 780.0, places=2)
-            self.assertAlmostEqual(self._line_total(slip_b, 'SR_HK'), 360.0, places=2)
+            self.assertAlmostEqual(self._line_total(slip_a, 'SR_HK'), 0.0, places=2)
+            self.assertAlmostEqual(self._line_total(slip_b, 'SR_HK'), 0.0, places=2)
         finally:
             if old_heffingskorting in (None, False, ''):
                 self.params.search([('key', '=', 'sr_payroll.heffingskorting')], limit=1).unlink()
@@ -1134,7 +1134,7 @@ class TestQAAudit2026(common.TransactionCase):
             12,
             params,
             aftrek_bv_per_periode=212.50,
-            heffingskorting_per_periode=750.0,
+            heffingskorting_per_periode=0.0,
         )
         expected_net = float(payslip._sr_money_quantize(
             20255.60 + 1300.0 + 1250.0 + expected_overtime_gross
@@ -1153,7 +1153,7 @@ class TestQAAudit2026(common.TransactionCase):
         self.assertAlmostEqual(abs(self._line_total(payslip, 'SR_AOV_OVERWERK')), expected_overtime_aov, places=2)
         self.assertAlmostEqual(abs(self._line_total(payslip, 'SR_LB')), article14_result['lb_per_periode'], places=2)
         self.assertAlmostEqual(abs(self._line_total(payslip, 'SR_AOV')), article14_result['aov_per_periode'], places=2)
-        self.assertAlmostEqual(self._line_total(payslip, 'SR_HK'), 750.0, places=2)
+        self.assertAlmostEqual(self._line_total(payslip, 'SR_HK'), 0.0, places=2)
         self.assertAlmostEqual(self._line_total(payslip, 'NET'), expected_net, places=2)
         self.assertAlmostEqual(breakdown['overtime_hours_150'], 2.0, places=2)
         self.assertAlmostEqual(breakdown['unpaid_extra_hours'], 0.0, places=2)

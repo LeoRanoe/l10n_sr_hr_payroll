@@ -162,7 +162,7 @@ class TestArtikel14Berekening(common.TransactionCase):
 
     # ──────────────────────────────────────────────────────────────────────
     # Test 2: Maandloon — voorbeeldberekening uit de context
-    # Bruto SRD 20.255,60 → LB na HK ≈ 4.695,13 → AOV ≈ 794,22 → Netto ≈ 14.766,25
+    # Bruto SRD 20.255,60 → LB ≈ 2.025,13 → AOV ≈ 794,22 → Netto ≈ 17.436,25
     # ──────────────────────────────────────────────────────────────────────
     def test_maandloon_voorbeeld_context(self):
         """
@@ -178,14 +178,11 @@ class TestArtikel14Berekening(common.TransactionCase):
           S3: 42.000 × 28% = 11.760,00
                     S4: (130.267,20 - 126.000) × 38% = 4.267,20 × 38% = 1.621,54
                     Totaal lb jaar  = 24.301,54
-                    LB per maand vóór HK = 24.301,54 / 12 = 2.025,13
-                    Heffingskorting = 750,00
-                    In te houden LB = 2.025,13 - 750,00 = 1.275,13
+                    LB per maand = 24.301,54 / 12 = 2.025,13
         AOV grondslag   : 20.255,60 - 400 = 19.855,60
         AOV per maand   : 19.855,60 × 4% = 794,22
-        Nettoloon       : 20.255,60 - 1.275,13 - 794,22 = 18.186,25
+        Nettoloon       : 20.255,60 - 2.025,13 - 794,22 = 17.436,25
         """
-        self.env['ir.config_parameter'].sudo().set_param('sr_payroll.heffingskorting', '750.0')
         contract = self._create_contract(wage=20255.60, salary_type='monthly')
         payslip = self._compute_payslip(
             contract,
@@ -210,17 +207,16 @@ class TestArtikel14Berekening(common.TransactionCase):
 
         hk = self._get_line_total(payslip, 'SR_HK')
 
-        # Heffingskorting verlaagt SR_LB; nettoloon volgt daarna bruto + LB + AOV.
-        self.assertAlmostEqual(hk, 750.0, places=2,
-                       msg='Heffingskorting moet exact SRD 750 per maand zijn')
+        self.assertAlmostEqual(hk, 0.0, places=2,
+                       msg='Heffingskorting is in 2026 niet actief')
         self.assertAlmostEqual(net, gross + lb + aov, places=2,
                                msg='Nettoloon berekening klopt niet')
 
-        self.assertAlmostEqual(abs(lb), 1275.13, places=2,
+        self.assertAlmostEqual(abs(lb), 2025.13, places=2,
                        msg='LB voor het referentiesalaris wijkt af (belastingvrij Art.13 = SRD 108.000)')
         self.assertAlmostEqual(abs(aov), 794.22, places=2,
                        msg='AOV voor het referentiesalaris wijkt af van het 2026 rekenvoorbeeld')
-        self.assertAlmostEqual(net, 18186.25, places=2,
+        self.assertAlmostEqual(net, 17436.25, places=2,
                        msg='Nettoloon voor het referentiesalaris moet tot op de cent kloppen')
 
         # Nettoloon moet lager zijn dan brutoloon
@@ -507,8 +503,8 @@ class TestArtikel14Schijven(common.TransactionCase):
 class TestArtikel14AOV(common.TransactionCase):
     """
     Tests specifiek voor de AOV berekening:
-    - Franchise SRD 400/maand (maandloon)
-    - Geen franchise voor FN-loon
+    - AOV over zuiver loon na forfaitaire aftrek
+    - Maandloon gebruikt max SRD 400 forfaitaire aftrek per maand
     - 4% tarief
     """
 
@@ -558,19 +554,19 @@ class TestArtikel14AOV(common.TransactionCase):
         payslip.compute_sheet()
         return payslip
 
-    def test_aov_maandloon_met_franchise(self):
+    def test_aov_maandloon_met_forfaitaire_aftrek(self):
         """
-        Maandloon SRD 5.000 → AOV grondslag = 5.000 − 400 = 4.600
-        AOV = 4.600 × 4% = 184
+        Maandloon SRD 5.000 → forfaitaire aftrek = 4% × 5.000 = 200
+        AOV grondslag = 4.800; AOV = 4.800 × 4% = 192
         """
         payslip = self._make_payslip(wage=5000.0, salary_type='monthly')
         aov = payslip.line_ids.filtered(lambda l: l.code == 'SR_AOV').total
-        verwacht_grondslag = 5000.0 - 400.0
+        verwacht_grondslag = 5000.0 - 200.0
         verwacht_aov = -(verwacht_grondslag * 0.04)
         self.assertAlmostEqual(aov, verwacht_aov, places=2,
-                               msg='AOV maandloon met franchise klopt niet')
+                               msg='AOV maandloon met forfaitaire aftrek klopt niet')
 
-    def test_aov_fortnight_met_geprorateerde_franchise(self):
+    def test_aov_fortnight_met_forfaitaire_aftrek(self):
         """
         FN-loon SRD 5.000/periode (ingevoerd als maandloon × 26/12) →
         geen franchise; AOV volgt de fiscale grondslag na forfaitaire aftrek.
@@ -583,14 +579,14 @@ class TestArtikel14AOV(common.TransactionCase):
         self.assertAlmostEqual(aov, verwacht_aov, delta=0.02,
                                msg='AOV FN op fiscale grondslag klopt niet')
 
-    def test_aov_maandloon_lager_dan_franchise(self):
+    def test_aov_maandloon_lager_dan_forfaitaire_cap(self):
         """
-        Maandloon SRD 300 (< franchise SRD 400) → AOV grondslag = 0 → AOV = 0.
+        Maandloon SRD 300 → forfaitaire aftrek = 12 → AOV grondslag = 288.
         """
         payslip = self._make_payslip(wage=300.0, salary_type='monthly')
         aov = payslip.line_ids.filtered(lambda l: l.code == 'SR_AOV').total
-        self.assertEqual(aov, 0.0,
-                         'AOV moet 0 zijn als loon lager is dan franchise')
+        self.assertAlmostEqual(aov, -11.52, places=2,
+                         msg='AOV moet over loon na forfaitaire aftrek worden berekend')
 
     def test_aov_is_negatieve_inhouding(self):
         """AOV bijdrage moet altijd negatief zijn (inhouding op loon)."""
@@ -696,7 +692,7 @@ class TestArtikel14Breakdown(common.TransactionCase):
         bd = payslip._get_sr_artikel14_breakdown()
 
         self.assertEqual(bd['payslip_layout'], 'employee_simple')
-        self.assertEqual(bd['payslip_layout_label'], 'Klassiek Debet / Credit')
+        self.assertEqual(bd['payslip_layout_label'], 'Werknemer overzicht')
         self.assertTrue(any(line['name'] == 'Salaris' for line in bd['earnings_lines']))
         self.assertTrue(any(card['label'] == 'Basisloon' for card in bd['summary_cards']))
         self.assertTrue(any(card['label'] == 'Inhoudingen' for card in bd['summary_cards']))
@@ -741,8 +737,8 @@ class TestArtikel14Breakdown(common.TransactionCase):
         self.assertEqual(inhouding_row['categorie_label'], 'Inhouding')
         self.assertTrue(any(line['name'] == 'Ziektekostenpremie' for line in bd['deductions_lines']))
 
-    def test_breakdown_aov_basis_toont_aftrek_bv_voor_franchise(self):
-        """AOV weergave moet eerst Art. 10f aftrek verwerken en daarna pas de franchise."""
+    def test_breakdown_aov_basis_toont_aftrek_bv_voor_forfaitaire(self):
+        """AOV weergave moet eerst Art. 10f aftrek verwerken en daarna de forfaitaire aftrek."""
         contract = self.env['hr.contract'].create({
             'name': 'Breakdown AOV Aftrek Testcontract',
             'employee_id': self.employee.id,
@@ -772,9 +768,9 @@ class TestArtikel14Breakdown(common.TransactionCase):
 
         self.assertAlmostEqual(bd['bruto_per_periode'], 5000.0, places=2)
         self.assertAlmostEqual(bd['adjusted_bruto_per_periode'], 4000.0, places=2)
-        self.assertAlmostEqual(bd['franchise_periode'], 400.0, places=2)
-        self.assertAlmostEqual(bd['aov_grondslag'], 3600.0, places=2)
-        self.assertAlmostEqual(bd['aov_per_periode'], 144.0, places=2)
+        self.assertAlmostEqual(bd['franchise_periode'], 160.0, places=2)
+        self.assertAlmostEqual(bd['aov_grondslag'], 3840.0, places=2)
+        self.assertAlmostEqual(bd['aov_per_periode'], 153.60, places=2)
 
     def test_payslip_layout_default_volgt_config_parameter(self):
         """Nieuwe loonstroken moeten de geconfigureerde standaardlayout overnemen."""
@@ -816,21 +812,21 @@ class TestArtikel14Breakdown(common.TransactionCase):
         })
         self.assertFalse(company.sr_payslip_template)
 
-    def test_breakdown_actieve_heffingskorting_volgt_payslip_netto(self):
+    def test_breakdown_negeert_legacy_heffingskorting_config(self):
         """
-        Heffingskorting blijft zichtbaar voor audit, maar verlaagt de
-        in te houden loonbelasting in plaats van netto apart te verhogen.
+        Een oude heffingskorting-config mag de 2026 WLB-berekening niet verlagen.
         """
         self.env['ir.config_parameter'].sudo().set_param('sr_payroll.heffingskorting', '750.0')
         payslip = self._make_payslip(wage=25000.0)
 
         bd = payslip._get_sr_artikel14_breakdown()
 
-        self.assertAlmostEqual(bd['heffingskorting'], 750.0, delta=0.01)
+        self.assertAlmostEqual(bd['heffingskorting'], 0.0, delta=0.01)
+        self.assertAlmostEqual(bd['heffingskorting_per_periode'], 0.0, delta=0.01)
         self.assertAlmostEqual(bd['bruto_per_periode'], 25000.0, delta=0.01)
         self.assertAlmostEqual(
             bd['lb_voor_heffingskorting_per_periode'],
-            bd['lb_per_periode'] + bd['heffingskorting_per_periode'],
+            bd['lb_per_periode'],
             delta=0.01,
         )
         self.assertAlmostEqual(

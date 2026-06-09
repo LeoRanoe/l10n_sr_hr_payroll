@@ -202,8 +202,7 @@ class ResConfigSettings(models.TransientModel):
         default=lambda self: self._sr_default_param('SR_BELASTINGVRIJ_JAAR'),
         help=(
             'Jaarlijkse belastingvrije voet volgens de Surinaamse loonbelasting. '
-            'Voor de 2026-regelset staat deze standaard op SRD 0,00 omdat de vrijstelling '
-            'geïntegreerd wordt toegepast in de actuele payroll-opzet.'
+            'Voor de 2026-regelset is dit SRD 108.000,00 per jaar volgens Art. 13.'
         ),
     )
     forfaitaire_pct = fields.Float(
@@ -266,10 +265,10 @@ class ResConfigSettings(models.TransientModel):
         help='Belastingtarief voor de hoogste Art. 14 schijf als decimaal percentage.',
     )
     heffingskorting = fields.Float(
-        string='Heffingskorting (SRD)',
+        string='Heffingskorting legacy (SRD)',
         config_parameter='sr_payroll.heffingskorting',
         default=lambda self: self._sr_default_param('SR_HEFFINGSKORTING'),
-        help='Actieve heffingskorting: verlaagt de in te houden loonbelasting. Invoer is SRD per maand voor maandloon en wordt pro-rata omgerekend voor FN.',
+        help='Legacy veld. De 2026 WLB-berekening gebruikt Art. 13 belastingvrije som en past geen afzonderlijke actieve heffingskorting toe.',
     )
     aov_tarief = fields.Float(
         string='AOV tarief (decimaal)',
@@ -279,10 +278,10 @@ class ResConfigSettings(models.TransientModel):
         help='AOV-inhouding als decimaal percentage. Heeft direct impact op elke nieuw berekende loonstrook.',
     )
     aov_franchise_maand = fields.Float(
-        string='AOV franchise maandloon (SRD / maand)',
+        string='AOV franchise legacy (SRD / maand)',
         config_parameter='sr_payroll.aov_franchise_maand',
         default=lambda self: self._sr_default_param('SR_AOV_FRANCHISE_MAAND'),
-        help='Maandelijkse AOV-franchise voor maandloon-contracten. Voor FN-contracten geldt standaard geen AOV-franchise.',
+        help='Legacy veld. AOV wordt in 2026 berekend over zuiver loon na Art. 10f en Art. 12 forfaitaire aftrek; de maandelijkse SRD 400 in voorbeelden is de forfaitaire max-aftrek, geen aparte AOV-vrijstelling.',
     )
     bijz_beloning_max = fields.Float(
         string='Vrijstelling vakantie/gratificatie per categorie (SRD / jaar)',
@@ -419,11 +418,11 @@ class ResConfigSettings(models.TransientModel):
         field_labels = {
             'belastingvrij_jaar': 'Belastingvrije voet',
             'forfaitaire_max_jaar': 'Forfaitaire aftrek maximum',
-            'aov_franchise_maand': 'AOV franchise',
+            'aov_franchise_maand': 'AOV franchise legacy',
             'bijz_beloning_max': 'Vrijstelling vakantie/gratificatie per categorie',
             'akb_per_kind': 'AKB per kind',
             'akb_max_bedrag': 'AKB maximum',
-            'heffingskorting': 'Heffingskorting',
+            'heffingskorting': 'Heffingskorting legacy',
             'schijf_1_grens': 'Schijf 1 grens',
             'schijf_2_grens': 'Schijf 2 grens',
             'schijf_3_grens': 'Schijf 3 grens',

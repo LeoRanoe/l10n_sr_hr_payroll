@@ -1,7 +1,7 @@
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 {
     'name': 'Suriname - Payroll (Wet Loonbelasting)',
-    'version': '18.0.1.0',
+    'version': '18.0.1.1',
     'author': 'RPBG - Stage Opdracht 2026',
     'countries': ['sr'],
     'category': 'Human Resources/Payroll',
@@ -20,10 +20,10 @@ Ondersteunde verloningstypes:
 Berekeningen:
 - Bruto loon (maandloon + belastbare toelagen)
 - Forfaitaire beroepskosten aftrek (4%% van bruto, max SRD 4.800/jaar)
-- Geïntegreerde belastingvrije voet (2026 standaard SRD 0/jaar)
+- Belastingvrije som Art. 13 (2026 standaard SRD 108.000/jaar)
 - Belastbaar jaarloon (na aftrekken)
 - Loonbelasting Artikel 14 (progressieve schijven via SR-parameters)
-- AOV bijdrage (maandloon met franchise, FN zonder franchise via SR-parameters)
+- AOV bijdrage over zuiver loon na forfaitaire aftrek
 - Pensioenpremie bijdrage
 - Kinderbijslag (belastingvrij)
 - Netto loon

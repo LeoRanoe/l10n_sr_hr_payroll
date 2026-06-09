@@ -9,7 +9,7 @@ De module ondersteunt:
 - Artikel 14 loonbelasting via bewerkbare `hr.rule.parameter` records
 - maandloon en FN-verloning (`12` of `26` periodes)
 - FN 2026 tijdvakvalidatie en indicatoren
-- AOV-berekening met parametergestuurd tarief en franchise
+- AOV-berekening over zuiver loon na forfaitaire aftrek
 - overwerk (Art. 17c)
 - bijzondere beloningen (Art. 17)
 - uitkering ineens / jubileum (Art. 17a)
@@ -29,8 +29,8 @@ Deze release levert de definitieve Suriname Payroll v1.0 voor Odoo 18.
 
 ## Belangrijke functionele keuze
 
-De Art. 14 engine volgt de formulelijn uit `Loonbelasting context.md`.
-Dat betekent dat de module momenteel **geen actieve heffingskorting** toepast in de wettelijke LB-berekening.
+De Art. 14 engine gebruikt de 2026-belastingvrije som van SRD 108.000 per jaar.
+De module past geen afzonderlijke actieve heffingskorting toe in de wettelijke LB-berekening.
 
 ## Parameterbeheer
 

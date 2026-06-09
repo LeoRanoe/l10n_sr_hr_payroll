@@ -181,12 +181,11 @@ result = -float_round(payslip._sr_artikel14_lb(categories['GROSS'], aftrek_bv=af
         </record>
 
         <!-- ─────────────────────────────────────────────────────────
-             55 — SR_HK: Heffingskorting (informatieve regel)
+             55 — SR_HK: Heffingskorting (legacy/inactief)
              ─────────────────────────────────────────────────────────
-             Wordt na GROSS berekend voor snapshot/reporting. De echte
-             fiscale toepassing gebeurt in SR_LB, waar heffingskorting
-             de in te houden loonbelasting verlaagt. Voor FN wordt de
-             maandwaarde pro-rata omgerekend naar 12/26.
+             Niet actief in de 2026 WLB-berekening. Art. 13 gebruikt
+             de belastingvrije som; er is geen afzonderlijke actieve
+             heffingskorting in de runtime-berekening.
              ───────────────────────────────────────────────────────── -->
         <record id="sr_rule_heffingskorting" model="hr.salary.rule">
             <field name="struct_id" ref="l10n_sr_hr_payroll.sr_payroll_structure"/>
@@ -194,7 +193,7 @@ result = -float_round(payslip._sr_artikel14_lb(categories['GROSS'], aftrek_bv=af
             <field name="name">Heffingskorting</field>
             <field name="code">SR_HK</field>
             <field name="sequence">55</field>
-            <field name="active" eval="True"/>
+            <field name="active" eval="False"/>
             <field name="appears_on_payslip" eval="False"/>
             <field name="condition_select">python</field>
             <field name="condition_python">
@@ -211,8 +210,9 @@ result = heffingskorting
         <!-- ─────────────────────────────────────────────────────────
              60 — SR_AOV: AOV Bijdrage werknemer
              ─────────────────────────────────────────────────────────
-             Maandloon: 4% over het belastbaar loon minus de maandfranchise.
-             FN-loon: 4% over de fiscale grondslag na forfaitaire aftrek.
+             4% over het zuiver loon na Art. 10f en Art. 12 forfaitaire aftrek.
+             Bij maandloon is de aftrek maximaal SRD 400 per maand; bij FN
+             volgt deze uit SRD 4.800 / 26.
              ───────────────────────────────────────────────────────── -->
         <record id="sr_rule_aov" model="hr.salary.rule">
             <field name="struct_id" ref="l10n_sr_hr_payroll.sr_payroll_structure"/>
@@ -336,7 +336,7 @@ result = kb['vrijgesteld']
              250 — NET: Nettoloon
              BASIC + ALW (bruto + toelagen + kinderbijslag) + DED
              (loonbelasting + AOV + pensioen zijn negatief) + SR_VRIJ,
-             exclusief SR_HK omdat die korting al verwerkt is in SR_LB.
+             exclusief SR_HK; de 2026 berekening past geen actieve HK toe.
              Seq=250 (> 200) zodat deze regel de standaard NET-regel
              van Odoo (seq=200) overschrijft met de juiste formule.
              ───────────────────────────────────────────────────────── -->
@@ -765,7 +765,7 @@ else:
 
         <!-- ═══════════════════════════════════════════════════════════════
              LB + AOV OP UITKERING INEENS (seq 93–94)
-             Art. 17a: eigen tariefschijven 5%/15%/25%/35%/45%
+             Art. 17a: eigen tariefschijven 5%/15%/25%/35%
              Geen belastingvrije som. AOV = 4% van het bedrag.
              ═══════════════════════════════════════════════════════════════ -->
 
@@ -792,12 +792,10 @@ result = any(
 s1 = payslip._rule_parameter('SR_17A_SCHIJF_1_GRENS')
 s2 = payslip._rule_parameter('SR_17A_SCHIJF_2_GRENS')
 s3 = payslip._rule_parameter('SR_17A_SCHIJF_3_GRENS')
-s4 = payslip._rule_parameter('SR_17A_SCHIJF_4_GRENS')
 r1 = payslip._rule_parameter('SR_17A_TARIEF_1')
 r2 = payslip._rule_parameter('SR_17A_TARIEF_2')
 r3 = payslip._rule_parameter('SR_17A_TARIEF_3')
 r4 = payslip._rule_parameter('SR_17A_TARIEF_4')
-r5 = payslip._rule_parameter('SR_17A_TARIEF_5')
 
 bedrag = sum(
     inp.amount for inp in payslip.input_line_ids
@@ -810,10 +808,8 @@ elif bedrag &lt;= s2:
     lb = s1 * r1 + (bedrag - s1) * r2
 elif bedrag &lt;= s3:
     lb = s1 * r1 + (s2 - s1) * r2 + (bedrag - s2) * r3
-elif bedrag &lt;= s4:
-    lb = s1 * r1 + (s2 - s1) * r2 + (s3 - s2) * r3 + (bedrag - s3) * r4
 else:
-    lb = s1 * r1 + (s2 - s1) * r2 + (s3 - s2) * r3 + (s4 - s3) * r4 + (bedrag - s4) * r5
+    lb = s1 * r1 + (s2 - s1) * r2 + (s3 - s2) * r3 + (bedrag - s3) * r4
 
 result = -float_round(lb, precision_digits=2)
             </field>
