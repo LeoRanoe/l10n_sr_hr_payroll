@@ -673,7 +673,8 @@ class TestArtikel14Breakdown(common.TransactionCase):
             'lb_jaar', 'lb_per_periode',
             'lb_bijz', 'lb_17a', 'lb_overwerk',
             'aov_bijz', 'aov_17a', 'aov_overwerk',
-            'adjusted_bruto_per_periode', 'franchise_periode', 'aov_grondslag', 'aov_tarief_pct', 'aov_per_periode',
+            'adjusted_bruto_per_periode', 'franchise_periode', 'aov_forfaitaire_aftrek_per_periode',
+            'aov_grondslag', 'aov_tarief_pct', 'aov_per_periode',
             'aftrek_bv', 'heffingskorting', 'pensioen', 'contract_inhoudingen', 'input_inhoudingen',
             'earnings_lines', 'deductions_lines', 'summary_cards',
             'payslip_line_rows', 'belasting_line_rows',
@@ -769,6 +770,7 @@ class TestArtikel14Breakdown(common.TransactionCase):
         self.assertAlmostEqual(bd['bruto_per_periode'], 5000.0, places=2)
         self.assertAlmostEqual(bd['adjusted_bruto_per_periode'], 4000.0, places=2)
         self.assertAlmostEqual(bd['franchise_periode'], 160.0, places=2)
+        self.assertAlmostEqual(bd['aov_forfaitaire_aftrek_per_periode'], 160.0, places=2)
         self.assertAlmostEqual(bd['aov_grondslag'], 3840.0, places=2)
         self.assertAlmostEqual(bd['aov_per_periode'], 153.60, places=2)
 
@@ -869,6 +871,12 @@ class TestArtikel14Breakdown(common.TransactionCase):
         self.assertTrue(bd['is_fn'])
         self.assertAlmostEqual(bd['franchise_periode'], 0.0, places=2,
                                msg='FN AOV franchise moet op nul blijven')
+        self.assertAlmostEqual(
+            bd['aov_forfaitaire_aftrek_per_periode'],
+            184.62,
+            places=2,
+            msg='FN loonslip moet de forfaitaire Art. 12-aftrek tonen voor de AOV-grondslag',
+        )
         self.assertEqual(bd['fn_period_label'], '2026FN10')
         self.assertEqual(bd['fn_period_indicator'], '202610')
 

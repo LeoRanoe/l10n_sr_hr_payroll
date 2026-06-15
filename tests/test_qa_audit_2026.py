@@ -938,10 +938,12 @@ class TestQAAudit2026(common.TransactionCase):
         fortnight = calc.calculate_lb(4000.0, 26, params)
 
         self.assertEqual(monthly['franchise_periode'], 160.0)
+        self.assertEqual(monthly['aov_forfaitaire_aftrek_per_periode'], 160.0)
         self.assertEqual(monthly['aov_grondslag'], 3840.0)
         self.assertEqual(monthly['aov_per_periode'], 153.6)
 
         self.assertAlmostEqual(fortnight['franchise_periode'], 0.0, places=2)
+        self.assertAlmostEqual(fortnight['aov_forfaitaire_aftrek_per_periode'], 160.0, places=2)
         self.assertAlmostEqual(fortnight['aov_grondslag'], 3840.0, places=2)
         self.assertAlmostEqual(fortnight['aov_per_periode'], 153.6, places=2)
 

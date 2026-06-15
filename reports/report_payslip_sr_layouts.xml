@@ -1261,8 +1261,8 @@
                             <td class="sr-amount sr-amount-credit">SRD&#160;<t t-esc="'{:,.2f}'.format(bd.get('aftrek_bv', 0))"/></td>
                         </tr>
                         <tr style="color:#555;">
-                            <td>− Franchise <t t-if="bd.get('is_fn')">(pro-rata maandbedrag)</t></td>
-                            <td class="sr-amount sr-amount-credit">SRD&#160;<t t-esc="'{:,.2f}'.format(bd.get('franchise_periode', 0))"/></td>
+                            <td>&#8722; Forfaitaire aftrek (Art. 12)<t t-if="bd.get('is_fn')"> (FN)</t></td>
+                            <td class="sr-amount sr-amount-credit">SRD&#160;<t t-esc="'{:,.2f}'.format(bd.get('aov_forfaitaire_aftrek_per_periode', bd.get('forfaitaire_per_periode', 0)))"/></td>
                         </tr>
                         <tr style="font-weight:bold; background-color:#f4f7fb;">
                             <td>AOV grondslag</td>

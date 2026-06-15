@@ -1764,6 +1764,10 @@ class HrPayslip(models.Model):
             # AOV
             'adjusted_bruto_per_periode': r['adjusted_bruto_per_periode'],
             'franchise_periode': r['franchise_periode'],
+            'aov_forfaitaire_aftrek_per_periode': r.get(
+                'aov_forfaitaire_aftrek_per_periode',
+                r['forfaitaire_per_periode'],
+            ),
             'aov_grondslag': r['aov_grondslag'],
             'aov_tarief_pct': r['aov_tarief'] * 100,
             'aov_per_periode': aov_per_periode,

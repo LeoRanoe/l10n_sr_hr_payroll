@@ -448,6 +448,7 @@ def calculate_lb(
     # shows as SRD 400/month because SRD 4,800/year is the forfaitaire cap.
     effective_bruto_per_periode = max(ZERO, bruto_per_periode_dec - aftrek_bv_per_periode_dec)
     franchise_periode = forfaitaire_per_periode if periodes == 12 else ZERO
+    aov_forfaitaire_aftrek_per_periode = forfaitaire_per_periode
     aov_grondslag = grondslag_belasting_per_periode
     aov_per_periode = aov_grondslag * aov_tarief
 
@@ -488,6 +489,7 @@ def calculate_lb(
         'lb_per_periode': round_money(lb_per_periode),
         # AOV
         'franchise_periode': round_money(franchise_periode),
+        'aov_forfaitaire_aftrek_per_periode': round_money(aov_forfaitaire_aftrek_per_periode),
         'aov_grondslag': round_money(aov_grondslag),
         'aov_tarief': float(aov_tarief),
         'aov_per_periode': round_money(aov_per_periode),
@@ -656,15 +658,18 @@ def generate_breakdown_html(result, wage, periodes, salary_type, kb_split=None,
                         'verlaagt AOV-grondslag',
                         m(r['aftrek_bv_per_periode'], '-')))
     rows.append(row('Belastbaar loon voor forfaitaire aftrek', '', m(r['adjusted_bruto_per_periode']), '#f0f9ff'))
+    aov_forfaitaire_aftrek = r.get(
+        'aov_forfaitaire_aftrek_per_periode',
+        r.get('forfaitaire_per_periode', 0.0),
+    )
     if salary_type == 'fn':
-        franchise_label = 'FN-tijdvak: AOV over fiscale grondslag na forfaitaire aftrek'
+        franchise_label = 'FN-tijdvak: forfaitaire Art. 12-aftrek'
     else:
-        franchise_label = f'Maandloon: forfaitaire aftrek {format_srd(r["franchise_periode"])}/periode'
-    rows.append(row('Forfaitaire aftrek AOV-grondslag', franchise_label, m(r['franchise_periode'], '-')))
-    if salary_type == 'fn':
-        aov_grondslag_formula = f'Grondslag voor Belasting: {format_srd(r["grondslag_belasting_per_periode"])}'
-    else:
-        aov_grondslag_formula = f'{format_srd(r["adjusted_bruto_per_periode"])} - {format_srd(r["franchise_periode"])}'
+        franchise_label = f'Maandloon: forfaitaire aftrek {format_srd(aov_forfaitaire_aftrek)}/periode'
+    rows.append(row('Forfaitaire aftrek AOV-grondslag', franchise_label, m(aov_forfaitaire_aftrek, '-')))
+    aov_grondslag_formula = (
+        f'{format_srd(r["adjusted_bruto_per_periode"])} - {format_srd(aov_forfaitaire_aftrek)}'
+    )
     rows.append(row('AOV grondslag', aov_grondslag_formula, m(r['aov_grondslag']), '#f0f9ff'))
     rows.append(row('<strong>AOV inhouding per periode</strong>',
                     f'{_format_number(r["aov_tarief"] * 100, 0)}% × {format_srd(r["aov_grondslag"])}',
