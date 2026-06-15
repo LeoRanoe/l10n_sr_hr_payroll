@@ -474,6 +474,7 @@ class HrContract(models.Model):
                 bruto_totaal=bruto_totaal,
                 netto_totaal=contract.sr_preview_netto,
                 heffingskorting=heffingskorting,
+                vgb_belastbaar=vgb_belastbaar,
             )
 
     @api.onchange('sr_aantal_kinderen')

@@ -1710,6 +1710,7 @@ class HrPayslip(models.Model):
             'kb_belastbaar': kb_belastbaar,
             'kb_vrijgesteld': kb_vrijgesteld,
             'vrijgesteld_contract': vrijgesteld_contract,
+            'vgb_belastbaar': vgb_belastbaar_bedrag,
             'heffingskorting': heffingskorting_calc,
             'overwerk': overwerk,
             'vakantie': vakantie,

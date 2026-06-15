@@ -1185,8 +1185,12 @@
                 <table class="sr-line-table" style="margin-bottom:10px;">
                     <tbody>
                         <tr>
-                            <td style="width:75%;">Bruto loon per periode</td>
+                            <td style="width:75%;">Bruto belastbaar loon per periode</td>
                             <td class="sr-amount">SRD&#160;<t t-esc="'{:,.2f}'.format(bd.get('bruto_per_periode', 0))"/></td>
+                        </tr>
+                        <tr t-if="bd.get('vgb_belastbaar', 0)" style="color:#555;">
+                            <td>Waarvan fiscale grondslag (VGB, niet uitbetaald)</td>
+                            <td class="sr-amount">SRD&#160;<t t-esc="'{:,.2f}'.format(bd.get('vgb_belastbaar', 0))"/></td>
                         </tr>
                         <tr style="color:#555;">
                             <td>
@@ -1255,6 +1259,10 @@
                         <tr>
                             <td style="width:75%;">Bruto belastbaar loon per periode</td>
                             <td class="sr-amount">SRD&#160;<t t-esc="'{:,.2f}'.format(bd.get('bruto_per_periode', 0))"/></td>
+                        </tr>
+                        <tr t-if="bd.get('vgb_belastbaar', 0)" style="color:#555;">
+                            <td>Waarvan fiscale grondslag (VGB, niet uitbetaald)</td>
+                            <td class="sr-amount">SRD&#160;<t t-esc="'{:,.2f}'.format(bd.get('vgb_belastbaar', 0))"/></td>
                         </tr>
                         <tr t-if="bd.get('aftrek_bv', 0)" style="color:#555;">
                             <td>− Aftrek belastingvrij (Art. 10f)</td>

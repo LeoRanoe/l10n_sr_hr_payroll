@@ -502,7 +502,7 @@ def generate_breakdown_html(result, wage, periodes, salary_type, kb_split=None,
                             vrijgesteld=0.0, inhoudingen=0.0,
                             belastbaar_toelagen=0.0,
                             bruto_totaal=None, netto_totaal=None,
-                            heffingskorting=0.0):
+                            heffingskorting=0.0, vgb_belastbaar=0.0):
     """
     Genereert een stap-voor-stap berekeningsoverzicht (debug panel) als HTML.
 
@@ -516,6 +516,7 @@ def generate_breakdown_html(result, wage, periodes, salary_type, kb_split=None,
     :param belastbaar_toelagen: Belastbare toelagen per periode (contract regels)
     :param bruto_totaal:  Reeds berekend contract-bruto per periode
     :param netto_totaal:  Reeds berekend contract-netto per periode
+    :param vgb_belastbaar: Fiscale grondslag voordeel in natura, niet uitbetaald
     :returns: HTML string
     """
     def m(n, sign=''):
@@ -582,27 +583,29 @@ def generate_breakdown_html(result, wage, periodes, salary_type, kb_split=None,
     rows.append(row('Loontype', loon_type_str, m(wage)))
     if belastbaar_toelagen > 0:
         rows.append(row('Belastbare toelagen', '(contract regels)', m(belastbaar_toelagen)))
+    if vgb_belastbaar > 0:
+        rows.append(row('Fiscale grondslag (VGB)', 'voordeel in natura; geen netto-uitbetaling', m(vgb_belastbaar)))
     if vrijgesteld > 0:
         rows.append(row('Vrijgestelde toelagen', '(transport, maaltijd, ...)', m(vrijgesteld)))
     if r.get('aftrek_bv_per_periode', 0.0) > 0:
         rows.append(row('Pensioenpremie inhouding', 'aftrek_belastingvrij', m(r['aftrek_bv_per_periode'])))
-    rows.append(row('<strong>GROSS belastbaar</strong>', 'Basisloon + belastbare toelagen',
+    rows.append(row('<strong>GROSS belastbaar</strong>', 'Basisloon + belastbare toelagen + KB belastbaar + fiscale grondslag',
                     m(r['bruto_per_periode']), '#f0f9ff'))
 
     if kb_b > 0 or kb_v > 0:
-        rows.append(sep('② OVERIGE VERDIENSTEN (buiten GROSS)'))
-        rows.append(row('Kinderbijslag belastbaar deel', 'apart getoond, niet in bruto belastbaar loon', m(kb_b)))
-        rows.append(row('Kinderbijslag vrijgesteld deel', 'vrijstelling volgens SR Payroll Instellingen', m(kb_v)))
+        rows.append(sep('② KINDERBIJSLAG (Art. 10h)'))
+        rows.append(row('Kinderbijslag belastbaar deel', 'telt mee in GROSS belastbaar', m(kb_b)))
+        rows.append(row('Kinderbijslag vrijgesteld deel', 'buiten GROSS; wel netto-uitbetaling', m(kb_v)))
 
     # ─── Sectie 2: Grondslag ───────────────────────
     rows.append(sep('③ GRONDSLAG VOOR BELASTING'))
-    rows.append(row('Bruto loon per periode', '', m(r['bruto_per_periode'])))
+    rows.append(row('Bruto belastbaar loon per periode', '', m(r['bruto_per_periode'])))
     if r.get('aftrek_bv_jaar', 0.0) > 0:
         rows.append(row('Aftrek belastingvrij (Art. 10f)',
                         'verlaagt bruto vóór forfaitaire aftrek',
                         m(r['aftrek_bv_per_periode'], '-')))
     rows.append(row('Forfaitaire aftrek (Art. 12)',
-                    f'{_format_number(r["forfaitaire_pct"] * 100, 0)}% van bruto (max {format_srd(r.get("forfaitaire_max_per_periode", 0))}/periode)',
+                    f'{_format_number(r["forfaitaire_pct"] * 100, 0)}% van bruto na Art. 10f (max {format_srd(r.get("forfaitaire_max_per_periode", 0))}/periode)',
                     m(r['forfaitaire_per_periode'], '-')))
     rows.append(total_val('= Grondslag voor Belasting', r['grondslag_belasting_per_periode']))
     rows.append(row('Grondslag voor Belasting per jaar',

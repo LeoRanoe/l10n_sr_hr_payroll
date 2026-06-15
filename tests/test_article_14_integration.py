@@ -589,6 +589,28 @@ class TestIntegratieVolledigeCyclus(common.TransactionCase):
             msg='Loonstrook netto moet de handberekening volgen',
         )
 
+        bd = payslip_fn._get_sr_artikel14_breakdown()
+        self.assertTrue(bd['is_fn'])
+        self.assertEqual(bd['fn_period_label'], '2026FN10')
+        self.assertAlmostEqual(bd['basic'], 6923.08, delta=0.02)
+        self.assertAlmostEqual(bd['toelagen'], 2038.46, delta=0.02)
+        self.assertAlmostEqual(bd['kb_belastbaar'], 92.31, delta=0.02)
+        self.assertAlmostEqual(bd['kb_vrijgesteld'], 461.54, delta=0.02)
+        self.assertAlmostEqual(bd['vgb_belastbaar'], 7.69, delta=0.02)
+        self.assertAlmostEqual(bd['bruto_per_periode'], 9061.54, delta=0.02)
+        self.assertAlmostEqual(bd['bruto_totaal'], 9515.38, delta=0.02)
+        self.assertAlmostEqual(bd['aftrek_bv'], 553.85, delta=0.02)
+        self.assertAlmostEqual(bd['adjusted_bruto_per_periode'], 8507.69, delta=0.02)
+        self.assertAlmostEqual(bd['forfaitaire_per_periode'], 184.62, delta=0.02)
+        self.assertAlmostEqual(bd['aov_forfaitaire_aftrek_per_periode'], 184.62, delta=0.02)
+        self.assertAlmostEqual(bd['aov_grondslag'], 8323.08, delta=0.02)
+        self.assertAlmostEqual(bd['lb_per_periode'], 682.77, delta=0.02)
+        self.assertAlmostEqual(bd['aov_per_periode'], 332.92, delta=0.02)
+        self.assertAlmostEqual(bd['netto'], 6445.85, delta=0.02)
+        self.assertIn('Fiscale grondslag (VGB)', contract_fn.sr_preview_breakdown_html)
+        self.assertIn('Kinderbijslag belastbaar deel', contract_fn.sr_preview_breakdown_html)
+        self.assertNotIn('niet in bruto belastbaar loon', contract_fn.sr_preview_breakdown_html)
+
     def test_maandloon_maureen_handberekening(self):
         """Maureen-achtig maandloonpakket moet aansluiten op de adviseursberekening."""
         contract = self.env['hr.contract'].create({
