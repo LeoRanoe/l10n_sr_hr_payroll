@@ -314,14 +314,8 @@ class HrWorkEntry(models.Model):
 
     @api.model
     def _sr_get_holiday_dates_in_range(self, date_from, date_to):
-        if not date_from or not date_to or date_to < date_from:
-            return set()
-        holidays = self.env['sr.public.holiday'].search([
-            ('date', '>=', date_from),
-            ('date', '<=', date_to),
-            ('active', '=', True),
-        ])
-        return {holiday.date for holiday in holidays}
+        # sr.public.holiday wordt opnieuw gebouwd — tijdelijk leeg
+        return set()
 
     def _sr_get_holiday_dates(self):
         start_dates = [entry.date_start.date() for entry in self if entry.date_start]
