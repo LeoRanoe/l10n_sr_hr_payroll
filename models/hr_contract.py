@@ -369,7 +369,9 @@ class HrContract(models.Model):
 
         for contract in self:
             periodes = 26 if contract.sr_salary_type == 'fn' else 12
-            heffingskorting = contract._sr_get_heffingskorting_per_periode(round_result=False)
+            # De 2026 WLB-berekening gebruikt de Art. 13 belastingvrije som.
+            # Een aparte heffingskorting blijft alleen als legacy-instelling bestaan.
+            heffingskorting = 0.0
 
             rate = contract._sr_get_current_exchange_rate()
             belastbaar_toelagen = contract._sr_resolve_regels('belastbaar', exchange_rate=rate, round_result=False)
@@ -423,7 +425,7 @@ class HrContract(models.Model):
                 monthly_kb_belastbaar = Decimal(str(kb_belastbaar)) * scale
                 monthly_kb_vrijgesteld = Decimal(str(kb_vrijgesteld)) * scale
                 monthly_vgb_belastbaar = Decimal(str(vgb_belastbaar)) * scale
-                monthly_heffingskorting = Decimal(str(heffingskorting)) * scale
+                monthly_heffingskorting = Decimal('0')
 
                 monthly_bruto_belastbaar = (
                     monthly_wage
@@ -472,6 +474,7 @@ class HrContract(models.Model):
                 bruto_totaal=bruto_totaal,
                 netto_totaal=contract.sr_preview_netto,
                 heffingskorting=heffingskorting,
+                vgb_belastbaar=vgb_belastbaar,
             )
 
     @api.onchange('sr_aantal_kinderen')
@@ -655,8 +658,7 @@ class HrContract(models.Model):
 
     def _sr_is_payroll_contract(self):
         self.ensure_one()
-        sr_struct = self.env.ref('l10n_sr_hr_payroll.sr_payroll_structure', raise_if_not_found=False)
-        return bool(sr_struct and self.structure_type_id == sr_struct.type_id)
+        return bool(self.structure_type_id and self.structure_type_id in self._sr_get_structure_types())
 
     def _sr_guard_salary_type_change_with_existing_slips(self, new_salary_type):
         if self.env.context.get('sr_allow_salary_type_change_with_slips'):

@@ -211,7 +211,7 @@ result = heffingskorting
         <!-- ─────────────────────────────────────────────────────────
              60 — SR_AOV: AOV Bijdrage werknemer
              ─────────────────────────────────────────────────────────
-               Maandloon: 4% over het belastbaar loon minus de maandfranchise.
+               Maandloon: 4% over zuiver loon na Art. 10f en Art. 12 forfaitaire aftrek.
                FN-loon: 4% over de fiscale grondslag na forfaitaire aftrek.
              ───────────────────────────────────────────────────────── -->
         <record id="sr_rule_aov" model="hr.salary.rule">

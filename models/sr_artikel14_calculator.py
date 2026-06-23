@@ -48,7 +48,7 @@ PARAM_CODE_MAP = {
 }
 
 CONFIG_PARAMETER_MAP = {
-    'SR_BELASTINGVRIJ_JAAR': ('sr_payroll.belastingvrij_jaar', 0.0),
+    'SR_BELASTINGVRIJ_JAAR': ('sr_payroll.belastingvrij_jaar', 108000.0),
     'SR_FORFAITAIRE_PCT': ('sr_payroll.forfaitaire_pct', 0.04),
     'SR_FORFAITAIRE_MAX_JAAR': ('sr_payroll.forfaitaire_max_jaar', 4800.0),
     'SR_SCHIJF_1_GRENS': ('sr_payroll.schijf_1_grens', 42000.0),
@@ -59,7 +59,7 @@ CONFIG_PARAMETER_MAP = {
     'SR_TARIEF_3': ('sr_payroll.tarief_3', 0.28),
     'SR_TARIEF_4': ('sr_payroll.tarief_4', 0.38),
     'SR_AOV_TARIEF': ('sr_payroll.aov_tarief', 0.04),
-    'SR_AOV_FRANCHISE_MAAND': ('sr_payroll.aov_franchise_maand', 400.0),
+    'SR_AOV_FRANCHISE_MAAND': ('sr_payroll.aov_franchise_maand', 0.0),
     'SR_KINDBIJ_MAX_KIND_MAAND': ('sr_payroll.akb_per_kind', 250.0),
     'SR_KINDBIJ_MAX_MAAND': ('sr_payroll.akb_max_bedrag', 1000.0),
     'SR_BIJZ_VRIJSTELLING_MAX': ('sr_payroll.bijz_beloning_max', 19500.0),
@@ -69,7 +69,7 @@ CONFIG_PARAMETER_MAP = {
     'SR_OWK_TARIEF_1': ('sr_payroll.overwerk_tarief_1', 0.05),
     'SR_OWK_TARIEF_2': ('sr_payroll.overwerk_tarief_2', 0.15),
     'SR_OWK_TARIEF_3': ('sr_payroll.overwerk_tarief_3', 0.25),
-    'SR_HEFFINGSKORTING': ('sr_payroll.heffingskorting', 750.0),
+    'SR_HEFFINGSKORTING': ('sr_payroll.heffingskorting', 0.0),
 }
 
 MONEY_QUANT = Decimal('0.01')
@@ -386,7 +386,8 @@ def calculate_lb(
     forfaitaire_max = _to_decimal(params['forfaitaire_max'])
     belastingvrij_jaar = _to_decimal(params['belastingvrij_jaar'])
     aov_tarief = _to_decimal(params['aov_tarief'])
-    aov_franchise_maand = _to_decimal(params['aov_franchise_maand'])
+    # params['aov_franchise_maand'] blijft beschikbaar voor oude instellingen,
+    # maar de 2026 AOV-grondslag volgt het loon na Art. 12 forfaitaire aftrek.
 
     bruto_jaar = bruto_per_periode_dec * periodes_dec
     aftrek_bv_jaar = aftrek_bv_per_periode_dec * periodes_dec
@@ -442,17 +443,10 @@ def calculate_lb(
     lb_jaar = max(ZERO, lb_voor_heffingskorting_jaar - heffingskorting_jaar)
     lb_per_periode = max(ZERO, lb_voor_heffingskorting_per_periode - heffingskorting_per_periode_dec)
 
-    # AOV. Maandloon blijft de maandfranchise toepassen. Voor FN sluit de
-    # handberekening aan op de fiscale grondslag na Art. 10f en forfaitaire aftrek.
-    effective_bruto_per_periode = max(ZERO, bruto_per_periode_dec - aftrek_bv_per_periode_dec)
-    franchise_periode = ZERO
-    if periodes == 26:
-        aov_grondslag = grondslag_belasting_per_periode
-    elif aov_franchise_maand and periodes == 12:
-        franchise_periode = _to_decimal(aov_franchise_maand)
-        aov_grondslag = max(ZERO, effective_bruto_per_periode - franchise_periode)
-    else:
-        aov_grondslag = effective_bruto_per_periode
+    # AOV volgt de fiscale grondslag na Art. 10f en forfaitaire aftrek.
+    franchise_periode = forfaitaire_per_periode if periodes == 12 else ZERO
+    aov_forfaitaire_aftrek_per_periode = forfaitaire_per_periode
+    aov_grondslag = grondslag_belasting_per_periode
     aov_per_periode = aov_grondslag * aov_tarief
 
     serialized_bracket_rows = []
@@ -492,6 +486,7 @@ def calculate_lb(
         'lb_per_periode': round_money(lb_per_periode),
         # AOV
         'franchise_periode': round_money(franchise_periode),
+        'aov_forfaitaire_aftrek_per_periode': round_money(aov_forfaitaire_aftrek_per_periode),
         'aov_grondslag': round_money(aov_grondslag),
         'aov_tarief': float(aov_tarief),
         'aov_per_periode': round_money(aov_per_periode),
@@ -643,8 +638,13 @@ def generate_breakdown_html(result, wage, periodes, salary_type, kb_split=None,
         rows.append(row('Heffingskorting',
                         f'{format_srd(r["heffingskorting_per_periode"])} per periode',
                         m(r['heffingskorting_per_periode'], '-')))
+    lb_period_formula = (
+        'na heffingskorting'
+        if r.get('heffingskorting_per_periode', 0.0) > 0
+        else 'volgens Art. 13/14'
+    )
     rows.append(row('<strong>In te houden Loonbelasting</strong>',
-                    'na heffingskorting',
+                    lb_period_formula,
                     m(r['lb_per_periode']), '#fef9c3'))
 
     # ─── Sectie 4: AOV ─────────────────────────────
@@ -652,18 +652,21 @@ def generate_breakdown_html(result, wage, periodes, salary_type, kb_split=None,
     rows.append(row('Bruto belastbaar loon per periode', '', m(r['bruto_per_periode'])))
     if r.get('aftrek_bv_per_periode', 0.0) > 0:
         rows.append(row('Aftrek belastingvrij (Art. 10f)',
-                        'verlaagt AOV-grondslag vóór franchise',
+                        'verlaagt AOV-grondslag',
                         m(r['aftrek_bv_per_periode'], '-')))
-    rows.append(row('Belastbaar loon vóór franchise', '', m(r['adjusted_bruto_per_periode']), '#f0f9ff'))
+    rows.append(row('Belastbaar loon voor forfaitaire aftrek', '', m(r['adjusted_bruto_per_periode']), '#f0f9ff'))
+    aov_forfaitaire_aftrek = r.get(
+        'aov_forfaitaire_aftrek_per_periode',
+        r.get('forfaitaire_per_periode', 0.0),
+    )
     if salary_type == 'fn':
-        franchise_label = 'FN-tijdvak: AOV over fiscale grondslag na forfaitaire aftrek'
+        franchise_label = 'FN-tijdvak: forfaitaire Art. 12-aftrek'
     else:
-        franchise_label = f'AOV franchise − {format_srd(r["franchise_periode"])}/periode'
-    rows.append(row('Franchise (Art. 4 AOV)', franchise_label, m(r['franchise_periode'], '-')))
-    if salary_type == 'fn':
-        aov_grondslag_formula = f'Grondslag voor Belasting: {format_srd(r["grondslag_belasting_per_periode"])}'
-    else:
-        aov_grondslag_formula = f'{format_srd(r["adjusted_bruto_per_periode"])} − {format_srd(r["franchise_periode"])}'
+        franchise_label = f'Maandloon: forfaitaire aftrek {format_srd(aov_forfaitaire_aftrek)}/periode'
+    rows.append(row('Forfaitaire aftrek AOV-grondslag', franchise_label, m(aov_forfaitaire_aftrek, '-')))
+    aov_grondslag_formula = (
+        f'{format_srd(r["adjusted_bruto_per_periode"])} - {format_srd(aov_forfaitaire_aftrek)}'
+    )
     rows.append(row('AOV grondslag', aov_grondslag_formula, m(r['aov_grondslag']), '#f0f9ff'))
     rows.append(row('<strong>AOV inhouding per periode</strong>',
                     f'{_format_number(r["aov_tarief"] * 100, 0)}% × {format_srd(r["aov_grondslag"])}',

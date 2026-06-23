@@ -932,16 +932,18 @@ class TestQAAudit2026(common.TransactionCase):
         self.assertAlmostEqual(excess_slip._sr_bijz_belastbaar_totaal(), 500.0, places=2)
         self.assertLess(self._line_total(excess_slip, 'SR_LB_BIJZ'), 0.0)
 
-    def test_aov_franchise_is_prorated_by_period(self):
+    def test_aov_uses_forfaitaire_aftrek_by_period(self):
         params = calc.fetch_params_from_rule_parameter(self.env, date(2026, 4, 30))
         monthly = calc.calculate_lb(4000.0, 12, params)
         fortnight = calc.calculate_lb(4000.0, 26, params)
 
-        self.assertEqual(monthly['franchise_periode'], 400.0)
-        self.assertEqual(monthly['aov_grondslag'], 3600.0)
-        self.assertEqual(monthly['aov_per_periode'], 144.0)
+        self.assertEqual(monthly['franchise_periode'], 160.0)
+        self.assertEqual(monthly['aov_forfaitaire_aftrek_per_periode'], 160.0)
+        self.assertEqual(monthly['aov_grondslag'], 3840.0)
+        self.assertEqual(monthly['aov_per_periode'], 153.6)
 
         self.assertAlmostEqual(fortnight['franchise_periode'], 0.0, places=2)
+        self.assertAlmostEqual(fortnight['aov_forfaitaire_aftrek_per_periode'], 153.85, places=2)
         self.assertAlmostEqual(fortnight['aov_grondslag'], 3840.0, places=2)
         self.assertAlmostEqual(fortnight['aov_per_periode'], 153.6, places=2)
 
@@ -1134,7 +1136,7 @@ class TestQAAudit2026(common.TransactionCase):
             12,
             params,
             aftrek_bv_per_periode=212.50,
-            heffingskorting_per_periode=750.0,
+            heffingskorting_per_periode=0.0,
         )
         expected_net = float(payslip._sr_money_quantize(
             20255.60 + 1300.0 + 1250.0 + expected_overtime_gross

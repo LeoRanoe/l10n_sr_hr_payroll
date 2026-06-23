@@ -303,20 +303,20 @@ class TestAuditFixes(common.TransactionCase):
         self.assertAlmostEqual(result['heffingskorting_per_periode'], 750.0, places=2)
         self.assertAlmostEqual(result['lb_per_periode'], 888.0, places=2)
 
-    def test_contract_preview_lb_is_after_heffingskorting(self):
+    def test_contract_preview_lb_ignores_legacy_heffingskorting(self):
         contract = self._make_contract(wage=20255.60)
         payslip = self._make_payslip(contract)
         breakdown = payslip._get_sr_artikel14_breakdown()
 
         self.assertAlmostEqual(
             breakdown['lb_voor_heffingskorting_per_periode'],
-            breakdown['lb_per_periode'] + breakdown['heffingskorting_per_periode'],
+            breakdown['lb_per_periode'],
             places=2,
         )
         self.assertAlmostEqual(contract.sr_preview_lb_periode, abs(self._line_total(payslip, 'SR_LB')), places=2)
         self.assertAlmostEqual(contract.sr_preview_lb_periode, breakdown['lb_per_periode'], places=2)
 
-    def test_preview_breakdown_aov_shows_aftrek_bv_before_franchise(self):
+    def test_preview_breakdown_aov_shows_aftrek_bv_before_forfaitaire_aftrek(self):
         contract = self._make_contract(
             wage=5000.0,
             sr_vaste_regels=[(0, 0, {
@@ -326,7 +326,7 @@ class TestAuditFixes(common.TransactionCase):
         )
 
         self.assertIn('Aftrek belastingvrij (Art. 10f)', contract.sr_preview_breakdown_html)
-        self.assertIn('Belastbaar loon vóór franchise', contract.sr_preview_breakdown_html)
+        self.assertIn('Belastbaar loon voor forfaitaire aftrek', contract.sr_preview_breakdown_html)
         self.assertIn('AOV inhouding per periode', contract.sr_preview_breakdown_html)
 
     def test_detailed_report_summary_no_longer_shows_heffingskorting_as_net_plus(self):
@@ -624,7 +624,7 @@ class TestAuditFixes(common.TransactionCase):
         self.assertEqual(parameter.sr_current_value, '1000.0')
 
     def test_settings_default_values_match_2026_release(self):
-        # Clear heffingskorting override so the field uses CONFIG_PARAMETER_MAP default (750).
+        # Clear heffingskorting override so the field uses the 2026 legacy default (0).
         self.env['ir.config_parameter'].sudo().search(
             [('key', '=', 'sr_payroll.heffingskorting')]
         ).unlink()
@@ -633,8 +633,8 @@ class TestAuditFixes(common.TransactionCase):
         self.assertEqual(settings.akb_per_kind, 250.0)
         self.assertEqual(settings.akb_max_bedrag, 1000.0)
         self.assertEqual(settings.bijz_beloning_max, 19500.0)
-        self.assertEqual(settings.aov_franchise_maand, 400.0)
-        self.assertEqual(settings.heffingskorting, 750.0)
+        self.assertEqual(settings.aov_franchise_maand, 0.0)
+        self.assertEqual(settings.heffingskorting, 0.0)
 
     def test_settings_reject_invalid_amount_and_rate_values(self):
         settings = self.env['res.config.settings'].create({})

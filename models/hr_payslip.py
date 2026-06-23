@@ -1090,14 +1090,10 @@ class HrPayslip(models.Model):
         :param aftrek_bv: Aftrek belastingvrij per periode (Art. 10f, bijv. pensioenpremie)
         :returns: positief bedrag loonbelasting per periode
         """
-        heffingskorting = self.contract_id._sr_get_heffingskorting_per_periode(
-            self._rule_parameter('SR_HEFFINGSKORTING'),
-            round_result=False,
-        ) if self.contract_id else 0.0
         return self._sr_get_cached_result(
             gross_per_periode,
             aftrek_bv,
-            heffingskorting=heffingskorting,
+            heffingskorting=0.0,
         )['lb_per_periode']
 
     def _sr_artikel14_aov(self, gross_per_periode, aftrek_bv=0.0):
@@ -1110,14 +1106,10 @@ class HrPayslip(models.Model):
         :param aftrek_bv: Aftrek belastingvrij per periode (Art. 10f)
         :returns: positief bedrag AOV per periode
         """
-        heffingskorting = self.contract_id._sr_get_heffingskorting_per_periode(
-            self._rule_parameter('SR_HEFFINGSKORTING'),
-            round_result=False,
-        ) if self.contract_id else 0.0
         return self._sr_get_cached_result(
             gross_per_periode,
             aftrek_bv,
-            heffingskorting=heffingskorting,
+            heffingskorting=0.0,
         )['aov_per_periode']
 
     def _sr_get_fn_annual_alignment_target(self):
@@ -1155,12 +1147,7 @@ class HrPayslip(models.Model):
         vgb_belastbaar = Decimal(str(
             contract._sr_vgb_fiscaal_belastbaar(exchange_rate=exchange_rate, round_result=False)
         )) * scale
-        heffingskorting = Decimal(str(
-            contract._sr_get_heffingskorting_per_periode(
-                self._rule_parameter('SR_HEFFINGSKORTING'),
-                round_result=False,
-            )
-        )) * scale
+        heffingskorting = Decimal('0')
 
         bruto_belastbaar = wage + belastbaar_toelagen + kb_belastbaar + vgb_belastbaar
         bruto_totaal = wage + belastbaar_toelagen + kb_belastbaar + kb_vrijgesteld + vrijgesteld_toelagen
@@ -1384,12 +1371,7 @@ class HrPayslip(models.Model):
         # op bestaande slips verhogen, maar horen niet in de LB/AOV-grondslag.
         gross = basic + toelagen + kb_belastbaar + input_belastbaar + vgb_belastbaar_bedrag
         params = calc.fetch_params_from_payslip(self)
-        heffingskorting_calc = heffingskorting
-        if abs(heffingskorting_calc) < 0.005 and contract:
-            heffingskorting_calc = contract._sr_get_heffingskorting_per_periode(
-                self._rule_parameter('SR_HEFFINGSKORTING'),
-                round_result=False,
-            )
+        heffingskorting_calc = 0.0
         r = calc.calculate_lb(
             gross,
             periodes,
@@ -1715,6 +1697,7 @@ class HrPayslip(models.Model):
             'kb_belastbaar': kb_belastbaar,
             'kb_vrijgesteld': kb_vrijgesteld,
             'vrijgesteld_contract': vrijgesteld_contract,
+            'vgb_belastbaar': vgb_belastbaar_bedrag,
             'heffingskorting': heffingskorting_calc,
             'overwerk': overwerk,
             'vakantie': vakantie,
@@ -1769,6 +1752,10 @@ class HrPayslip(models.Model):
             # AOV
             'adjusted_bruto_per_periode': r['adjusted_bruto_per_periode'],
             'franchise_periode': r['franchise_periode'],
+            'aov_forfaitaire_aftrek_per_periode': r.get(
+                'aov_forfaitaire_aftrek_per_periode',
+                r['forfaitaire_per_periode'],
+            ),
             'aov_grondslag': r['aov_grondslag'],
             'aov_tarief_pct': r['aov_tarief'] * 100,
             'aov_per_periode': aov_per_periode,

@@ -19,7 +19,7 @@
         <record id="sr_param_belastingvrij_jaar_2026" model="hr.rule.parameter.value">
             <field name="rule_parameter_id" ref="sr_param_belastingvrij_jaar"/>
             <field name="date_from" eval="datetime(2026, 1, 1).date()"/>
-            <field name="parameter_value">0.0</field>
+            <field name="parameter_value">108000.0</field>
         </record>
 
         <!-- ═══════════════════════════════════════════════════════════
@@ -147,7 +147,7 @@
 
         <!-- ═══════════════════════════════════════════════════════════
              AOV (Algemene Ouderdomsvoorziening)
-             4% over belastbaar loon minus franchise SRD 400/maand
+             4% over zuiver loon na Art. 10f en Art. 12 forfaitaire aftrek.
              ═══════════════════════════════════════════════════════════ -->
         <record id="sr_param_aov_tarief" model="hr.rule.parameter">
             <field name="name">SR — AOV tarief — ALS 2005 (decimaal: 0.04 = 4%%)</field>
@@ -168,7 +168,7 @@
         <record id="sr_param_aov_franchise_maand_2026" model="hr.rule.parameter.value">
             <field name="rule_parameter_id" ref="sr_param_aov_franchise_maand"/>
             <field name="date_from" eval="datetime(2026, 1, 1).date()"/>
-            <field name="parameter_value">400.0</field>
+            <field name="parameter_value">0.0</field>
         </record>
 
         <!-- ═══════════════════════════════════════════════════════════
@@ -272,7 +272,7 @@
         <record id="sr_param_heffingskorting_2026" model="hr.rule.parameter.value">
             <field name="rule_parameter_id" ref="sr_param_heffingskorting"/>
             <field name="date_from" eval="datetime(2026, 1, 1).date()"/>
-            <field name="parameter_value">750.0</field>
+            <field name="parameter_value">0.0</field>
         </record>
 
         <!-- ═══════════════════════════════════════════════════════════

@@ -451,9 +451,9 @@ class TestIntegratieVolledigeCyclus(common.TransactionCase):
         )
 
         aov = self._haal_totaal(payslip, 'SR_AOV')
-        expected_aov = -round((fn_per_periode - (400.0 * 12 / 26)) * 0.04, 2)
+        expected_aov = -round((fn_per_periode - min(fn_per_periode * 0.04, 4800.0 / 26)) * 0.04, 2)
         self.assertAlmostEqual(aov, expected_aov, delta=0.02,
-                               msg='AOV fortnight met geprorateerde franchise klopt niet')
+                               msg='AOV fortnight met forfaitaire aftrek klopt niet')
         self.assertEqual(
             payslip._get_sr_artikel14_breakdown()['fn_period_label'], '2026FN9'
         )
@@ -485,8 +485,8 @@ class TestIntegratieVolledigeCyclus(common.TransactionCase):
                 date_to=date(2026, 5, 31),
             )
 
-    def test_fortnight_maureen_like_netto_met_geprorateerde_aov_franchise(self):
-        """Maureen-achtig FN-pakket moet netto met pro-rata AOV-franchise berekend worden."""
+    def test_fortnight_maureen_like_netto_met_forfaitaire_aov_aftrek(self):
+        """Maureen-achtig FN-pakket moet netto met forfaitaire AOV-aftrek berekend worden."""
 
         def _maureen_like_lines():
             return [
@@ -543,25 +543,25 @@ class TestIntegratieVolledigeCyclus(common.TransactionCase):
 
         self.assertAlmostEqual(
             contract_fn.sr_preview_aov_periode,
-            300.92,
+            346.46,
             delta=0.05,
-            msg='Preview AOV moet voor FN met geprorateerde franchise worden berekend',
+            msg='Preview AOV moet voor FN met forfaitaire aftrek worden berekend',
         )
         self.assertAlmostEqual(
             contract_fn.sr_preview_netto,
-            6609.23,
+            6718.92,
             delta=0.05,
             msg='Preview netto voor Maureen-achtig FN-pakket klopt niet',
         )
         self.assertAlmostEqual(
             self._haal_totaal(payslip_fn, 'SR_AOV'),
-            -300.92,
+            -346.46,
             delta=0.05,
-            msg='Loonstrook AOV moet voor FN met geprorateerde franchise worden berekend',
+            msg='Loonstrook AOV moet voor FN met forfaitaire aftrek worden berekend',
         )
         self.assertAlmostEqual(
             self._haal_totaal(payslip_fn, 'NET'),
-            6609.23,
+            6718.92,
             delta=0.05,
             msg='Loonstrook netto voor Maureen-achtig FN-pakket klopt niet',
         )
@@ -894,19 +894,19 @@ class TestIntegratieContractPreview(common.TransactionCase):
     # ──────────────────────────────────────────────────────────────────
     # Test 7: Preview AOV correct voor maand/fortnight
     # ──────────────────────────────────────────────────────────────────
-    def test_preview_aov_maandloon_met_franchise(self):
+    def test_preview_aov_maandloon_met_forfaitaire_aftrek(self):
         """
         Maandloon SRD 5.000 → AOV grondslag = 5.000 − 400 = 4.600
         sr_preview_aov_periode = 4.600 × 4% = 184.
         """
         contract = self._maak_contract(wage=5000.0, salary_type='monthly')
-        verwacht = (5000.0 - 400.0) * 0.04
+        verwacht = (5000.0 - 200.0) * 0.04
         self.assertAlmostEqual(
             contract.sr_preview_aov_periode, verwacht, places=2,
             msg='sr_preview_aov_periode maandloon klopt niet',
         )
 
-    def test_preview_aov_fortnight_met_geprorateerde_franchise(self):
+    def test_preview_aov_fortnight_met_forfaitaire_aftrek(self):
         """
         Fortnight SRD 5.000/periode → pro-rata franchise.
         AOV grondslag = 5.000 − (400 × 12 ÷ 26) → sr_preview_aov_periode ≈ 192,62.
@@ -914,10 +914,10 @@ class TestIntegratieContractPreview(common.TransactionCase):
         """
         maandloon = round(5000.0 * 26 / 12, 2)
         contract = self._maak_contract(wage=maandloon, salary_type='fn')
-        verwacht = round((5000.0 - (400.0 * 12 / 26)) * 0.04, 2)
+        verwacht = round((5000.0 - (4800.0 / 26)) * 0.04, 2)
         self.assertAlmostEqual(
             contract.sr_preview_aov_periode, verwacht, delta=0.02,
-            msg='sr_preview_aov_periode fortnight met geprorateerde franchise klopt niet',
+            msg='sr_preview_aov_periode fortnight met forfaitaire aftrek klopt niet',
         )
 
     # ──────────────────────────────────────────────────────────────────
