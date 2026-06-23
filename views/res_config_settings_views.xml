@@ -206,5 +206,6 @@
         name="SR Payroll Instellingen"
         parent="l10n_sr_hr_payroll.menu_sr_config_root"
         action="action_res_config_settings_sr_payroll"
-        sequence="5"/>
+        sequence="5"
+        groups="hr_payroll.group_hr_payroll_manager,base.group_system"/>
 </odoo>
