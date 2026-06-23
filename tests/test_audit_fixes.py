@@ -496,6 +496,21 @@ class TestAuditFixes(common.TransactionCase):
         self.assertIn('SRD 1.234,56', html)
         self.assertNotIn('1.234.56', html)
 
+    def test_breakdown_accepts_vgb_belastbaar_preview_value(self):
+        params = calc.fetch_params_from_rule_parameter(self.env, date(2026, 5, 1))
+        result = calc.calculate_lb(1350.0, 12, params)
+
+        html = calc.generate_breakdown_html(
+            result=result,
+            wage=1250.0,
+            periodes=12,
+            salary_type='monthly',
+            vgb_belastbaar=100.0,
+        )
+
+        self.assertIn('VGB fiscaal belastbaar', html)
+        self.assertIn('SRD 100,00', html)
+
     def test_calculator_exposes_period_tax_base_after_forfaitaire(self):
         params = calc.fetch_params_from_rule_parameter(self.env, date(2026, 5, 1))
 

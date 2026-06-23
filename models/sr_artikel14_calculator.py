@@ -499,7 +499,7 @@ def generate_breakdown_html(result, wage, periodes, salary_type, kb_split=None,
                             vrijgesteld=0.0, inhoudingen=0.0,
                             belastbaar_toelagen=0.0,
                             bruto_totaal=None, netto_totaal=None,
-                            heffingskorting=0.0):
+                            heffingskorting=0.0, vgb_belastbaar=0.0):
     """
     Genereert een stap-voor-stap berekeningsoverzicht (debug panel) als HTML.
 
@@ -513,6 +513,7 @@ def generate_breakdown_html(result, wage, periodes, salary_type, kb_split=None,
     :param belastbaar_toelagen: Belastbare toelagen per periode (contract regels)
     :param bruto_totaal:  Reeds berekend contract-bruto per periode
     :param netto_totaal:  Reeds berekend contract-netto per periode
+    :param vgb_belastbaar: Fiscaal belastbaar VGB-voordeel per periode
     :returns: HTML string
     """
     def m(n, sign=''):
@@ -579,11 +580,13 @@ def generate_breakdown_html(result, wage, periodes, salary_type, kb_split=None,
     rows.append(row('Loontype', loon_type_str, m(wage)))
     if belastbaar_toelagen > 0:
         rows.append(row('Belastbare toelagen', '(contract regels)', m(belastbaar_toelagen)))
+    if vgb_belastbaar > 0:
+        rows.append(row('VGB fiscaal belastbaar', 'voordeel in natura (Art. 9 WLB)', m(vgb_belastbaar)))
     if vrijgesteld > 0:
         rows.append(row('Vrijgestelde toelagen', '(transport, maaltijd, ...)', m(vrijgesteld)))
     if r.get('aftrek_bv_per_periode', 0.0) > 0:
         rows.append(row('Pensioenpremie inhouding', 'aftrek_belastingvrij', m(r['aftrek_bv_per_periode'])))
-    rows.append(row('<strong>GROSS belastbaar</strong>', 'Basisloon + belastbare toelagen',
+    rows.append(row('<strong>GROSS belastbaar</strong>', 'Basisloon + belastbare toelagen + fiscale voordelen',
                     m(r['bruto_per_periode']), '#f0f9ff'))
 
     if kb_b > 0 or kb_v > 0:

@@ -7,6 +7,7 @@
         Deze basisloonvariant beperkt contractinvoer tot:
         - contractvaluta
         - basisloon
+        - AKB / kinderbijslag
         - verloningstype
         - live rekenvoorbeeld
     -->
@@ -85,16 +86,34 @@
                                 </group>
                             </group>
 
+                            <group string="Gezin &amp; AKB" name="sr_gezin_akb">
+                                <group>
+                                    <field name="sr_aantal_kinderen"
+                                           string="Aantal Kinderen (Art. 10h)"
+                                           help="Aantal kinderen voor kinderbijslag vrijstelling. Wettelijk gemaximeerd op 4 kinderen in de 2026 release."/>
+                                    <field name="sr_kinderbijslag_bedrag"
+                                           string="Kinderbijslag (per kind / maand)"
+                                           widget="monetary"
+                                           options="{'currency_field': 'currency_id'}"
+                                         help="Kinderbijslag per kind per maand. Bij FN-contracten automatisch omgerekend naar per FN-periode (x 12 / 26) en vermenigvuldigd met Aantal Kinderen. Wordt gesplitst in vrijgesteld (max SRD 250/kind/maand) en belastbaar deel (Art. 10h WLB)."/>
+                                </group>
+                                <group>
+                                    <div class="text-muted small pt-1">
+                                        AKB is beperkt tot <strong>SRD 250 per kind</strong>, maximaal <strong>SRD 1.000</strong> en maximaal <strong>4 kinderen</strong>. De vrijgestelde/belastbare splitsing wordt automatisch op de loonstrook toegepast.
+                                    </div>
+                                </group>
+                            </group>
+
                             <div class="alert alert-light border mb-0" role="status">
-                                Deze contractweergave is afgebakend tot <strong>basisloon</strong>.
-                                Kinderbijslag, overwerk, toelagen en overige inhoudingen worden hier niet meer ingevoerd.
+                                Deze contractweergave is afgebakend tot <strong>basisloon en AKB</strong>.
+                                Overwerk, toelagen en overige inhoudingen worden hier niet meer ingevoerd.
                             </div>
                         </page>
 
                         <page string="Controle &amp; Voorbeeld" name="sr_controle_preview_tab">
                             <separator string="Geschatte Loonstrook per Periode"/>
                             <div class="alert alert-info small mb-3" role="status">
-                                <i class="fa fa-info-circle"/>&#160;Schatting op basis van alleen basisloon. Toelagen, overwerk en andere extra componenten vallen buiten deze basisloonvariant.
+                                <i class="fa fa-info-circle"/>&#160;Schatting op basis van basisloon en AKB. Toelagen, overwerk en andere extra componenten vallen buiten deze basisloonvariant.
                             </div>
                             <div class="alert alert-warning small mb-3" role="status" invisible="sr_salary_type != 'fn'">
                                 <i class="fa fa-balance-scale"/>&#160;Deze FN-preview toont een normale periode. Alleen op FN26 kan een kleine jaarafronding verschijnen zodat 26 FN-loonstroken exact aansluiten op 12 maandperiodes.
