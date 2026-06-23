@@ -70,6 +70,34 @@ class TestAuditFixes(common.TransactionCase):
         line = payslip.line_ids.filtered(lambda l: l.code == code)
         return line.total if line else 0.0
 
+    def test_sr_structures_allow_sr_payslip_input_types(self):
+        expected_input_types = self.env['hr.payslip.input.type'].browse([
+            self.env.ref('l10n_sr_hr_payroll.sr_input_belastbare_toelage').id,
+            self.env.ref('l10n_sr_hr_payroll.sr_input_vrije_vergoeding').id,
+            self.env.ref('l10n_sr_hr_payroll.sr_input_medische_vergoeding').id,
+            self.env.ref('l10n_sr_hr_payroll.sr_input_inhouding').id,
+            self.env.ref('l10n_sr_hr_payroll.sr_input_overwerk').id,
+            self.env.ref('l10n_sr_hr_payroll.sr_input_overwerk_150').id,
+            self.env.ref('l10n_sr_hr_payroll.sr_input_overwerk_200').id,
+            self.env.ref('l10n_sr_hr_payroll.sr_input_vakantietoelage').id,
+            self.env.ref('l10n_sr_hr_payroll.sr_input_gratificatie').id,
+            self.env.ref('l10n_sr_hr_payroll.sr_input_prestatie_bonus').id,
+            self.env.ref('l10n_sr_hr_payroll.sr_input_bijz_beloning').id,
+            self.env.ref('l10n_sr_hr_payroll.sr_input_uitkering_ineens').id,
+            self.env.ref('l10n_sr_hr_payroll.sr_input_bzv_werknemer').id,
+            self.env.ref('l10n_sr_hr_payroll.sr_input_fvo_werknemer').id,
+            self.env.ref('l10n_sr_hr_payroll.sr_input_vakbond').id,
+            self.env.ref('l10n_sr_hr_payroll.sr_input_bzv_werkgever').id,
+            self.env.ref('l10n_sr_hr_payroll.sr_input_wisselkoers').id,
+        ])
+        expected_input_type_ids = set(expected_input_types.ids)
+
+        for structure in (self.structure, self.hourly_structure):
+            self.assertTrue(
+                expected_input_type_ids.issubset(set(structure.input_line_type_ids.ids)),
+                f'{structure.display_name} mist SR Other Input types',
+            )
+
     def test_kinderbijslag_name_normalizes_to_type(self):
         contract = self._make_contract(
             sr_aantal_kinderen=4,

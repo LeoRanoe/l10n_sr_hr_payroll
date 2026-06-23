@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0">
+
+        <record id="sr_payroll_structure" model="hr.payroll.structure">
+            <field name="input_line_type_ids" eval="[
+                (4, ref('l10n_sr_hr_payroll.sr_input_belastbare_toelage')),
+                (4, ref('l10n_sr_hr_payroll.sr_input_vrije_vergoeding')),
+                (4, ref('l10n_sr_hr_payroll.sr_input_medische_vergoeding')),
+                (4, ref('l10n_sr_hr_payroll.sr_input_inhouding')),
+                (4, ref('l10n_sr_hr_payroll.sr_input_overwerk')),
+                (4, ref('l10n_sr_hr_payroll.sr_input_overwerk_150')),
+                (4, ref('l10n_sr_hr_payroll.sr_input_overwerk_200')),
+                (4, ref('l10n_sr_hr_payroll.sr_input_vakantietoelage')),
+                (4, ref('l10n_sr_hr_payroll.sr_input_gratificatie')),
+                (4, ref('l10n_sr_hr_payroll.sr_input_prestatie_bonus')),
+                (4, ref('l10n_sr_hr_payroll.sr_input_bijz_beloning')),
+                (4, ref('l10n_sr_hr_payroll.sr_input_uitkering_ineens')),
+                (4, ref('l10n_sr_hr_payroll.sr_input_bzv_werknemer')),
+                (4, ref('l10n_sr_hr_payroll.sr_input_fvo_werknemer')),
+                (4, ref('l10n_sr_hr_payroll.sr_input_vakbond')),
+                (4, ref('l10n_sr_hr_payroll.sr_input_bzv_werkgever')),
+                (4, ref('l10n_sr_hr_payroll.sr_input_wisselkoers')),
+            ]"/>
+        </record>
+
+        <record id="sr_payroll_structure_hourly" model="hr.payroll.structure">
+            <field name="input_line_type_ids" eval="[
+                (4, ref('l10n_sr_hr_payroll.sr_input_belastbare_toelage')),
+                (4, ref('l10n_sr_hr_payroll.sr_input_vrije_vergoeding')),
+                (4, ref('l10n_sr_hr_payroll.sr_input_medische_vergoeding')),
+                (4, ref('l10n_sr_hr_payroll.sr_input_inhouding')),
+                (4, ref('l10n_sr_hr_payroll.sr_input_overwerk')),
+                (4, ref('l10n_sr_hr_payroll.sr_input_overwerk_150')),
+                (4, ref('l10n_sr_hr_payroll.sr_input_overwerk_200')),
+                (4, ref('l10n_sr_hr_payroll.sr_input_vakantietoelage')),
+                (4, ref('l10n_sr_hr_payroll.sr_input_gratificatie')),
+                (4, ref('l10n_sr_hr_payroll.sr_input_prestatie_bonus')),
+                (4, ref('l10n_sr_hr_payroll.sr_input_bijz_beloning')),
+                (4, ref('l10n_sr_hr_payroll.sr_input_uitkering_ineens')),
+                (4, ref('l10n_sr_hr_payroll.sr_input_bzv_werknemer')),
+                (4, ref('l10n_sr_hr_payroll.sr_input_fvo_werknemer')),
+                (4, ref('l10n_sr_hr_payroll.sr_input_vakbond')),
+                (4, ref('l10n_sr_hr_payroll.sr_input_bzv_werkgever')),
+                (4, ref('l10n_sr_hr_payroll.sr_input_wisselkoers')),
+            ]"/>
+        </record>
+
+    </data>
+</odoo>
