@@ -7,7 +7,7 @@
         </record>
 
         <record id="hr_payslip_run_form_sr_tax_overview" model="ir.ui.view">
-            <field name="active">False</field>
+            <field name="active">True</field>
         </record>
 
         <record id="hr_payslip_sr_form_fiscal_overview" model="ir.ui.view">

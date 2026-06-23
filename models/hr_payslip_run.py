@@ -19,17 +19,31 @@ class HrPayslipRun(models.Model):
 
     @api.depends('slip_ids', 'slip_ids.struct_id', 'slip_ids.state')
     def _compute_sr_has_sr_payslips(self):
-        sr_struct = self.env.ref('l10n_sr_hr_payroll.sr_payroll_structure', raise_if_not_found=False)
+        sr_structures = self.env['hr.payroll.structure']
+        for xmlid in (
+            'l10n_sr_hr_payroll.sr_payroll_structure',
+            'l10n_sr_hr_payroll.sr_payroll_structure_hourly',
+        ):
+            structure = self.env.ref(xmlid, raise_if_not_found=False)
+            if structure:
+                sr_structures |= structure
         for payslip_run in self:
             payslip_run.sr_has_sr_payslips = bool(
-                sr_struct and payslip_run.slip_ids.filtered(lambda slip: slip.struct_id == sr_struct)
+                sr_structures and payslip_run.slip_ids.filtered(lambda slip: slip.struct_id in sr_structures)
             )
 
     def _sr_get_tax_overview_slips(self):
         self.ensure_one()
-        sr_struct = self.env.ref('l10n_sr_hr_payroll.sr_payroll_structure', raise_if_not_found=False)
+        sr_structures = self.env['hr.payroll.structure']
+        for xmlid in (
+            'l10n_sr_hr_payroll.sr_payroll_structure',
+            'l10n_sr_hr_payroll.sr_payroll_structure_hourly',
+        ):
+            structure = self.env.ref(xmlid, raise_if_not_found=False)
+            if structure:
+                sr_structures |= structure
         return self.slip_ids.filtered(
-            lambda slip: slip.struct_id == sr_struct and slip.state in ('done', 'paid')
+            lambda slip: slip.struct_id in sr_structures and slip.state in ('done', 'paid')
         ).sorted(lambda slip: (
             slip.employee_id.department_id.name or '',
             slip.employee_id.name or '',
@@ -39,22 +53,58 @@ class HrPayslipRun(models.Model):
 
     def action_print_sr_tax_overview(self):
         self.ensure_one()
-        self._sr_raise_basisloon_scope_error('Belastingoverzicht per loonrun')
+        if not self._sr_get_tax_overview_slips():
+            raise UserError(
+                'Geen afgeronde SR-loonstroken gevonden voor dit fiscaal overzicht. '
+                'Controleer of de loonstroken zijn bevestigd (done/paid).'
+            )
+        return self.env.ref('l10n_sr_hr_payroll.action_report_sr_tax_overview_period').report_action(
+            self,
+            config=False,
+        )
 
     def action_open_sr_tax_report_export_wizard(self):
         """Open de CSV-exportwizard met de loonrunperiode als standaardfilter."""
         self.ensure_one()
-        self._sr_raise_basisloon_scope_error('CSV-export van fiscaal overzicht')
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Exporteer Fiscaal Belastingoverzicht',
+            'res_model': 'sr.payroll.tax.report.export.wizard',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {
+                'default_company_id': self.company_id.id or self.env.company.id,
+                'default_date_from': self.date_start,
+                'default_date_to': self.date_end,
+            },
+        }
 
     def action_open_sr_verzamelloonstaat_wizard(self):
         """Open de Verzamelloonstaat exportwizard voor de Belastingdienst Suriname."""
         self.ensure_one()
-        self._sr_raise_basisloon_scope_error('Verzamelloonstaat-export')
+        year = self.date_start.year if self.date_start else fields.Date.context_today(self).year
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Verzamelloonstaat (CSV)',
+            'res_model': 'sr.payroll.verzamelloonstaat.wizard',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {
+                'default_company_id': self.company_id.id or self.env.company.id,
+                'default_year': year,
+            },
+        }
 
     def action_open_sr_tax_report(self):
         """Open het Fiscaal Belastingoverzicht gefilterd op deze loonrun."""
         self.ensure_one()
-        self._sr_raise_basisloon_scope_error('Fiscaal belastingoverzicht')
+        action = self.env.ref('l10n_sr_hr_payroll.action_sr_payroll_tax_report').read()[0]
+        action['domain'] = [('payslip_run_id', '=', self.id)]
+        action['context'] = {
+            'search_default_group_employee': 1,
+            'default_payslip_run_id': self.id,
+        }
+        return action
 
     # ── Bedrijfs Belastingoverzicht Periode ────────────────────────────────
 
@@ -151,7 +201,10 @@ class HrPayslipRun(models.Model):
     def action_print_sr_company_period_overview(self):
         """Print het Bedrijfs Belastingoverzicht Periode als PDF."""
         self.ensure_one()
-        self._sr_raise_basisloon_scope_error('Bedrijfsoverzicht per periode')
+        return self.env.ref('l10n_sr_hr_payroll.action_report_sr_company_period_overview').report_action(
+            self,
+            config=False,
+        )
 
     # ── Maandelijkse Aangifte Loonbelasting & AOV ──────────────────────────
 
@@ -231,4 +284,7 @@ class HrPayslipRun(models.Model):
     def action_print_sr_maandaangifte(self):
         """Print de Aangifte Loonbelasting en Premie AOV als PDF."""
         self.ensure_one()
-        self._sr_raise_basisloon_scope_error('Maandaangifte LB+AOV')
+        return self.env.ref('l10n_sr_hr_payroll.action_report_sr_maandaangifte').report_action(
+            self,
+            config=False,
+        )
