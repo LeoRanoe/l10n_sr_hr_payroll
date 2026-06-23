@@ -1681,6 +1681,7 @@ class HrPayslip(models.Model):
             # Basis
             'periodes': periodes,
             'is_fn': periodes == 26,
+            'structure_name': self.sudo().struct_id.name if self.struct_id else '',
             'payslip_layout': self._sr_get_effective_payslip_layout(),
             'payslip_layout_label': self._sr_get_layout_label(),
             'period_title': period_title,

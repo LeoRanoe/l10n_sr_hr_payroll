@@ -309,7 +309,7 @@
                             <td class="sr-emp-label" style="padding-left:16px; padding-bottom:8px;">Loonstructuur</td>
                             <td class="sr-emp-colon" style="padding-bottom:8px;">:</td>
                             <td class="sr-emp-value" style="padding-bottom:8px;">
-                                <t t-esc="doc.struct_id.name or '—'"/>
+                                <t t-esc="bd.get('structure_name') or '—'"/>
                             </td>
                         </tr>
                     </table>
@@ -824,7 +824,7 @@
                             <td id="sr_other_infos">
                                 <div>
                                     <strong class="me-2">Loonstructuur:</strong>
-                                    <span t-esc="doc.struct_id.name or '—'"/>
+                                    <span t-esc="bd.get('structure_name') or '—'"/>
                                 </div>
                                 <div>
                                     <strong class="me-2">Periode:</strong>
@@ -1072,7 +1072,7 @@
                     </tr>
                     <tr>
                         <td style="padding:3px 8px; color:#555;">Loonstructuur</td>
-                        <td style="padding:3px 8px;"><t t-esc="doc.struct_id.name or '—'"/></td>
+                        <td style="padding:3px 8px;"><t t-esc="bd.get('structure_name') or '—'"/></td>
                         <td style="padding:3px 8px; color:#555;">Indicator</td>
                         <td style="padding:3px 8px; font-family:monospace;"><t t-esc="bd.get('fn_period_indicator') or '—'"/></td>
                     </tr>
