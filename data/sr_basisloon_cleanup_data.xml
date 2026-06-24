@@ -52,26 +52,32 @@
 
         <record id="menu_sr_overzichten_root" model="ir.ui.menu">
             <field name="active">False</field>
+            <field name="groups_id" eval="[(6, 0, [ref('base.group_no_one')])]"/>
         </record>
 
         <record id="menu_sr_overzichten_periode" model="ir.ui.menu">
             <field name="active">False</field>
+            <field name="groups_id" eval="[(6, 0, [ref('base.group_no_one')])]"/>
         </record>
 
         <record id="menu_sr_tax_report" model="ir.ui.menu">
             <field name="active">False</field>
+            <field name="groups_id" eval="[(6, 0, [ref('base.group_no_one')])]"/>
         </record>
 
         <record id="menu_sr_company_year_overview" model="ir.ui.menu">
             <field name="active">False</field>
+            <field name="groups_id" eval="[(6, 0, [ref('base.group_no_one')])]"/>
         </record>
 
         <record id="menu_sr_overzichten_verzamelloonstaat" model="ir.ui.menu">
             <field name="active">False</field>
+            <field name="groups_id" eval="[(6, 0, [ref('base.group_no_one')])]"/>
         </record>
 
         <record id="menu_sr_overzichten_jaaropgave" model="ir.ui.menu">
             <field name="active">False</field>
+            <field name="groups_id" eval="[(6, 0, [ref('base.group_no_one')])]"/>
         </record>
 
     </data>

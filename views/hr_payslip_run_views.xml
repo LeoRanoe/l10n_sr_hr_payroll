@@ -39,8 +39,46 @@
                     type="object"
                     class="btn-secondary"
                     icon="fa-file-export"
-                    invisible="not sr_has_sr_payslips"
+                    invisible="state not in ('close', 'paid') or not sr_has_sr_payslips"
                     help="Exporteer de jaarlijkse Verzamelloonstaat CSV voor de Belastingdienst Suriname."/>
+            </xpath>
+            <xpath expr="//sheet/group" position="after">
+                <group string="SR Rapporten">
+                    <div class="alert alert-warning" role="alert" colspan="2"
+                         invisible="sr_has_sr_payslips">
+                        Deze batch bevat nog geen SR-loonstroken. Koppel eerst SR-loonstroken aan deze batch of genereer de loonstroken vanuit de batch.
+                    </div>
+                    <div class="alert alert-info" role="alert" colspan="2"
+                         invisible="not sr_has_sr_payslips or state in ('close', 'paid')">
+                        De SR-rapporten komen beschikbaar nadat de batch is gevalideerd/afgesloten.
+                    </div>
+                    <div class="o_row" colspan="2" invisible="state not in ('close', 'paid') or not sr_has_sr_payslips">
+                        <button
+                            name="action_print_sr_tax_overview"
+                            string="Fiscaal overzicht (PDF)"
+                            type="object"
+                            class="btn-secondary"
+                            icon="fa-file-pdf"/>
+                        <button
+                            name="action_print_sr_company_period_overview"
+                            string="Periodeoverzicht (PDF)"
+                            type="object"
+                            class="btn-secondary"
+                            icon="fa-building"/>
+                        <button
+                            name="action_print_sr_maandaangifte"
+                            string="Maandaangifte LB + AOV"
+                            type="object"
+                            class="btn-primary"
+                            icon="fa-landmark"/>
+                        <button
+                            name="action_open_sr_verzamelloonstaat_wizard"
+                            string="Verzamelloonstaat (CSV)"
+                            type="object"
+                            class="btn-secondary"
+                            icon="fa-file-export"/>
+                    </div>
+                </group>
             </xpath>
         </field>
     </record>

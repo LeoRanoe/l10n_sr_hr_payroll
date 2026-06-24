@@ -17,6 +17,13 @@ class HrPayslipRun(models.Model):
             f'{feature_label} valt buiten de basisloon-scope van deze modulevariant.'
         )
 
+    def _sr_ensure_reportable_run(self):
+        self.ensure_one()
+        if self.state not in ('close', 'paid'):
+            raise UserError(
+                'De SR-rapporten zijn pas beschikbaar nadat de salarisrun is gevalideerd/afgesloten.'
+            )
+
     @api.depends('slip_ids', 'slip_ids.struct_id', 'slip_ids.state')
     def _compute_sr_has_sr_payslips(self):
         sr_structures = self.env['hr.payroll.structure']
@@ -53,6 +60,7 @@ class HrPayslipRun(models.Model):
 
     def action_print_sr_tax_overview(self):
         self.ensure_one()
+        self._sr_ensure_reportable_run()
         if not self._sr_get_tax_overview_slips():
             raise UserError(
                 'Geen afgeronde SR-loonstroken gevonden voor dit fiscaal overzicht. '
@@ -82,6 +90,7 @@ class HrPayslipRun(models.Model):
     def action_open_sr_verzamelloonstaat_wizard(self):
         """Open de Verzamelloonstaat exportwizard voor de Belastingdienst Suriname."""
         self.ensure_one()
+        self._sr_ensure_reportable_run()
         year = self.date_start.year if self.date_start else fields.Date.context_today(self).year
         return {
             'type': 'ir.actions.act_window',
@@ -201,6 +210,7 @@ class HrPayslipRun(models.Model):
     def action_print_sr_company_period_overview(self):
         """Print het Bedrijfs Belastingoverzicht Periode als PDF."""
         self.ensure_one()
+        self._sr_ensure_reportable_run()
         return self.env.ref('l10n_sr_hr_payroll.action_report_sr_company_period_overview').report_action(
             self,
             config=False,
@@ -284,6 +294,7 @@ class HrPayslipRun(models.Model):
     def action_print_sr_maandaangifte(self):
         """Print de Aangifte Loonbelasting en Premie AOV als PDF."""
         self.ensure_one()
+        self._sr_ensure_reportable_run()
         return self.env.ref('l10n_sr_hr_payroll.action_report_sr_maandaangifte').report_action(
             self,
             config=False,
