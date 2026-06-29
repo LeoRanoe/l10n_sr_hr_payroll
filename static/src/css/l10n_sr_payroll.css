@@ -1,12 +1,4 @@
-﻿/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   l10n_sr_hr_payroll â€” Suriname Salarisverwerking Stijlen
-   Teal/slate neutrale kleurstelling; overschrijft standaard Odoo achtergronden
-   voor de Suriname loon tab, zodat de module herkenbaar is.
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
-
-/* â”€â”€ Contract form tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-
-/* Highlight de Suriname Loon tab knop */
+﻿/* Highlight de Suriname Loon tab knop */
 .o_notebook .nav-link[data-name="sr_payroll_tab"] {
     border-bottom: 3px solid #0891b2;
     color: #0e7490;
@@ -64,15 +56,11 @@
 .sr-tarief-3 { color: #dc2626; font-weight: bold; }
 .sr-tarief-4 { color: #7c3aed; font-weight: bold; }
 
-/* â”€â”€ Payroll list view aanpassingen â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-
 /* Markeer Suriname loonstructuur rijen */
 .o_data_row .o_field_widget[name="struct_id"] .o_form_uri:contains("Suriname") {
     color: #0e7490;
     font-weight: 600;
 }
-
-/* â”€â”€ Algemene aanpassingen voor SR salarisregels â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 /* Deduction regels op de loonstrook weergave in de browser */
 .o_payslip_line[data-code="SR_LB"] .o_field_numeric,
