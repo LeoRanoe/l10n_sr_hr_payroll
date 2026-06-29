@@ -474,3 +474,20 @@ Set-Location "C:\Program Files\Odoo 18.0e.20260407\server"
 ## Licentie
 
 De module declareert `LGPL-3` in het manifest.
+
+**Project Rules**
+- Use SR payroll language, not generic words: `loonstrook`, `loonrun`, `maandaangifte`, `verzamelloonstaat`, `belastingoverzicht`, `AOV`, `loonbelasting`.
+- Keep Odoo naming patterns: model helpers as `_sr_*`, buttons as `action_print_sr_*` or `action_open_sr_*`, computed fields as `_compute_sr_*`.
+- Use Dutch user-facing text in fields, warnings, button labels, and errors.
+- Keep technical names in English only where Odoo expects them: `state`, `date_from`, `date_to`, `company_id`, `struct_id`.
+- Tie logic to real Odoo payroll states: `draft`, `verify`, `done`, `paid`, `cancel`.
+- Mention why a rule exists, not just what it does. Example: reports use `done/paid` because draft slips should not be sent to tax reports.
+- Avoid generic scripts that only say “CSV parser”. Mention the actual workflow: SR loonrun export, Fiscaal overzicht, Maandaangifte LB + AOV.
+- Match existing test style: `common.TransactionCase`, `@tagged('post_install', 'post_install_l10n', '-at_install')`, 2026 payroll dates, SR company, SRD currency.
+- Prefer small helpers when the same SR lookup appears twice, but don’t over-abstract one-off logic.
+- Error messages should sound like an Odoo payroll user will read them: practical, Dutch, and workflow-specific.
+- Do not add random mistakes. Natural inconsistency is fine, broken logic is not.
+- For reports/exports, validate empty results clearly: “Geen afgeronde SR-loonstroken gevonden...”
+- Keep the module’s existing mixed Dutch/English style where it already exists, but don’t introduce flashy new conventions.
+- If adding a standalone script, include examples that fit this module, not generic demo data.
+- Make sure you can explain every Suriname payroll assumption: SRD, AOV, loonbelasting, Art. 14/17, monthly/FN periods.
