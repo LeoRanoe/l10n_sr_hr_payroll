@@ -76,6 +76,11 @@ MONEY_QUANT = Decimal('0.01')
 WHOLE_QUANT = Decimal('1')
 ZERO = Decimal('0')
 
+KNOWN_ARTIKEL14_BRACKET_CODES = tuple(
+    code for code in CONFIG_PARAMETER_MAP
+    if BRACKET_LIMIT_CODE_RE.match(code) or BRACKET_RATE_CODE_RE.match(code)
+)
+
 
 def is_missing_parameter_value(value):
     return value is None or value is False or value == ''
@@ -318,10 +323,11 @@ def fetch_params_from_rule_parameter(env, ref_date):
             )
         except UserError as error:
             _raise_configuration_error(code, ref_date.isoformat(), error)
-    code_names = RuleParam.search([('code', 'like', 'SR_')]).mapped('code')
+    code_names = set(RuleParam.search([('code', 'like', 'SR_')]).mapped('code'))
+    code_names.update(KNOWN_ARTIKEL14_BRACKET_CODES)
     try:
         params['brackets'] = _collect_dynamic_brackets(
-            code_names,
+            sorted(code_names),
             lambda code: get_sr_parameter_value(env, code, ref_date, raise_if_not_found=True),
         )
     except UserError as error:
@@ -345,10 +351,11 @@ def fetch_params_from_payslip(payslip):
         except (UserError, KeyError, TypeError, ValueError) as error:
             context_label = payslip.date_to.isoformat() if payslip.date_to else 'deze loonstrook'
             _raise_configuration_error(code, context_label, error)
-    code_names = payslip.env['hr.rule.parameter'].search([('code', 'like', 'SR_')]).mapped('code')
+    code_names = set(payslip.env['hr.rule.parameter'].search([('code', 'like', 'SR_')]).mapped('code'))
+    code_names.update(KNOWN_ARTIKEL14_BRACKET_CODES)
     try:
         params['brackets'] = _collect_dynamic_brackets(
-            code_names,
+            sorted(code_names),
             payslip._rule_parameter,
         )
     except UserError as error:

@@ -134,6 +134,23 @@ class TestArtikel14Berekening(common.TransactionCase):
         # De bron noemt HK elders, maar de formele LB-formule vermindert die niet.
         self.assertAlmostEqual(result['lb_per_periode'], result['lb_jaar'] / 12, places=2)
 
+    def test_fetch_params_uses_known_bracket_codes_when_rule_parameters_are_missing(self):
+        codes = [
+            'SR_SCHIJF_1_GRENS',
+            'SR_SCHIJF_2_GRENS',
+            'SR_SCHIJF_3_GRENS',
+            'SR_TARIEF_1',
+            'SR_TARIEF_2',
+            'SR_TARIEF_3',
+            'SR_TARIEF_4',
+        ]
+        self.env['hr.rule.parameter'].search([('code', 'in', codes)]).unlink()
+
+        params = calc.fetch_params_from_rule_parameter(self.env, date(2026, 7, 2))
+
+        self.assertEqual([row['upper'] for row in params['brackets'] if row['upper'] is not None], [42000.0, 84000.0, 126000.0])
+        self.assertEqual([row['rate'] for row in params['brackets']], [0.08, 0.18, 0.28, 0.38])
+
     def test_vgb_zonder_contractregel_is_nul(self):
         contract_month = self._create_contract(wage=15000.0, salary_type='monthly')
         contract_fn = self._create_contract(wage=15000.0, salary_type='fn', employee=self.employee_b)

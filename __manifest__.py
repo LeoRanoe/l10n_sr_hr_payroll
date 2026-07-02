@@ -1,7 +1,7 @@
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 {
     'name': 'Suriname - Payroll (Wet Loonbelasting)',
-    'version': '18.0.1.1',
+    'version': '18.0.1.2',
     'author': 'RPBG - Stage Opdracht 2026',
     'countries': ['sr'],
     'category': 'Human Resources/Payroll',
