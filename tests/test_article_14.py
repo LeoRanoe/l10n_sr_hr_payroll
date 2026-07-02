@@ -151,6 +151,23 @@ class TestArtikel14Berekening(common.TransactionCase):
         self.assertEqual([row['upper'] for row in params['brackets'] if row['upper'] is not None], [42000.0, 84000.0, 126000.0])
         self.assertEqual([row['rate'] for row in params['brackets']], [0.08, 0.18, 0.28, 0.38])
 
+    def test_fetch_params_ignores_company_country_record_rule_for_new_db_context(self):
+        us_company = self.env['res.company'].create({
+            'name': 'Test Bedrijf US Context',
+            'country_id': self.env.ref('base.us').id,
+            'currency_id': self.env.ref('base.USD').id,
+        })
+        env_us = self.env(context=dict(
+            self.env.context,
+            allowed_company_ids=[us_company.id],
+            company_id=us_company.id,
+        ))
+
+        params = calc.fetch_params_from_rule_parameter(env_us, date(2026, 7, 2))
+
+        self.assertEqual([row['upper'] for row in params['brackets'] if row['upper'] is not None], [42000.0, 84000.0, 126000.0])
+        self.assertEqual([row['rate'] for row in params['brackets']], [0.08, 0.18, 0.28, 0.38])
+
     def test_vgb_zonder_contractregel_is_nul(self):
         contract_month = self._create_contract(wage=15000.0, salary_type='monthly')
         contract_fn = self._create_contract(wage=15000.0, salary_type='fn', employee=self.employee_b)
