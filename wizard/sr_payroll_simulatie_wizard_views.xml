@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="view_sr_payroll_simulatie_wizard_form" model="ir.ui.view">
+        <field name="name">sr.payroll.simulatie.wizard.form</field>
+        <field name="model">sr.payroll.simulatie.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Netto Loon Simulatie">
+                <group col="2">
+                    <group string="Invoer">
+                        <field name="loontype"/>
+                        <field name="brutoloon"/>
+                        <field name="toelagen"/>
+                        <field name="aantal_kinderen"/>
+                    </group>
+                    <group string="Berekening">
+                        <field name="beroepskosten" readonly="1"/>
+                        <field name="belastbaar_jaar" readonly="1"/>
+                        <field name="art14_loonbelasting" readonly="1"/>
+                        <field name="aov" readonly="1"/>
+                        <field name="kinderbijslag" readonly="1"/>
+                        <field name="netto" readonly="1"/>
+                    </group>
+                </group>
+                <footer>
+                    <button string="Rapport afdrukken" type="object" name="action_print_pdf" class="btn-primary"/>
+                    <button string="Sluiten" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_sr_payroll_simulatie_wizard" model="ir.actions.act_window">
+        <field name="name">Netto Loon Simulatie</field>
+        <field name="res_model">sr.payroll.simulatie.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+</odoo>

@@ -74,6 +74,8 @@ Berekeningen:
         'reports/report_sr_fiscal_overview_pdf.xml',
         'reports/report_sr_maandaangifte.xml',
         'data/sr_basisloon_cleanup_data.xml',
+        'wizard/sr_payroll_simulatie_wizard_views.xml',
+        'reports/reports_sr_simulatie.xml',
     ],
     'demo': [],
     'license': 'LGPL-3',

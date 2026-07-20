@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="action_report_sr_payroll_simulatie" model="ir.actions.report">
+        <field name="name">Netto Loon Simulatie</field>
+        <field name="model">sr.payroll.simulatie.wizard</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">l10n_sr_hr_payroll.report_sr_payroll_simulatie</field>
+        <field name="report_file">l10n_sr_hr_payroll.report_sr_payroll_simulatie</field>
+    </record>
+
+    <template id="report_sr_payroll_simulatie">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="doc">
+                <div class="page">
+                    <div class="text-center mb-4">
+                        <h2>Netto Loon Simulatie</h2>
+                        <p class="text-muted"><em>SIMULATIE — geen officieel document</em></p>
+                    </div>
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr class="table-light">
+                                <th>Omschrijving</th>
+                                <th class="text-end">Bedrag (SRD)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Brutoloon per periode</td>
+                                <td class="text-end"><t t-esc="'%.2f' % doc.brutoloon"/></td>
+                            </tr>
+                            <tr>
+                                <td>Belastbare toelagen</td>
+                                <td class="text-end"><t t-esc="'%.2f' % doc.toelagen"/></td>
+                            </tr>
+                            <tr>
+                                <td>Beroepskosten (Art. 12)</td>
+                                <td class="text-end">- <t t-esc="'%.2f' % doc.beroepskosten"/></td>
+                            </tr>
+                            <tr>
+                                <td>Belastbaar jaarloon</td>
+                                <td class="text-end"><t t-esc="'%.2f' % doc.belastbaar_jaar"/></td>
+                            </tr>
+                            <tr>
+                                <td>Art. 14 Loonbelasting</td>
+                                <td class="text-end">- <t t-esc="'%.2f' % doc.art14_loonbelasting"/></td>
+                            </tr>
+                            <tr>
+                                <td>AOV bijdrage</td>
+                                <td class="text-end">- <t t-esc="'%.2f' % doc.aov"/></td>
+                            </tr>
+                            <tr>
+                                <td>Kinderbijslag (<t t-esc="doc.aantal_kinderen"/> kind(eren))</td>
+                                <td class="text-end">+ <t t-esc="'%.2f' % doc.kinderbijslag"/></td>
+                            </tr>
+                            <tr class="table-success">
+                                <th>Netto loon</th>
+                                <th class="text-end"><strong><t t-esc="'%.2f' % doc.netto"/></strong></th>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </t>
+        </t>
+    </template>
+</odoo>

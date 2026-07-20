@@ -29,3 +29,7 @@ l10n_sr_bank_export_wizard_user,sr.payroll.bank.export.wizard user,l10n_sr_hr_pa
 l10n_sr_bank_export_wizard_manager,sr.payroll.bank.export.wizard manager,l10n_sr_hr_payroll.model_sr_payroll_bank_export_wizard,hr_payroll.group_hr_payroll_manager,1,1,1,1
 l10n_sr_bank_export_wizard_accountant,sr.payroll.bank.export.wizard accountant,l10n_sr_hr_payroll.model_sr_payroll_bank_export_wizard,l10n_sr_hr_payroll.group_sr_payroll_accountant_export,1,1,1,0
 l10n_sr_bank_export_wizard_admin,sr.payroll.bank.export.wizard admin,l10n_sr_hr_payroll.model_sr_payroll_bank_export_wizard,base.group_system,1,1,1,1
+l10n_sr_payroll_simulatie_wizard_user,sr.payroll.simulatie.wizard user,l10n_sr_hr_payroll.model_sr_payroll_simulatie_wizard,hr_payroll.group_hr_payroll_user,1,1,1,0
+l10n_sr_payroll_simulatie_wizard_manager,sr.payroll.simulatie.wizard manager,l10n_sr_hr_payroll.model_sr_payroll_simulatie_wizard,hr_payroll.group_hr_payroll_manager,1,1,1,1       
+l10n_sr_payroll_simulatie_wizard_accountant,sr.payroll.simulatie.wizard accountant,l10n_sr_hr_payroll.model_sr_payroll_simulatie_wizard,l10n_sr_hr_payroll.group_sr_payroll_accountant_export,1,1,1,0       
+l10n_sr_payroll_simulatie_wizard_admin,sr.payroll.simulatie.wizard admin,l10n_sr_hr_payroll.model_sr_payroll_simulatie_wizard,base.group_system,1,1,1,1 
